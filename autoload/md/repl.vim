@@ -16,7 +16,20 @@ function! s:repl_name(repl_type)
   return 'mdpp_' . bufnr('%') . '_' . a:repl_type
 endfunction
 
+function! s:check_repl_availability()
+  if !exists('*repl#is_running')
+    echohl ErrorMsg
+    echo 'mdpp: REPL feature requires the `sophiehicks1/repl.vim` plugin. Please install it or disable REPL mappings.'
+    echohl None
+    return 0
+  endif
+  return 1
+endfunction
+
 function! s:dynamicReplSend(repl_type, lines)
+  if !s:check_repl_availability()
+    return
+  endif
   let repl = s:repl_name(a:repl_type)
   if !repl#is_running(repl) && has_key(g:mdpp_repl_configs, a:repl_type)
     call repl#start(repl, g:mdpp_repl_configs[a:repl_type])
@@ -24,6 +37,10 @@ function! s:dynamicReplSend(repl_type, lines)
   endif
   if repl#is_running(repl)
     call repl#send(repl, a:lines)
+  else
+    echohl WarningMsg
+    echo 'mdpp: Could not start REPL for type: ' . a:repl_type
+    echohl None
   endif
 endfunction
 
@@ -40,6 +57,9 @@ function! s:range_repl_type(start, end)
 endfunction
 
 function! md#repl#dynamicReplOperator(type)
+  if !s:check_repl_availability()
+    return
+  endif
   let sel_save = &selection
   let &selection = "inclusive"
   let reg_save = @@
