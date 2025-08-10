@@ -43,6 +43,7 @@ Reorganize your markdown hierarchy effortlessly:
 ### Additional Features
 
 - **`<C-f>`** (Insert mode) - Insert footnote with interactive prompt
+- **`<C-l>`** (Insert mode) - Insert reference link with interactive prompt
 
 ## Installation
 
@@ -97,3 +98,7 @@ This plugin follows standard vim plugin conventions. The codebase is modularly o
 ---
 
 **mdpp.vim** - Making markdown editing as powerful as your ideas.
+
+[test]: https://test.com
+
+[^asdf]: This is better

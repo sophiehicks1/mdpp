@@ -1,7 +1,8 @@
 " TODO
 " - ensure no mappings are overwritten
 
-inoremap <buffer> <C-f> <ESC>:call md#core#footnote()<CR>
+inoremap <buffer> <C-f> <C-o>:call md#core#footnote()<CR>
+inoremap <buffer> <C-l> <C-o>:call md#core#referenceLink()<CR>
 
 " operator pending mappings
 onoremap <buffer> is :call md#core#insideSection()<CR>

@@ -7,6 +7,14 @@ function! md#core#footnote()
   exec "normal! A"
 endfunction
 
+function! md#core#referenceLink()
+  let word = input("> ")
+  let old_a = @a
+  exec "normal! a[".word."]\"aya]GopA: "
+  let @a = old_a
+  exec "normal! A"
+endfunction
+
 " text objects
 
 function! md#core#insideSection()
