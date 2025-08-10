@@ -96,18 +96,6 @@ function! md#move#toFirstChildHeading()
   return md#move#downToLevel(md#line#sectionLevel('.') + 1, 1)
 endfunction
 
-function! md#move#toEndOfSection()
-  return md#move#downUntilLevel(md#line#sectionLevel('.'))
-endfunction
-
 function! md#move#toLine(lnum)
   execute "normal! " . md#line#num(a:lnum) . "gg"
-endfunction
-
-function! md#move#toWin(wnum)
-  let start = winnr()
-  wincmd w
-  while ((winnr() != a:wnum) && (winnr() != start))
-    wincmd w
-  endwhile
 endfunction

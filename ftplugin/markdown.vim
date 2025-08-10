@@ -1,10 +1,5 @@
 " TODO
 " - ensure no mappings are overwritten
-" - option to switch off interactive features (todo, tables, shell)
-
-" TODO insert mode mappings
-" - insert new subheading (same level as current heading)
-" - insert new footnote
 
 inoremap <buffer> <C-f> <ESC>:call md#core#footnote()<CR>
 
@@ -32,20 +27,20 @@ nnoremap <buffer> [m :call md#core#moveSectionBack()<CR>
 nnoremap <buffer> ]m :call md#core#moveSectionForward()<CR>
 nnoremap <buffer> [M :call md#core#raiseSectionBack()<CR>
 nnoremap <buffer> ]M :call md#core#raiseSectionForward()<CR>
-nnoremap <buffer> gR :call md#core#nestSection()<CR>A
+nnoremap <buffer> gR :call md#core#nestSection()<CR>
 
 " movement mappings
-nnoremap <buffer> [s :call md#move#toPreviousHeading()<CR>
-nnoremap <buffer> ]s :call md#move#toNextHeading()<CR>
-nnoremap <buffer> [[ :call md#move#toPreviousSibling()<CR>
-nnoremap <buffer> ]] :call md#move#toNextSibling()<CR>
+nnoremap <buffer> [[ :call md#move#toPreviousHeading()<CR>
+nnoremap <buffer> ][ :call md#move#toNextHeading()<CR>
+nnoremap <buffer> [s :call md#move#toPreviousSibling()<CR>
+nnoremap <buffer> ]s :call md#move#toNextSibling()<CR>
 nnoremap <buffer> (  :call md#move#toParentHeading()<CR>
 nnoremap <buffer> )  :call md#move#toFirstChildHeading()<CR>
 
 " FIXME make these motions better (store V state, no yucky echom, etc.)
-vnoremap <buffer> [h :<C-u>call md#move#toPreviousHeading()<CR>
-vnoremap <buffer> ]h :<C-u>call md#move#toNextHeading()<CR>
-vnoremap <buffer> [[ :<C-u>call md#move#toPreviousSibling()<CR>
-vnoremap <buffer> ]] :<C-u>call md#move#toNextSibling()<CR>
+vnoremap <buffer> [[ :<C-u>call md#move#toPreviousHeading()<CR>
+vnoremap <buffer> ][ :<C-u>call md#move#toNextHeading()<CR>
+vnoremap <buffer> [s :<C-u>call md#move#toPreviousSibling()<CR>
+vnoremap <buffer> ]s :<C-u>call md#move#toNextSibling()<CR>
 vnoremap <buffer> (  :<C-u>call md#move#toParentHeading()<CR>
 vnoremap <buffer> )  :<C-u>call md#move#toFirstChildHeading()<CR>

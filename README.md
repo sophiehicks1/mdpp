@@ -1,4 +1,4 @@
-# mdpp.vim - Markdown Power Plugin
+# mdpp
 
 A comprehensive vim plugin that transforms markdown editing with powerful text objects, intelligent navigation, structural manipulation, and optional REPL integration.
 
@@ -23,10 +23,9 @@ Examples:
 
 Move through your document structure efficiently:
 
-- **`]s`/`[s`** - Next/previous heading (any level)
-- **`]]`/`[[`** - Next/previous sibling heading (same level)
+- **`]]`/`[[`** - Next/previous heading (any level)
+- **`]s`/`[s`** - Next/previous sibling heading (same level)
 - **`)`/`(`** - First child/parent heading
-- **`]h`/`[h`** - Move between headings with visual feedback
 
 ### Document Structure Manipulation
 
@@ -53,14 +52,9 @@ Plug 'sophiehicks1/mdpp'
 
 ### Using Vundle:
 ```vim
-Plugin 'your-username/mdpp.vim'
-Plugin 'sophiehicks1/repl.vim'  " Optional
+Plugin 'sophiehicks1/mdpp.vim'
 ```
 
-## Configuration
-
-### Basic Setup
-```vim
 ## Usage Examples
 
 ### Document Navigation
@@ -105,12 +99,6 @@ This plugin follows standard vim plugin conventions. The codebase is modularly o
 - `autoload/md/core.vim` - Core functionality and text objects  
 - `autoload/md/move.vim` - Navigation commands
 - `autoload/md/line.vim` - Line-level parsing utilities
-- `autoload/md/repl.vim` - REPL integration
-- `autoload/md/str.vim` - String manipulation helpers
-
-## License
-
-[Your chosen license here]
 
 ---
 

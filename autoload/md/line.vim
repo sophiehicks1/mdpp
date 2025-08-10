@@ -10,7 +10,7 @@ function! md#line#num(lnum)
 endfunction
 
 function! md#line#isBlank(lnum)
-  return md#str#isBlank(getline(md#line#num(a:lnum)))
+  return match(getline(md#line#num(a:lnum)), '^[[:space:]]*$') != -1
 endfunction
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -51,7 +51,7 @@ function! md#line#isListItem(lnum)
 endfunction
 
 function! md#line#underlinedHeadingLevel(lnum)
-  let nextLine = md#str#trim(getline(md#line#num(a:lnum) + 1))
+  let nextLine = matchlist(getline(md#line#num(a:lnum) + 1), '[[:space:]]*\(.\{-}\)[[:space:]]*$')[1]
   if match(nextLine, '^==*$') != -1
     return 1
   elseif match(nextLine, '^--*$') != -1
