@@ -85,12 +85,6 @@ Given this structure:
 
 - **Core functionality**: Vim 7.4+ (no external dependencies)
 
-## Tips & Tricks
-
-1. **Combine text objects with operators**: `d]s` deletes from cursor to next section
-2. **Use counts with movements**: `3]]` jumps 3 sibling headings forward  
-3. **Visual mode works**: Select text then use navigation commands
-
 ## Contributing
 
 This plugin follows standard vim plugin conventions. The codebase is modularly organized:
