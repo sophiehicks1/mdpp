@@ -50,10 +50,6 @@ function! md#line#isListItem(lnum)
   return match(getline(a:lnum), "^[[:space:]]*- ") != -1
 endfunction
 
-function! md#line#hasMetadata(lnum)
-  return md#line#isHeading(a:lnum) && match(getline(a:lnum), '{.*} *$') != -1
-endfunction
-
 function! md#line#underlinedHeadingLevel(lnum)
   let nextLine = md#str#trim(getline(md#line#num(a:lnum) + 1))
   if match(nextLine, '^==*$') != -1

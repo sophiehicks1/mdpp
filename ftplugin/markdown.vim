@@ -15,8 +15,6 @@ onoremap <buffer> it :call md#core#insideTree()<CR>
 onoremap <buffer> at :call md#core#aroundTree()<CR>
 onoremap <buffer> ih :call md#core#insideHeading()<CR>
 onoremap <buffer> ah :call md#core#aroundHeading()<CR>
-onoremap <buffer> im :call md#core#insideMetadata()<CR>
-onoremap <buffer> am :call md#core#aroundMetadata()<CR>
 
 vnoremap <buffer> is :<C-u>call md#core#insideSection()<CR>
 vnoremap <buffer> as :<C-u>call md#core#aroundSection(0)<CR>
@@ -24,8 +22,6 @@ vnoremap <buffer> it :<C-u>call md#core#insideTree()<CR>
 vnoremap <buffer> at :<C-u>call md#core#aroundTree()<CR>
 vnoremap <buffer> ih :<C-u>call md#core#insideHeading()<CR>
 vnoremap <buffer> ah :<C-u>call md#core#aroundHeading()<CR>
-vnoremap <buffer> im :<C-u>call md#core#insideMetadata()<CR>
-vnoremap <buffer> am :<C-u>call md#core#aroundMetadata()<CR>
 
 " tree manipulation mappings
 nnoremap <buffer> [h :call md#core#decHeading(1)<CR>
@@ -53,16 +49,3 @@ vnoremap <buffer> [[ :<C-u>call md#move#toPreviousSibling()<CR>
 vnoremap <buffer> ]] :<C-u>call md#move#toNextSibling()<CR>
 vnoremap <buffer> (  :<C-u>call md#move#toParentHeading()<CR>
 vnoremap <buffer> )  :<C-u>call md#move#toFirstChildHeading()<CR>
-
-if g:with_todo_features
-  call md#todo#init()
-
-  nnoremap <buffer> [d :call md#core#decTodo()<CR>
-  nnoremap <buffer> ]d :call md#core#incTodo()<CR>
-endif
-
-if exists("g:mdpp_repl_configs")
-  nnoremap <silent> cp :set operatorfunc=md#repl#dynamicReplOperator<cr>g@
-  vnoremap <silent> cp :<c-u>call md#repl#dynamicReplOperator(visualmode())<cr>
-  nnoremap <silent> cpp :call md#repl#dynamicReplOperator(v:count1)<CR>
-endif

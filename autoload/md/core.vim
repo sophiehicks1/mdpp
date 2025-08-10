@@ -7,20 +7,6 @@ function! md#core#footnote()
   exec "normal! A"
 endfunction
 
-" code folding
-
-function! md#core#fold(lnum)
-  if md#line#isBlank(a:lnum)
-    return '-1'
-  endif
-  let l = md#line#sectionLevel(a:lnum)
-  if md#line#isHeading(a:lnum)
-    return '>' . l
-  else
-    return '' . l
-  endif
-endfunction
-
 " text objects
 
 function! md#core#insideSection()
@@ -86,26 +72,6 @@ function! md#core#aroundHeading()
     normal! vg_o
   else
     normal! Vjo
-  endif
-endfunction
-
-function! md#core#insideMetadata()
-  let start = getpos('.')
-  call md#move#ensureHeading()
-  if md#line#hasMetadata('.')
-    normal! 0f{vi{
-  else
-    call setpos('.', start)
-  endif
-endfunction
-
-function! md#core#aroundMetadata()
-  let start = getpos('.')
-  call md#move#ensureHeading()
-  if md#line#hasMetadata('.')
-    normal! 0f{va{
-  else
-    call setpos('.', start)
   endif
 endfunction
 
@@ -235,28 +201,3 @@ function! md#core#nestSection()
     let @a = storedRegister
   endtry
 endfunction
-
-" todo state cycling
-if g:with_todo_features
-  call md#todo#init()
-
-  function! md#core#incTodo()
-    let pos = getpos('.')
-    try
-      call md#move#ensureHeading()
-      call md#todo#incTodoState('.')
-    finally
-      call setpos('.', pos)
-    endtry
-  endfunction
-
-  function! md#core#decTodo()
-    let pos = getpos('.')
-    try
-      call md#move#ensureHeading()
-      call md#todo#decTodoState('.')
-    finally
-      call setpos('.', pos)
-    endtry
-  endfunction
-endif
