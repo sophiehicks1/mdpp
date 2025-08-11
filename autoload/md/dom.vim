@@ -1,10 +1,5 @@
 " This file contains functions for building and querying a tree model of the
 " heading structure of a markdown file.
-"
-" TODO
-" - change the use of the 'lnum' and 'line' names, so that line is either Int
-"   or string, and lnum is always a number. That way, I don't need to call
-"   s:lineAsNum so much, and expectations are clear
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "             ___                            _              _   _              "
@@ -198,7 +193,7 @@ endfunction
 function! s:tree_newLine(tree, lnum)
   let a:tree.lnumsToNodeId[a:lnum] = a:tree.latestNodeId
   let node = s:tree_latestNode(a:tree)
-  let node.lnum += [a:lnum]
+  let node.lnums += [a:lnum]
   return
 endfunction
 
@@ -222,7 +217,7 @@ endfunction
 function! md#dom#refreshDocumentTree()
   let tree = s:tree_new()
   for lnum in range(1, line('$'))
-    let level = s:headingLevel(line)
+    let level = s:headingLevel(lnum)
     if level
       call s:tree_newNode(tree, lnum, level)
     else
@@ -280,7 +275,6 @@ function! md#dom#sectionLnums(line, withChildren)
   let lnum = s:lineAsNum(a:line)
   let node = s:tree_getNodeAtLnum(b:dom, lnum)
   let lnums = []
-  " TODO try changing this to `call s:add...(lnums, node)
   if a:withChildren
     let lnums += s:addNodeLnumsRecursive([], node)
   else

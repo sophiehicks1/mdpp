@@ -2,15 +2,13 @@
 " Movement mappings
 """""""""""""""""""
 
-" Utility functions
-
-function! s:goTo(mode, lnum)
+function! s:restoreVisual(mode)
   if a:mode !=# 'n'
     normal! gv
   endif
-  call cursor(a:lnum, 1)
 endfunction
 
+" v:count of 0 means no explicit count was passed, so count ahould be 1
 function! s:normalizeCount()
   let count = v:count
   if v:count == 0
@@ -19,47 +17,40 @@ function! s:normalizeCount()
   return count
 endfunction
 
+" push current position to the jumplist and then move to the new target line
+function! s:goToLine(lnum)
+  normal! m`
+  call cursor(a:lnum, 1)
+endfunction
+
 " Movement command implementations
 
-" Each of these movement actions follows the same pattern. Essentially they
+" Each of the movement actions follows the same pattern. Essentially they
 " all move to X (where X is defined by a dom function), or leave the cursor
 " where it is if X couldn't be found. Here's how it works step by step:
 " - refresh the dom tree
-" - get the current line as a number
-" - pass that to a dom function that returns a target line (or -1 if there is
-"   no target, in which case we set the target to the current line)
-" - move to the target line
-function! s:generateMoveFunctionImplementation(action, domFunction)
-  return  "function! s:" . a:action . "(mode)\n" .
-        \ "  call md#dom#refreshDocumentTree()\n" .
-        \ "  let currentLnum = line('.')\n" .
-        \ "  let targetLnum = md#dom#" . a:domFunction . "(currentLnum)\n" .
-        \ "  if targetLnum == -1\n" .
-        \ "    let targetLnum = currentLnum\n" .
-        \ "  endif\n" .
-        \ "  call s:goTo(a:mode, targetLnum)\n" .
-        \ "endfunction"
+" - restore the visual state (since it's lost when the command invokes the
+"   function)
+" - figure out how many times we need to execute the move. Each move is done
+"   as follows:
+"   - pass the current line to a dom function that returns a target line (or
+"     -1 if there is no target, in which case we set the target to the current
+"     line)
+"   - move to the target line if one was found.
+function! s:executeMove(domFunction, mode)
+  call md#dom#refreshDocumentTree()
+  let count = s:normalizeCount()
+  call s:restoreVisual(a:mode)
+  for i in range(1, count)
+    let l:TargetFinder = function("md#dom#" . a:domFunction, ['.'])
+    let targetLnum = l:TargetFinder()
+    if targetLnum != -1
+      call s:goToLine(targetLnum)
+    endif
+  endfor
 endfunction
 
-let s:implementations = [
-      \ ['backToHeading', 'headingLnumBefore'],
-      \ ['forwardToHeading', 'headingLnumAfter'],
-      \ ['backToSibling', 'siblingHeadingLnumBefore'],
-      \ ['forwardToSibling', 'siblingHeadingLnumAfter'],
-      \ ['backToParent', 'parentHeadingLnum'],
-      \ ['forwardToFirstChild', 'firstChildHeadingLnum']
-      \ ]
-
-for [action, domFunction] in s:implementations
-  execute s:generateMoveFunctionImplementation(action, domFunction)
-endfor
-
 " Create the command wrapper functions for normal and visual modes
-
-let s:modes = {
-      \ 'n': 'Normal',
-      \ 'v': 'Visual'
-      \ }
 
 let s:commands = [
       \ 'backToHeading',
@@ -70,25 +61,27 @@ let s:commands = [
       \ 'forwardToFirstChild'
       \ ]
 
-function! s:moveWrapperName(command, mode)
-  return 'md#move#' . a:command . s:modes[a:mode]
-endfunction
+let s:domFunctions = {
+      \ 'backToHeading': 'headingLnumBefore',
+      \ 'forwardToHeading': 'headingLnumAfter',
+      \ 'backToSibling': 'siblingHeadingLnumBefore',
+      \ 'forwardToSibling': 'siblingHeadingLnumAfter',
+      \ 'backToParent': 'parentHeadingLnum',
+      \ 'forwardToFirstChild': 'firstChildHeadingLnum'
+      \ }
 
-" Return an executable string that defines the entire function
-function! s:generateMoveFunctionWrapper(command, mode)
-  let modeName = s:modes[a:mode]
-  let functionName = s:moveWrapperName(a:command, a:mode)
-  return 'function! ' . functionName . '()' . "\n" .
-        \ '  let count = s:normalizeCount()' . "\n" .
-        \ '  for i in range(1, count)' . "\n" .
-        \ '    call s:' . a:command . "('" . a:mode . "')" . "\n" .
-        \ '  endfor' . "\n" .
-        \ 'endfunction'
-endfunction 
+let s:modes = {
+      \ 'n': 'Normal',
+      \ 'v': 'Visual'
+      \ }
 
 " Generate the function definitions for each command and mode
 for command in s:commands
   for mode in keys(s:modes)
-    execute s:generateMoveFunctionWrapper(command, mode)
+    let newFunctionName = 'md#move#' . command . s:modes[mode]
+    let domFunction = s:domFunctions[command]
+    execute "function! ". newFunctionName . "()\n" .
+          \ "  call s:executeMove('" . domFunction . "', '" . mode . "')" . "\n" .
+          \ "endfunction"
   endfor
 endfor
