@@ -1,4 +1,4 @@
-" TODO: make all these customizable
+" markdown.vim - Vim plugin for editing Markdown files
 
 " TODO:
 " - extend the dom model to account for references at the end
@@ -7,7 +7,8 @@
 " inoremap <buffer> <C-l> <C-o>:call md#core#referenceLink()<CR>
 
 
-" TODO: Text objects - reimplement these using vim-textobj-user
+" TODO: Text objects - reimplement these using vim-textobj-user... should be
+" easy
 " onoremap <buffer> is :call md#core#insideSection()<CR>
 " onoremap <buffer> as :call md#core#aroundSection(1)<CR>
 " onoremap <buffer> it :call md#core#insideTree()<CR>
@@ -47,16 +48,43 @@
 " nnoremap <buffer> ]M :call md#core#raiseSectionForward()<CR>
 " nnoremap <buffer> gR :call md#core#nestSection()<CR>
 
-" TODO: movement mappings - Just get the value from the dom, and go straight there
-nnoremap <buffer> [[ :call md#move#backToHeading()<CR>
-nnoremap <buffer> ]] :call md#move#forwardToHeading()<CR>
-" nnoremap <buffer> [s :call md#move#toPreviousSibling()<CR>
-" nnoremap <buffer> ]s :call md#move#toNextSibling()<CR>
-" nnoremap <buffer> (  :call md#move#toParentHeading()<CR>
-" nnoremap <buffer> )  :call md#move#toFirstChildHeading()<CR>
-" vnoremap <buffer> [[ :<C-u>call md#move#toPreviousHeading()<CR>
-" vnoremap <buffer> ][ :<C-u>call md#move#toNextHeading()<CR>
-" vnoremap <buffer> [s :<C-u>call md#move#toPreviousSibling()<CR>
-" vnoremap <buffer> ]s :<C-u>call md#move#toNextSibling()<CR>
-" vnoremap <buffer> (  :<C-u>call md#move#toParentHeading()<CR>
-" vnoremap <buffer> )  :<C-u>call md#move#toFirstChildHeading()<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingNormal :<C-u>call md#move#backToHeadingNormal()<cr>
+vnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<cr>
+                          
+nnoremap <buffer> <silent> <Plug>MarkdownForwardToHeadingNormal :<C-u>call md#move#forwardToHeadingNormal()<cr>
+vnoremap <buffer> <silent> <Plug>MarkdownForwardToHeadingVisual :<C-u>call md#move#forwardToHeadingVisual()<cr>
+
+nnoremap <buffer> <silent> <Plug>MarkdownBackToSiblingNormal :<C-u>call md#move#backToSiblingNormal()<cr>
+vnoremap <buffer> <silent> <Plug>MarkdownBackToSiblingVisual :<C-u>call md#move#backToSiblingVisual()<cr>
+
+nnoremap <buffer> <silent> <Plug>MarkdownForwardToSiblingNormal :<C-u>call md#move#forwardToSiblingNormal()<cr>
+vnoremap <buffer> <silent> <Plug>MarkdownForwardToSiblingVisual :<C-u>call md#move#forwardToSiblingVisual()<cr>
+
+nnoremap <buffer> <silent> <Plug>MarkdownBackToParentNormal :<C-u>call md#move#backToParentNormal()<cr>
+vnoremap <buffer> <silent> <Plug>MarkdownBackToParentVisual :<C-u>call md#move#backToParentVisual()<cr>
+
+nnoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildNormal :<C-u>call md#move#forwardToFirstChildNormal()<cr>
+vnoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildVisual :<C-u>call md#move#forwardToFirstChildVisual()<cr>
+
+if exists('g:markdown_move_mappings') && g:markdown_move_mappings == 0
+  " If the user has disabled the movement mappings, don't set them.
+else
+  " Set the movement mappings for normal and visual modes.
+  nmap <buffer> [[ <Plug>MarkdownBackToHeadingNormal
+  vmap <buffer> [[ <Plug>MarkdownBackToHeadingVisual
+
+  nmap <buffer> ]] <Plug>MarkdownForwardToHeadingNormal
+  vmap <buffer> ]] <Plug>MarkdownForwardToHeadingVisual
+
+  nmap <buffer> [s <Plug>MarkdownBackToSiblingNormal
+  vmap <buffer> [s <Plug>MarkdownBackToSiblingVisual
+
+  nmap <buffer> ]s <Plug>MarkdownForwardToSiblingNormal
+  vmap <buffer> ]s <Plug>MarkdownForwardToSiblingVisual
+
+  nmap <buffer> ( <Plug>MarkdownBackToParentNormal
+  vmap <buffer> ( <Plug>MarkdownBackToParentVisual
+
+  nmap <buffer> ) <Plug>MarkdownForwardToFirstChildNormal
+  vmap <buffer> ) <Plug>MarkdownForwardToFirstChildVisual
+endif
