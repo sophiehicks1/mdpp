@@ -84,7 +84,7 @@ Given this structure:
 
 ## Dependencies
 
-- **Core functionality**: Vim 7.4+ (no external dependencies)
+- tpope/vim-repeat
 
 ## Contributing
 

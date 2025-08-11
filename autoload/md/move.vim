@@ -32,22 +32,22 @@ endfunction
 function! s:generateMoveFunctionImplementation(action, domFunction)
   return  "function! s:" . a:action . "(mode)\n" .
         \ "  call md#dom#refreshDocumentTree()\n" .
-        \ "  let currentLine = line('.')\n" .
-        \ "  let targetLine = md#dom#" . a:domFunction . "(currentLine)\n" .
-        \ "  if targetLine == -1\n" .
-        \ "    let targetLine = currentLine\n" .
+        \ "  let currentLnum = line('.')\n" .
+        \ "  let targetLnum = md#dom#" . a:domFunction . "(currentLnum)\n" .
+        \ "  if targetLnum == -1\n" .
+        \ "    let targetLnum = currentLnum\n" .
         \ "  endif\n" .
-        \ "  call s:goTo(a:mode, targetLine)\n" .
+        \ "  call s:goTo(a:mode, targetLnum)\n" .
         \ "endfunction"
 endfunction
 
 let s:implementations = [
-      \ ['backToHeading', 'headingLineBefore'],
-      \ ['forwardToHeading', 'headingLineAfter'],
-      \ ['backToSibling', 'siblingHeadingLineBefore'],
-      \ ['forwardToSibling', 'siblingHeadingLineAfter'],
-      \ ['backToParent', 'parentHeadingLine'],
-      \ ['forwardToFirstChild', 'firstChildHeadingLine']
+      \ ['backToHeading', 'headingLnumBefore'],
+      \ ['forwardToHeading', 'headingLnumAfter'],
+      \ ['backToSibling', 'siblingHeadingLnumBefore'],
+      \ ['forwardToSibling', 'siblingHeadingLnumAfter'],
+      \ ['backToParent', 'parentHeadingLnum'],
+      \ ['forwardToFirstChild', 'firstChildHeadingLnum']
       \ ]
 
 for [action, domFunction] in s:implementations
