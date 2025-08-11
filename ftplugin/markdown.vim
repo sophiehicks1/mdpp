@@ -12,6 +12,7 @@ onoremap <buffer> at :call md#core#aroundTree()<CR>
 onoremap <buffer> ih :call md#core#insideHeading()<CR>
 onoremap <buffer> ah :call md#core#aroundHeading()<CR>
 
+" visual mode mappings
 vnoremap <buffer> is :<C-u>call md#core#insideSection()<CR>
 vnoremap <buffer> as :<C-u>call md#core#aroundSection(0)<CR>
 vnoremap <buffer> it :<C-u>call md#core#insideTree()<CR>
