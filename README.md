@@ -1,6 +1,6 @@
 # mdpp
 
-A comprehensive vim plugin that transforms markdown editing with powerful text objects, intelligent navigation, structural manipulation, and optional REPL integration.
+A vim plugin that adds text objects, navigation and structural manipulation to markdown editing.
 
 ## Features
 
