@@ -1,6 +1,5 @@
 " Text objects functions for use with vim-textobj-user
 
-
 " return a position, using the same format returned by getpos()
 " line lnum
 " column cnum
@@ -31,7 +30,7 @@ endfunction
 " Returns a vim-textobj-user style range for the section including the current
 " line, not including the children, but including the header line.
 function! md#objects#aroundSection()
-  call md#dom#refreshDocumentTree()
+  call md#dom#refreshDocument()
   let lines = md#dom#sectionLnums('.', 0)
   return s:lineRange(min(lines), max(lines))
 endfunction
@@ -39,7 +38,7 @@ endfunction
 " Returns a vim-textobj-user style range for the section including the current
 " line, not including the children or the header line.
 function! md#objects#insideSection()
-  call md#dom#refreshDocumentTree()
+  call md#dom#refreshDocument()
   let lines = md#dom#contentLnums('.', 0)
   return s:lineRange(min(lines), max(lines))
 endfunction
@@ -47,7 +46,7 @@ endfunction
 " Returns a vim-textobj-user style range for the section including the current
 " line, including the children and the header line.
 function! md#objects#aroundTree()
-  call md#dom#refreshDocumentTree()
+  call md#dom#refreshDocument()
   let lines = md#dom#sectionLnums('.', 1)
   return s:lineRange(min(lines), max(lines))
 endfunction
@@ -55,25 +54,31 @@ endfunction
 " Returns a vim-textobj-user style range for the section including the current
 " line, including the children but not the header line.
 function! md#objects#insideTree()
-  call md#dom#refreshDocumentTree()
+  call md#dom#refreshDocument()
   let lines = md#dom#contentLnums('.', 1)
   return s:lineRange(min(lines), max(lines))
 endfunction
 
 " Returns a vim-textobj-user style range for the current section header content
 function! md#objects#insideHeading()
-  call md#dom#refreshDocumentTree()
+  call md#dom#refreshDocument()
   let headingLine = md#dom#sectionHeadingLnum('.')
-  let startCol = md#dom#sectionLevel('.') + 2
-  let endCol = len(getline(headingLine))
-  return s:charRange([headingLine, startCol], [headingLine, endCol])
+  if headingLine != -1
+    let startCol = md#dom#sectionLevel('.') + 2
+    let endCol = len(getline(headingLine))
+    return s:charRange([headingLine, startCol], [headingLine, endCol])
+  endif
+  return 0
 endfunction
 
 " Returns a vim-textobj-user style range for the whole current section header line
 function! md#objects#aroundHeading()
-  call md#dom#refreshDocumentTree()
+  call md#dom#refreshDocument()
   let headingLine = md#dom#sectionHeadingLnum('.')
-  let endCol = len(getline(headingLine))
-  echom endCol
-  return s:charRange([headingLine, 0], [headingLine, endCol])
+  if headingLine != -1
+    let endCol = len(getline(headingLine))
+    echom endCol
+    return s:charRange([headingLine, 0], [headingLine, endCol])
+  endif
+  return 0
 endfunction

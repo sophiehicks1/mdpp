@@ -1,5 +1,5 @@
-" This file contains functions for building and querying a tree model of the
-" heading structure of a markdown file.
+" This file should depend be the only one using the tree/node api in md#node
+" It exposes an API for querying a markdown document using line numbers
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "             ___                            _              _   _              "
@@ -21,269 +21,104 @@
 "                                                                              "
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+" FIXME update this
 " Conventions used in this file:
 " - when referencing lines:
 "   - `line` can be either an integer line number, or a string representing a
 "      line (e.g. '.')
 "   - `lnum` is an integer line number.
 "   - `lineStr` is a string, representing the _content_ of a line.
-" - `s:node_*` functions and `s:tree_*` functions always expect and return exclusively lnums
+" - `md#node#*` functions and `s:tree_*` functions always expect and return exclusively lnums
 " - public APIs accept lines, and return lnums
 " - other internal functions should accept lines where possible, and are responsible
 "   for internally converting to lnums when necessary
 " - I miss static type checking.
 
-""""""""""""
-" Utilities
-"""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Construct a tree model of the document, stored in buffer local state
+" throughout this module.
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" Coerce lnum to an integer
-function! s:lineAsNum(line)
-  if type(a:line) ==# 0
-    return a:line
-  else
-    return line(a:line)
-  endif
+function! md#dom#refreshDocument()
+  call s:buildDom()
 endfunction
 
-""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" functions for parsing individual lines
-""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-" Check if the line is empty or contains only whitespace.
-function! s:strIsEmpty(lineStr)
-  return a:lineStr =~ '^\s*$'
-endfunction
-
-" Check if the line starts with a hash followed by spaces.
-function! s:strIsHashHeading(lineStr)
-  return a:lineStr =~ '^##*\s'
-endfunction
-
-" Check if the line is a heading underline (either == or --).
-function! s:strIsHeadingUnderline(lineStr)
-  return a:lineStr =~ '^[=-][=-]*$'
-endfunction
-
-" Check if the line is a list item (starts with - or * followed by space).
-function! s:strIsListItem(lineStr)
-  return a:lineStr =~ '^\s*[-*]\s'
-endfunction
-
-" Get the heading level of the line at line (i.e. 1 for '# foo', 2 for '## foo', etc.
-" Returns 0 if the line is not a heading.
-function! s:headingLevel(line)
-  let lineStr = getline(a:line)
-  " Check if the lineStr is a hash heading (##, ###, etc.), and return the count
-  " of hashes if it is
-  if s:strIsHashHeading(lineStr)
-    return len(matchstr(lineStr, '^##*\ze\s'))
-  endif
-  " Check if the lineStr is a heading underline (either == or --).
-  if !(s:strIsEmpty(lineStr) || s:strIsListItem(lineStr))
-    let nextLine = getline(s:lineAsNum(a:line) + 1)
-    if s:strIsHeadingUnderline(nextLine)
-      " This is a heading underline, so we return the level based on the
-      " underline character used.
-      return lineStr[0] ==# '=' ? 1 : 2
-    endif
-  endif
-  " If we get here, it's not a heading.
-  return 0
-endfunction
-
-"""""""""""""""""""""""""""""""""""""""
-" Functions for handling "node" objects
-"""""""""""""""""""""""""""""""""""""""
-
-" Create a new node object, that will be stored in the tree. Each node object represents a heading line in the
-" document.
-" Fields:
-" - id:       Integer ID of the node, unique within the tree
-" - parent:   Node object of the parent, or 0 if this is the root
-" - level:    Integer heading level (1 for h1, 2 for h2, etc.)
-" - children: List of child nodes (List<Node>)
-" - lnums:    List of line numbers that this node represents (including the content of the section)
-function! s:node_new(id, level)
-  return {
-        \ 'id': a:id,
-        \ 'parent': 0,
-        \ 'level': a:level,
-        \ 'children': [],
-        \ 'lnums': []
-        \ }
-endfunction
-
-" Wire a parent and child to each other
-function! s:node_addChild(parent, child)
-  let a:parent.children += [a:child]
-  let a:child.parent = a:parent
-endfunction
-
-" Print a node object for debugging purposes. This is needed, because the raw
-" node objects contain self references (because parent links to child, and
-" child links to parent)
-function! s:node_debugPrint(node)
-  let parent_id = ((type(a:node.parent) == type({}) && has_key(a:node.parent, 'id')) ? a:node.parent.id : 'n/a') 
-  echom '{id: ' . a:node.id . ', '
-        \ 'level: ' . a:node.level . ', '
-        \ 'parentId: ' . parent_id . ', '
-        \ 'children: ' . string(map(copy(a:node.children), 'v:val.id')) . ', '
-        \ 'lnums: ' . string(a:node.lnums) . '}'
+function! s:buildDom()
+  let tree = md#node#buildTree()
+  let b:dom = { 'root': tree.root, 'allNodes': tree.nodes }
+  let b:dom.lnumsToNode = s:buildLnumIndex(b:dom.allNodes)
   return
 endfunction
 
-"""""""""""""""""""""""""""""""""""""""
-" Functions for handling "tree" objects
-"""""""""""""""""""""""""""""""""""""""
-
-" Create a new tree object. This will represent the entire heading structure of a document.
-" nodeIdToNode:    mapping from node ID to nodes
-" lnumsToNodeId:   mapping from integer line number to the node at that line
-" maxId:           the largest ID yet created
-" latestNodeId:    the ID of the most recent node we added
-" root:            a node representing the root of the document
-function! s:tree_new()
-  let root = s:node_new(0, 0)
-  return { 'nodeIdToNode': {'0': root},
-        \  'lnumsToNodeId': {},
-        \  'maxId': 0,
-        \  'latestNodeId': 0,
-        \  'root': root }
-endfunction
-
-" return the most recently added node
-function! s:tree_latestNode(tree)
-  return a:tree.nodeIdToNode[a:tree.latestNodeId]
-endfunction
-
-" Find the right parent for a new child. Parent nodes must have level smaller,
-" than their childrem, so we find the right node by starting at the most recent node, and
-" climbing the tree until we find a node that has a low enough heading level
-" to be newChild's parent node.
-function! s:tree_findParentForChild(tree, newChild)
-  let childLevel = a:newChild.level
-  let parent = s:tree_latestNode(a:tree)
-  " Climb up the tree until we find a parent that is at a lower level than the child
-  while parent.id != 0 && childLevel <= parent.level
-    let parent = parent.parent
-  endwhile
-  return parent
-endfunction
-
-" creates a new node object, and wires it into the tree
-function! s:tree_newNode(tree, lnum, level)
-  " create an orphaned node
-  let a:tree.maxId += 1
-  let node = s:node_new(a:tree.maxId, a:level)
-  " wire it to the node id index
-  let a:tree.nodeIdToNode[a:tree.maxId] = node
-  " wire it to the lnum index and add the current line to its lnums
-  let node.lnums += [a:lnum]
-  let a:tree.lnumsToNodeId[a:lnum] = node.id
-  " setup parentage, and set the new node to be the current parent
-  let parent = s:tree_findParentForChild(a:tree, node)
-  call s:node_addChild(parent, node)
-  let a:tree.latestNodeId = node.id
-  return
-endfunction
-
-" adds a pointer from an lnum to the last node we added (i.e. because a:lnum is still part of the current last
-" node), and adds the current lnum to the latest node.
-function! s:tree_newLine(tree, lnum)
-  let a:tree.lnumsToNodeId[a:lnum] = a:tree.latestNodeId
-  let node = s:tree_latestNode(a:tree)
-  let node.lnums += [a:lnum]
-  return
-endfunction
-
-" Get a node by its ID from the tree.
-function! s:tree_getNodeById(tree, id)
-  return a:tree.nodeIdToNode[a:id]
-endfunction
-
-" get node at lnum. This will return the closest heading node above the given
-" lnum, or the root node if lnum is before the first heading in the document
-function! s:tree_getNodeAtLnum(tree, lnum)
-  let nodeId = a:tree.lnumsToNodeId[a:lnum]
-  return s:tree_getNodeById(a:tree, nodeId)
-endfunction
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Public API for querying the dom of the current buffer
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-" scan the lines in a document to build the tree, and store it in buffer state.
-function! md#dom#refreshDocumentTree()
-  let tree = s:tree_new()
-  for lnum in range(1, line('$'))
-    let level = s:headingLevel(lnum)
-    if level
-      call s:tree_newNode(tree, lnum, level)
-    else
-      call s:tree_newLine(tree, lnum)
-    endif
+function! s:buildLnumIndex(nodes)
+  let lnumsToNode = {}
+  " collect all the nodes from root
+  for node in a:nodes
+    for lnum in md#node#getLnums(node, 0)
+      let lnumsToNode[lnum] = node
+    endfor
   endfor
-  let b:dom = tree
-  return
+  return lnumsToNode
+endfunction
+
+"""""""""""""""""""""""""
+" Node fetching functions
+"""""""""""""""""""""""""
+
+" The rest of this module operates on Nodes from the md#node api, retrieved
+" from the DOM using these two functions
+
+" get the node that includes a:line a:lnum
+function s:getNodeAtLine(line)
+  let lnum = md#line#lineAsNum(a:line)
+  return b:dom.lnumsToNode[lnum]
+endfunction
+
+" return a sorted list of all the nodes in the current buffer.
+function s:allNodes()
+  return b:dom.allNodes
 endfunction
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""
 " Functions that always return a list of line numbers
 """""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" Return a list of all heading lnums in the document.
+" Return a list of line numbers for all headings in the document.
 " If there are no headings, return an empty list.
 function! s:allHeadingLnums()
   let headings = []
-  for nodeId in keys(b:dom.nodeIdToNode)
-    let node = b:dom.nodeIdToNode[nodeId]
-    if node.level > 0
-      call add(headings, node.lnums[0])
+  for node in s:allNodes()
+    if md#node#hasHeading(node)
+      call add(headings, md#node#headingLnum(node))
     endif
   endfor
   return headings
 endfunction
 
-" Return a list of all child heading lnums of the a:line's parent heading.
-" If there are no child headings, return an empty list. This shouldn't happen,
-" since at the very least, the starting node should be in it's own sibling
-" list.
+" Return a list of line numbers for all the headings from childrem of the node
+" at a:line. If there are no child headings, return an empty list. This
+" shouldn't happen, since at the very least, every node should be in it's own
+" sibling list.
 function! s:siblingHeadingLnums(line)
-  let lnum = s:lineAsNum(a:line)
-  let node = s:tree_getNodeAtLnum(b:dom, lnum)
+  let node = s:getNodeAtLine(a:line)
   let siblings = []
-  for sibling in node.parent.children
-    call add(siblings, sibling.lnums[0])
+  for sibling in md#node#getSiblings(node)
+    if md#node#hasHeading(sibling)
+      call add(siblings, md#node#headingLnum(sibling))
+    endif
   endfor
   return siblings
-endfunction
-
-" add all the lnums from node to the list acc, including node's children's
-" lnums
-function! s:addNodeLnumsRecursive(acc, node)
-  let acc = a:acc + a:node.lnums
-  for child in a:node.children
-    let acc += s:addNodeLnumsRecursive(a:acc, child)
-  endfor
-  return acc
 endfunction
 
 " Return a list of lnums for the document section that includes a:line. It
 " should not be possible for a section's lnums to be empty.
 function! md#dom#sectionLnums(line, withChildren)
-  let lnum = s:lineAsNum(a:line)
-  let node = s:tree_getNodeAtLnum(b:dom, lnum)
-  let lnums = []
-  if a:withChildren
-    let lnums += s:addNodeLnumsRecursive([], node)
-  else
-    let lnums += node.lnums
-  endif
+  let node = s:getNodeAtLine(a:line)
+  let lnums = md#node#getLnums(node, a:withChildren)
   return lnums
 endfunction
 
-" Return a list of _content_ lines for the section at line lnum (i.e. all
+" Return a list of _content_ lines for the section at line a:line (i.e. all
 " lines, not including the section heading.
 function! md#dom#contentLnums(line, withChildren)
   let lnums = md#dom#sectionLnums(a:line, a:withChildren)
@@ -297,61 +132,61 @@ endfunction
 " Functions that return heading levels
 """"""""""""""""""""""""""""""""""""""
 
-" return the heading level of the section that contains a:line
+" return the heading level of the document section that contains a:line
 function! md#dom#sectionLevel(line)
-  let lnum = s:lineAsNum(a:line)
-  let node = s:tree_getNodeAtLnum(b:dom, lnum)
-  return node.level
+  let node = s:getNodeAtLine(a:line)
+  return md#node#getHeadingLevel(node)
 endfunction
 
-""""""""""""""""""""""""""""""""""""
-" Functions that return line numbers
-""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""
+" Functions that return heading line numbers
+""""""""""""""""""""""""""""""""""""""""""""
 
 " These return line numbers of headings with specific relationships to the
-" heading at lnum, or -1 if there is no such heading.
+" heading at the given line argument, or -1 if there is no such heading.
 
-" Return the line number from the heading of the section containing a:line. If
-" a:line is a heading, then it is the section heading.
+" Return the line number from the heading of the document section containing
+" a:line, or -1 if this section has no heading (i.e. if line is before teh
+" first heading in the document)
 function! md#dom#sectionHeadingLnum(line)
-  let lnum = s:lineAsNum(a:line)
-  let node = s:tree_getNodeAtLnum(b:dom, lnum)
-  return node.lnums[0]
+  let node = s:getNodeAtLine(a:line)
+  return md#node#headingLnum(node)
 endfunction
 
 " Return the line number of the parent heading of the line at line. If line is
 " a content line, this is the line number from the section heading. If line is
 " a heading line, it'a the parent node's heading
 function! md#dom#parentHeadingLnum(line)
-  let lnum = s:lineAsNum(a:line)
-  let node = s:tree_getNodeAtLnum(b:dom, lnum)
-  " If heading level is 0, then we're inside a section. Return the
-  " heading of the current node
-  if s:headingLevel(lnum) == 0
-    return node.lnums[0]
+  let lnum = md#line#lineAsNum(a:line)
+  let node = s:getNodeAtLine(lnum)
+  let thisSectionHeadingLnum = md#node#headingLnum(node)
+  " If this section has a heading, and we're not on that line, then we're
+  " inside the heading, so we looking for this section heading
+  if md#node#hasHeading(node) && thisSectionHeadingLnum != lnum
+    return thisSectionHeadingLnum
   endif
-  " If the line or parent are the root node, return -1
-  if node.id == 0 || node.parent.id == 0
-    return -1
+  " Otherwise, if there's a parent node with a heading, we want that heading
+  if md#node#hasParent(node) && md#node#hasHeading(md#node#getParent(node))
+    return md#node#headingLnum(md#node#getParent(node))
   endif
-  return node.parent.lnums[0]
+  return -1
 endfunction
 
 " Return the line number of the first child heading of a:line.
 " If there are no child headings, return -1.
 function! md#dom#firstChildHeadingLnum(line)
-  let lnum = s:lineAsNum(a:line)
-  let node = s:tree_getNodeAtLnum(b:dom, lnum)
-  if empty(node.children)
+  let node = s:getNodeAtLine(a:line)
+  let children = md#node#getChildren(node)
+  if empty(children)
     return -1
   endif
-  return node.children[0].lnums[0]
+  return md#node#headingLnum(children[0])
 endfunction
 
-" returns the last line from a:candidateLines before a:lnum, or -1 if there is
+" returns the last line from a:candidateLines before a:line, or -1 if there is
 " no such line
 function! s:lastLnumBefore(candidateLines, line)
-  let lnum = s:lineAsNum(a:line)
+  let lnum = md#line#lineAsNum(a:line)
   let candidatesBefore = filter(a:candidateLines, 'v:val < lnum')
   if empty(candidatesBefore)
     return -1
@@ -362,7 +197,7 @@ endfunction
 " returns the first line from a:candidateLines after a:line, or -1 if there is
 " no such line
 function! s:firstLnumAfter(candidateLines, line)
-  let lnum = s:lineAsNum(a:line)
+  let lnum = md#line#lineAsNum(a:line)
   let candidatesAfter = filter(a:candidateLines, 'v:val > lnum')
   if empty(candidatesAfter)
     return -1

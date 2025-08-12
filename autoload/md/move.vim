@@ -38,7 +38,7 @@ endfunction
 "     line)
 "   - move to the target line if one was found.
 function! s:executeMove(domFunction, mode)
-  call md#dom#refreshDocumentTree()
+  call md#dom#refreshDocument()
   let count = s:normalizeCount()
   call s:restoreVisual(a:mode)
   for i in range(1, count)
