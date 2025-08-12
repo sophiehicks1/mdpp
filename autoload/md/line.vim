@@ -1,3 +1,8 @@
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Functions for handling heading lines, mostly for handling the complexity of
+" Underline headings
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
 " Coerce lnum to an integer
 function! md#line#lineAsNum(line)
   if type(a:line) ==# 0
@@ -131,4 +136,56 @@ function! md#line#setHeadingAtLine(line, level, text)
   let l:HashHeadingHandler = function('s:setHashHeadingLine', [a:level, a:text, a:line])
   let l:UnderlineHeadingHandler = function('s:setUnderlineHeadingLines', [a:level, a:text, a:line])
   return s:handleHeadingTypes(l:HashHeadingHandler, l:UnderlineHeadingHandler, 0, a:line)
+endfunction
+
+""""""""""""""""""""""
+" Heading text objects
+""""""""""""""""""""""
+
+function! s:hashHeadingInsideObjectStartPair(line, lineStr)
+  return [a:line, s:countHashChars(a:lineStr) + 2]
+endfunction
+
+function! s:underlineHeadingObjectStartPair(line, _1, _2)
+  return [a:line, 1]
+endfunction
+
+function! md#line#headingInsideObjectStartPair(line)
+  let l:HashHeadingInsideObjectStartPair = function('s:hashHeadingInsideObjectStartPair', [a:line])
+  let l:UnderlineHeadingObjectStartPair = function('s:underlineHeadingObjectStartPair', [a:line])
+  return s:handleHeadingTypes(l:HashHeadingInsideObjectStartPair, l:UnderlineHeadingObjectStartPair, 0, a:line)
+endfunction
+
+function! s:hashHeadingAroundObjectStartPair(line, _)
+  return [a:line, 1]
+endfunction
+
+function! md#line#headingAroundObjectStartPair(line)
+  let l:HashHeadingAroundObjectStartPair = function('s:hashHeadingAroundObjectStartPair', [a:line])
+  let l:UnderlineHeadingObjectStartPair = function('s:underlineHeadingObjectStartPair', [a:line])
+  return s:handleHeadingTypes(l:HashHeadingAroundObjectStartPair, l:UnderlineHeadingObjectStartPair, 0, a:line)
+endfunction
+
+function! s:hashHeadingObjectEndPair(line, lineStr)
+  return [a:line, len(a:lineStr)]
+endfunction
+
+function! s:underlineHeadingInsideObjectEndPair(line, lineStr, _)
+  return [a:line, len(a:lineStr)]
+endfunction
+
+function! md#line#headingInsideObjectEndPair(line)
+  let l:HashHeadingObjectEndPair = function('s:hashHeadingObjectEndPair', [a:line])
+  let l:UnderlineHeadingObjectEndPair = function('s:underlineHeadingInsideObjectEndPair', [a:line])
+  return s:handleHeadingTypes(l:HashHeadingObjectEndPair, l:UnderlineHeadingObjectEndPair, 0, a:line)
+endfunction
+
+function! s:underlineHeadingAroundObjectEndPair(line, _, nextStr)
+  return [a:line + 1, len(a:nextStr)]
+endfunction
+
+function! md#line#headingAroundObjectEndPair(line)
+  let l:HashHeadingObjectEndPair = function('s:hashHeadingObjectEndPair', [a:line])
+  let l:UnderlineHeadingObjectEndPair = function('s:underlineHeadingAroundObjectEndPair', [a:line])
+  return s:handleHeadingTypes(l:HashHeadingObjectEndPair, l:UnderlineHeadingObjectEndPair, 0, a:line)
 endfunction

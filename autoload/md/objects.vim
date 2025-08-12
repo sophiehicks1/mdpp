@@ -66,9 +66,9 @@ function! md#objects#insideHeading()
   call md#dom#refreshDocument()
   let headingLine = md#dom#sectionHeadingLnum('.')
   if headingLine != -1
-    let startCol = md#dom#sectionLevel('.') + 2
-    let endCol = len(getline(headingLine))
-    return s:charRange([headingLine, startCol], [headingLine, endCol])
+    let startPair = md#line#headingInsideObjectStartPair(headingLine)
+    let endPair = md#line#headingInsideObjectEndPair(headingLine)
+    return s:charRange(startPair, endPair)
   endif
   return 0
 endfunction
@@ -78,9 +78,9 @@ function! md#objects#aroundHeading()
   call md#dom#refreshDocument()
   let headingLine = md#dom#sectionHeadingLnum('.')
   if headingLine != -1
-    let endCol = len(getline(headingLine))
-    echom endCol
-    return s:charRange([headingLine, 0], [headingLine, endCol])
+    let startPair = md#line#headingAroundObjectStartPair(headingLine)
+    let endPair = md#line#headingAroundObjectEndPair(headingLine)
+    return s:charRange(startPair, endPair)
   endif
   return 0
 endfunction
