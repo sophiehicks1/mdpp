@@ -40,10 +40,10 @@ Reorganize your markdown hierarchy effortlessly:
 - **`]M`/`[M`** - Raise section up one level forward/backward
 - **`gR`** - Nest current section (create parent heading)
 
-### Additional Features
+<!-- ### Additional Features -->
 
-- **`<C-f>`** (Insert mode) - Insert footnote with interactive prompt
-- **`<C-l>`** (Insert mode) - Insert reference link with interactive prompt
+<!-- - **`<C-f>`** (Insert mode) - Insert footnote with interactive prompt -->
+<!-- - **`<C-l>`** (Insert mode) - Insert reference link with interactive prompt -->
 
 ## Installation
 
@@ -85,6 +85,19 @@ Given this structure:
 ## Dependencies
 
 - tpope/vim-repeat
+- kana/vim-textob-user
+
+## Configuration
+
+```vim
+" no text object mappings
+let g:mdpp_text_objects = 0
+
+" no default mappings
+let g:mdpp_default_mappings = 0
+```
+
+You can set your own mappings up by copying the `<Plug>` mappings found in `after/ftplugin/markdown.vim`
 
 ## Contributing
 

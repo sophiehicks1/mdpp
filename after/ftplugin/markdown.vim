@@ -42,10 +42,9 @@ nnoremap <buffer> <silent> <Plug>MarkdownMoveSectionForward :<C-u>call md#update
 nnoremap <buffer> <silent> <Plug>MarkdownRaiseSectionBack :<C-u>call md#update#raiseSectionBack()<CR>
 nnoremap <buffer> <silent> <Plug>MarkdownRaiseSectionForward :<C-u>call md#update#raiseSectionForward()<CR>
 
-if exists('g:mdpp_move_mappings') && g:mdpp_move_mappings == 0
-  " If the user has disabled the movement mappings, don't set them.
+if exists('g:mdpp_default_mappings') && g:mdpp_default_mappings == 0
+  " If the user has disabled the mappings, don't set them.
 else
-  " Set the movement mappings for normal and visual modes.
   nmap <buffer> [[ <Plug>MarkdownBackToHeadingNormal
   vmap <buffer> [[ <Plug>MarkdownBackToHeadingVisual
   omap <buffer> [[ <Plug>MarkdownBackToHeadingVisual
