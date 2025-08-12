@@ -217,20 +217,41 @@ endfunction
 """"""""""""""""""""""""""""""""""
 " Functions that update the buffer
 """"""""""""""""""""""""""""""""""
-function! s:updateTree(line, updateFn)
+" Apply a:updateFn to the node at line. If a:withDescendents is true, the function will also be applied to all
+" descendents too. The tree is walked in reverse (from the bottom of the buffer to the top), so that you can
+" safely delete lines in a:updateFn without worrying about refreshing the buffer tree.
+"
+" This function doesn't return anything. It's intended to be used for side effects.
+function! s:updateTree(startingNode, updateFn, withDescendents)
+  if a:withDescendents
+    " update in reverse, so that we can delete lines without messing up the line numbers for later lines
+    for node in reverse(md#node#getDescendents(a:startingNode))
+      call a:updateFn(node)
+    endfor
+  else
+    call a:updateFn(a:startingNode)
+  endif
+  return
+endfunction
+
+function! md#dom#incDescendentHeadings(line, withDescendents)
   let startingNode = s:getNodeAtLine(a:line)
-  " update in reverse, so that we can delete lines without messing up the line numbers for later lines
-  for node in reverse(md#node#getDescendents(startingNode))
-    call a:updateFn(node)
-  endfor
-endfunction
-
-function! md#dom#incDescendentHeadings(line)
   let l:IncFunction = function('md#node#incrementHeading')
-  call s:updateTree(a:line, l:IncFunction)
+  call s:updateTree(startingNode, l:IncFunction, a:withDescendents)
 endfunction
 
-function! md#dom#decDescendentHeadings(line)
+function! md#dom#decDescendentHeadings(line, withDescendents)
+  let startingNode = s:getNodeAtLine(a:line)
   let l:DecFunction = function('md#node#decrementHeading')
-  call s:updateTree(a:line, l:DecFunction)
+  call s:updateTree(startingNode, l:DecFunction, a:withDescendents)
+endfunction
+
+" Nest the section at a:line, by incrementing the headers, cascading to the
+" children, and then creating a new heading above the starting node
+function! md#dom#nestSection(line)
+  let startingNode = s:getNodeAtLine(a:line)
+  let headingLevel = md#node#getHeadingLevel(startingNode)
+  let l:IncFunction = function('md#node#incrementHeading')
+  call s:updateTree(startingNode, l:IncFunction, 1)
+  call md#node#prependNewHeading(startingNode, headingLevel)
 endfunction

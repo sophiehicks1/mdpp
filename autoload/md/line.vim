@@ -138,6 +138,13 @@ function! md#line#setHeadingAtLine(line, level, text)
   return s:handleHeadingTypes(l:HashHeadingHandler, l:UnderlineHeadingHandler, 0, a:line)
 endfunction
 
+"""""""""""""""""""""
+" Insert heading line
+"""""""""""""""""""""
+function! md#line#insertHeading(lnum, level, text)
+  call append(a:lnum - 1, [s:makeHashHeadingLine(a:level, a:text)])
+endfunction
+
 """"""""""""""""""""""
 " Heading text objects
 """"""""""""""""""""""

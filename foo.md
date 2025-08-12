@@ -1,8 +1,7 @@
 test blah blah
 ==============
 
-Test well this is cool
-----------------------
+## Test well this is cool
 
 ### one
 

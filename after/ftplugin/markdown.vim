@@ -1,6 +1,6 @@
 " markdown.vim - Vim plugin for editing Markdown files
 
-" TODO:
+" TODO: links, checklists and footnotes
 " - extend the dom model to account for references at the end
 " - reimplement these
 " - also implement links and checklists
@@ -9,8 +9,6 @@
 
 
 " TODO: tree manipulation - Need to think about this one a little...
-" - dec/inc heading, collect lnums from the tree and use setline()
-" - nest section, inc heading, and use append() to add a new heading
 " - raise section back
 "   - find current section lnums from dom
 "   - find parent start lnum from dom
@@ -24,10 +22,6 @@
 "   - append() to parent end lnum
 "   - delete section
 " - move section forward / move section back - similar to above
-" nnoremap <buffer> [h :call md#core#decHeading(1)<CR>
-" nnoremap <buffer> ]h :call md#core#incHeading(1)<CR>
-" nnoremap <buffer> [H :call md#core#decHeading(0)<CR>
-" nnoremap <buffer> ]H :call md#core#incHeading(0)<CR>
 " nnoremap <buffer> [m :call md#core#moveSectionBack()<CR>
 " nnoremap <buffer> ]m :call md#core#moveSectionForward()<CR>
 " nnoremap <buffer> [M :call md#core#raiseSectionBack()<CR>
@@ -58,13 +52,12 @@ nnoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildNormal :<C-u>call md
 vnoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildVisual :<C-u>call md#move#forwardToFirstChildVisual()<CR>
 onoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildVisual :<C-u>call md#move#forwardToFirstChildVisual()<CR>
 
-nnoremap <buffer> <silent> <Plug>MarkdownIncrementHeadingLevel :<C-u>call md#update#incHeadingLevel()<CR>
-vnoremap <buffer> <silent> <Plug>MarkdownIncrementHeadingLevel :<C-u>call md#update#incHeadingLevel()<CR>
-onoremap <buffer> <silent> <Plug>MarkdownIncrementHeadingLevel :<C-u>call md#update#incHeadingLevel()<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownDecrementHeadingLevelNoChildren :<C-u>call md#update#decHeadingLevel(0)<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownIncrementHeadingLevelNoChildren :<C-u>call md#update#incHeadingLevel(0)<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownDecrementHeadingLevelWithChildren :<C-u>call md#update#decHeadingLevel(1)<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownIncrementHeadingLevelWithChildren :<C-u>call md#update#incHeadingLevel(1)<CR>
 
-nnoremap <buffer> <silent> <Plug>MarkdownDecrementHeadingLevel :<C-u>call md#update#decHeadingLevel()<CR>
-vnoremap <buffer> <silent> <Plug>MarkdownDecrementHeadingLevel :<C-u>call md#update#decHeadingLevel()<CR>
-onoremap <buffer> <silent> <Plug>MarkdownDecrementHeadingLevel :<C-u>call md#update#decHeadingLevel()<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownNestSection :<C-u>call md#update#nestSection()<CR>A
 
 if exists('g:mdpp_move_mappings') && g:mdpp_move_mappings == 0
   " If the user has disabled the movement mappings, don't set them.
@@ -94,11 +87,10 @@ else
   vmap <buffer> ) <Plug>MarkdownForwardToFirstChildVisual
   omap <buffer> ) <Plug>MarkdownForwardToFirstChildVisual
 
-  nmap <buffer> [h <Plug>MarkdownIncrementHeadingLevel
-  vmap <buffer> [h <Plug>MarkdownIncrementHeadingLevel
-  omap <buffer> [h <Plug>MarkdownIncrementHeadingLevel
+  nmap <buffer> [h <Plug>MarkdownDecrementHeadingLevelNoChildren
+  nmap <buffer> ]h <Plug>MarkdownIncrementHeadingLevelNoChildren
+  nmap <buffer> [H <Plug>MarkdownDecrementHeadingLevelWithChildren
+  nmap <buffer> ]H <Plug>MarkdownIncrementHeadingLevelWithChildren
 
-  nmap <buffer> ]h <Plug>MarkdownDecrementHeadingLevel
-  vmap <buffer> ]h <Plug>MarkdownDecrementHeadingLevel
-  omap <buffer> ]h <Plug>MarkdownDecrementHeadingLevel
+  nmap <buffer> gR <Plug>MarkdownNestSection
 endif

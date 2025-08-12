@@ -1,8 +1,3 @@
-" FIXME move everything to do with constructing the tree/node hierarchy into here
-
-" FIXME rename this module to tree
-" FIXME reorder and group the functions in this file so it makes more sense
-
 " Functions for managing sections of a document. Each section is modeled as a
 " node in a tree, with the following fields:
 "
@@ -213,6 +208,11 @@ function! md#node#incrementHeading(node)
   let currentLevel = a:node.level
   let targetLevel = min([6, currentLevel + 1])
   call s:setHeadingLevel(a:node, targetLevel)
+endfunction
+
+function! md#node#prependNewHeading(node, newLevel)
+  let targetLine = md#node#headingLnum(a:node)
+  call md#line#insertHeading(targetLine, a:newLevel, '')
 endfunction
 
 """""""""""
