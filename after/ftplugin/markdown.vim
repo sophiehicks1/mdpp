@@ -3,30 +3,9 @@
 " TODO: links, checklists and footnotes
 " - extend the dom model to account for references at the end
 " - reimplement these
-" - also implement links and checklists
+" - also follow links and toggle checklists
 " inoremap <buffer> <C-f> <C-o>:call md#core#footnote()<CR>
 " inoremap <buffer> <C-l> <C-o>:call md#core#referenceLink()<CR>
-
-
-" TODO: tree manipulation - Need to think about this one a little...
-" - raise section back
-"   - find current section lnums from dom
-"   - find parent start lnum from dom
-"   - extract section lines
-"   - delete section
-"   - append() to parent start lnum - 1
-" - raise section forward
-"   - find current section lnums from dom
-"   - find parent end lnum from dom
-"   - extract section lines
-"   - append() to parent end lnum
-"   - delete section
-" - move section forward / move section back - similar to above
-" nnoremap <buffer> [m :call md#core#moveSectionBack()<CR>
-" nnoremap <buffer> ]m :call md#core#moveSectionForward()<CR>
-" nnoremap <buffer> [M :call md#core#raiseSectionBack()<CR>
-" nnoremap <buffer> ]M :call md#core#raiseSectionForward()<CR>
-" nnoremap <buffer> gR :call md#core#nestSection()<CR>
 
 nnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingNormal :<C-u>call md#move#backToHeadingNormal()<CR>
 vnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<CR>
@@ -58,6 +37,10 @@ nnoremap <buffer> <silent> <Plug>MarkdownDecrementHeadingLevelWithChildren :<C-u
 nnoremap <buffer> <silent> <Plug>MarkdownIncrementHeadingLevelWithChildren :<C-u>call md#update#incHeadingLevel(1)<CR>
 
 nnoremap <buffer> <silent> <Plug>MarkdownNestSection :<C-u>call md#update#nestSection()<CR>A
+nnoremap <buffer> <silent> <Plug>MarkdownMoveSectionBack :<C-u>call md#update#moveSectionBack()<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownMoveSectionForward :<C-u>call md#update#moveSectionForward()<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownRaiseSectionBack :<C-u>call md#update#raiseSectionBack()<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownRaiseSectionForward :<C-u>call md#update#raiseSectionForward()<CR>
 
 if exists('g:mdpp_move_mappings') && g:mdpp_move_mappings == 0
   " If the user has disabled the movement mappings, don't set them.
@@ -93,4 +76,8 @@ else
   nmap <buffer> ]H <Plug>MarkdownIncrementHeadingLevelWithChildren
 
   nmap <buffer> gR <Plug>MarkdownNestSection
+  nmap <buffer> [m <Plug>MarkdownMoveSectionBack
+  nmap <buffer> ]m <Plug>MarkdownMoveSectionForward
+  nmap <buffer> [M <Plug>MarkdownRaiseSectionBack
+  nmap <buffer> ]M <Plug>MarkdownRaiseSectionForward
 endif

@@ -86,7 +86,7 @@ endfunction
 " at a:line. If there are no child headings, return an empty list. This
 " shouldn't happen, since at the very least, every node should be in it's own
 " sibling list.
-function! s:siblingHeadingLnums(line)
+function! md#dom#siblingHeadingLnums(line)
   let node = s:getNodeAtLine(a:line)
   let siblings = []
   for sibling in md#node#getSiblings(node)
@@ -133,7 +133,7 @@ endfunction
 " heading at the given line argument, or -1 if there is no such heading.
 
 " Return the line number from the heading of the document section containing
-" a:line, or -1 if this section has no heading (i.e. if line is before teh
+" a:line, or -1 if this section has no heading (i.e. if line is before the
 " first heading in the document)
 function! md#dom#sectionHeadingLnum(line)
   let node = s:getNodeAtLine(a:line)
@@ -205,13 +205,13 @@ endfunction
 " Return the line number of the previous sibling heading of the line at a:line.
 " If there is no previous sibling, return -1.
 function! md#dom#siblingHeadingLnumBefore(line)
-  return s:lastLnumBefore(s:siblingHeadingLnums(a:line), a:line)
+  return s:lastLnumBefore(md#dom#siblingHeadingLnums(a:line), a:line)
 endfunction
 
 " Return the line number of the next sibling heading of the line at a:line.
 " If there is no next sibling, return -1.
 function! md#dom#siblingHeadingLnumAfter(line)
-  return s:firstLnumAfter(s:siblingHeadingLnums(a:line), a:line)
+  return s:firstLnumAfter(md#dom#siblingHeadingLnums(a:line), a:line)
 endfunction
 
 """"""""""""""""""""""""""""""""""
