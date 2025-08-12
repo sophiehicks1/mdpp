@@ -34,29 +34,37 @@
 " nnoremap <buffer> ]M :call md#core#raiseSectionForward()<CR>
 " nnoremap <buffer> gR :call md#core#nestSection()<CR>
 
-nnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingNormal :<C-u>call md#move#backToHeadingNormal()<cr>
-vnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<cr>
-onoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<cr>
+nnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingNormal :<C-u>call md#move#backToHeadingNormal()<CR>
+vnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<CR>
+onoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<CR>
                           
-nnoremap <buffer> <silent> <Plug>MarkdownForwardToHeadingNormal :<C-u>call md#move#forwardToHeadingNormal()<cr>
-vnoremap <buffer> <silent> <Plug>MarkdownForwardToHeadingVisual :<C-u>call md#move#forwardToHeadingVisual()<cr>
-onoremap <buffer> <silent> <Plug>MarkdownForwardToHeadingVisual :<C-u>call md#move#forwardToHeadingVisual()<cr>
+nnoremap <buffer> <silent> <Plug>MarkdownForwardToHeadingNormal :<C-u>call md#move#forwardToHeadingNormal()<CR>
+vnoremap <buffer> <silent> <Plug>MarkdownForwardToHeadingVisual :<C-u>call md#move#forwardToHeadingVisual()<CR>
+onoremap <buffer> <silent> <Plug>MarkdownForwardToHeadingVisual :<C-u>call md#move#forwardToHeadingVisual()<CR>
 
-nnoremap <buffer> <silent> <Plug>MarkdownBackToSiblingNormal :<C-u>call md#move#backToSiblingNormal()<cr>
-vnoremap <buffer> <silent> <Plug>MarkdownBackToSiblingVisual :<C-u>call md#move#backToSiblingVisual()<cr>
-onoremap <buffer> <silent> <Plug>MarkdownBackToSiblingVisual :<C-u>call md#move#backToSiblingVisual()<cr>
+nnoremap <buffer> <silent> <Plug>MarkdownBackToSiblingNormal :<C-u>call md#move#backToSiblingNormal()<CR>
+vnoremap <buffer> <silent> <Plug>MarkdownBackToSiblingVisual :<C-u>call md#move#backToSiblingVisual()<CR>
+onoremap <buffer> <silent> <Plug>MarkdownBackToSiblingVisual :<C-u>call md#move#backToSiblingVisual()<CR>
 
-nnoremap <buffer> <silent> <Plug>MarkdownForwardToSiblingNormal :<C-u>call md#move#forwardToSiblingNormal()<cr>
-vnoremap <buffer> <silent> <Plug>MarkdownForwardToSiblingVisual :<C-u>call md#move#forwardToSiblingVisual()<cr>
-onoremap <buffer> <silent> <Plug>MarkdownForwardToSiblingVisual :<C-u>call md#move#forwardToSiblingVisual()<cr>
+nnoremap <buffer> <silent> <Plug>MarkdownForwardToSiblingNormal :<C-u>call md#move#forwardToSiblingNormal()<CR>
+vnoremap <buffer> <silent> <Plug>MarkdownForwardToSiblingVisual :<C-u>call md#move#forwardToSiblingVisual()<CR>
+onoremap <buffer> <silent> <Plug>MarkdownForwardToSiblingVisual :<C-u>call md#move#forwardToSiblingVisual()<CR>
 
-nnoremap <buffer> <silent> <Plug>MarkdownBackToParentNormal :<C-u>call md#move#backToParentNormal()<cr>
-vnoremap <buffer> <silent> <Plug>MarkdownBackToParentVisual :<C-u>call md#move#backToParentVisual()<cr>
-onoremap <buffer> <silent> <Plug>MarkdownBackToParentVisual :<C-u>call md#move#backToParentVisual()<cr>
+nnoremap <buffer> <silent> <Plug>MarkdownBackToParentNormal :<C-u>call md#move#backToParentNormal()<CR>
+vnoremap <buffer> <silent> <Plug>MarkdownBackToParentVisual :<C-u>call md#move#backToParentVisual()<CR>
+onoremap <buffer> <silent> <Plug>MarkdownBackToParentVisual :<C-u>call md#move#backToParentVisual()<CR>
 
-nnoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildNormal :<C-u>call md#move#forwardToFirstChildNormal()<cr>
-vnoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildVisual :<C-u>call md#move#forwardToFirstChildVisual()<cr>
-onoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildVisual :<C-u>call md#move#forwardToFirstChildVisual()<cr>
+nnoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildNormal :<C-u>call md#move#forwardToFirstChildNormal()<CR>
+vnoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildVisual :<C-u>call md#move#forwardToFirstChildVisual()<CR>
+onoremap <buffer> <silent> <Plug>MarkdownForwardToFirstChildVisual :<C-u>call md#move#forwardToFirstChildVisual()<CR>
+
+nnoremap <buffer> <silent> <Plug>MarkdownIncrementHeadingLevel :<C-u>call md#update#incHeadingLevel()<CR>
+vnoremap <buffer> <silent> <Plug>MarkdownIncrementHeadingLevel :<C-u>call md#update#incHeadingLevel()<CR>
+onoremap <buffer> <silent> <Plug>MarkdownIncrementHeadingLevel :<C-u>call md#update#incHeadingLevel()<CR>
+
+nnoremap <buffer> <silent> <Plug>MarkdownDecrementHeadingLevel :<C-u>call md#update#decHeadingLevel()<CR>
+vnoremap <buffer> <silent> <Plug>MarkdownDecrementHeadingLevel :<C-u>call md#update#decHeadingLevel()<CR>
+onoremap <buffer> <silent> <Plug>MarkdownDecrementHeadingLevel :<C-u>call md#update#decHeadingLevel()<CR>
 
 if exists('g:mdpp_move_mappings') && g:mdpp_move_mappings == 0
   " If the user has disabled the movement mappings, don't set them.
@@ -85,4 +93,12 @@ else
   nmap <buffer> ) <Plug>MarkdownForwardToFirstChildNormal
   vmap <buffer> ) <Plug>MarkdownForwardToFirstChildVisual
   omap <buffer> ) <Plug>MarkdownForwardToFirstChildVisual
+
+  nmap <buffer> [h <Plug>MarkdownIncrementHeadingLevel
+  vmap <buffer> [h <Plug>MarkdownIncrementHeadingLevel
+  omap <buffer> [h <Plug>MarkdownIncrementHeadingLevel
+
+  nmap <buffer> ]h <Plug>MarkdownDecrementHeadingLevel
+  vmap <buffer> ]h <Plug>MarkdownDecrementHeadingLevel
+  omap <buffer> ]h <Plug>MarkdownDecrementHeadingLevel
 endif

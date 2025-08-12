@@ -139,20 +139,26 @@ function! md#node#headingLnum(node)
   return -1
 endfunction
 
-" add all the lnums from node to the list acc, including node's children's
-" lnums
-function! s:addNodeLnumsRecursive(acc, node)
-  let acc = a:acc + a:node.lnums
+function! s:addNodeRecursive(acc, node)
+  let acc = a:acc + [a:node]
   for child in a:node.children
-    let acc += s:addNodeLnumsRecursive(a:acc, child)
+    let acc += s:addNodeRecursive(a:acc, child)
   endfor
   return acc
 endfunction
 
-function! md#node#getLnums(node, withChildren)
+function! md#node#getDescendents(node)
+  let descendents = []
+  let descendents += s:addNodeRecursive([], a:node)
+  return descendents
+endfunction
+
+function! md#node#getLnums(node, withDescendents)
   let lnums = []
-  if a:withChildren
-    let lnums += s:addNodeLnumsRecursive([], a:node)
+  if a:withDescendents
+    for child in md#node#getDescendents(a:node)
+      let lnums += child.lnums
+    endfor
   else
     let lnums += a:node.lnums
   endif
@@ -181,6 +187,32 @@ endfunction
 
 function! md#node#getHeadingLevel(node)
   return a:node.level
+endfunction
+
+""""""""""""""""""
+" Update functions
+""""""""""""""""""
+
+function! s:setHeadingLevel(node, newLevel)
+  let lnum = md#node#headingLnum(a:node)
+  if lnum == -1
+    throw "MDPP: Tried to update heading on a non heading line. This is a bug."
+  endif
+  " get heading content
+  let headingContent = md#line#getHeadingText(lnum)
+  call md#line#setHeadingAtLine(lnum, a:newLevel, headingContent)
+endfunction
+
+function! md#node#decrementHeading(node)
+  let currentLevel = a:node.level
+  let targetLevel = max([1, currentLevel - 1])
+  call s:setHeadingLevel(a:node, targetLevel)
+endfunction
+
+function! md#node#incrementHeading(node)
+  let currentLevel = a:node.level
+  let targetLevel = min([6, currentLevel + 1])
+  call s:setHeadingLevel(a:node, targetLevel)
 endfunction
 
 """""""""""

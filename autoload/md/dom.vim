@@ -21,19 +21,6 @@
 "                                                                              "
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" FIXME update this
-" Conventions used in this file:
-" - when referencing lines:
-"   - `line` can be either an integer line number, or a string representing a
-"      line (e.g. '.')
-"   - `lnum` is an integer line number.
-"   - `lineStr` is a string, representing the _content_ of a line.
-" - `md#node#*` functions and `s:tree_*` functions always expect and return exclusively lnums
-" - public APIs accept lines, and return lnums
-" - other internal functions should accept lines where possible, and are responsible
-"   for internally converting to lnums when necessary
-" - I miss static type checking.
-
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Construct a tree model of the document, stored in buffer local state
 " throughout this module.
@@ -112,16 +99,16 @@ endfunction
 
 " Return a list of lnums for the document section that includes a:line. It
 " should not be possible for a section's lnums to be empty.
-function! md#dom#sectionLnums(line, withChildren)
+function! md#dom#sectionLnums(line, withDescendents)
   let node = s:getNodeAtLine(a:line)
-  let lnums = md#node#getLnums(node, a:withChildren)
+  let lnums = md#node#getLnums(node, a:withDescendents)
   return lnums
 endfunction
 
 " Return a list of _content_ lines for the section at line a:line (i.e. all
 " lines, not including the section heading.
-function! md#dom#contentLnums(line, withChildren)
-  let lnums = md#dom#sectionLnums(a:line, a:withChildren)
+function! md#dom#contentLnums(line, withDescendents)
+  let lnums = md#dom#sectionLnums(a:line, a:withDescendents)
   if len(lnums) == 1
     return []
   endif
@@ -225,4 +212,25 @@ endfunction
 " If there is no next sibling, return -1.
 function! md#dom#siblingHeadingLnumAfter(line)
   return s:firstLnumAfter(s:siblingHeadingLnums(a:line), a:line)
+endfunction
+
+""""""""""""""""""""""""""""""""""
+" Functions that update the buffer
+""""""""""""""""""""""""""""""""""
+function! s:updateTree(line, updateFn)
+  let startingNode = s:getNodeAtLine(a:line)
+  " update in reverse, so that we can delete lines without messing up the line numbers for later lines
+  for node in reverse(md#node#getDescendents(startingNode))
+    call a:updateFn(node)
+  endfor
+endfunction
+
+function! md#dom#incDescendentHeadings(line)
+  let l:IncFunction = function('md#node#incrementHeading')
+  call s:updateTree(a:line, l:IncFunction)
+endfunction
+
+function! md#dom#decDescendentHeadings(line)
+  let l:DecFunction = function('md#node#decrementHeading')
+  call s:updateTree(a:line, l:DecFunction)
 endfunction

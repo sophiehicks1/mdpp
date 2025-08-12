@@ -59,6 +59,8 @@ function! md#objects#insideTree()
   return s:lineRange(min(lines), max(lines))
 endfunction
 
+" TODO FIX THIS FOR underlines
+
 " Returns a vim-textobj-user style range for the current section header content
 function! md#objects#insideHeading()
   call md#dom#refreshDocument()

@@ -7,9 +7,9 @@ function! md#line#lineAsNum(line)
   endif
 endfunction
 
-""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" functions for parsing individual lines
-""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Meta function, to handle hash headings and underline headings seperately
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " Check if the line is empty or contains only whitespace.
 function! s:strIsEmpty(lineStr)
@@ -31,25 +31,104 @@ function! s:strIsListItem(lineStr)
   return a:lineStr =~ '^\s*[-*]\s'
 endfunction
 
-" FIXME I REALLY WANT TO MOVE THIS OUT
-" Get the heading level of the line at line (i.e. 1 for '# foo', 2 for '## foo', etc.
-" Returns 0 if the line is not a heading.
-function! md#line#headingLevel(line)
+function! s:handleHeadingTypes(hashHeadingHandler, underlineHeadingHandler, default, line)
+  let lnum = md#line#lineAsNum(a:line)
   let lineStr = getline(a:line)
-  " Check if the lineStr is a hash heading (##, ###, etc.), and return the count
-  " of hashes if it is
   if s:strIsHashHeading(lineStr)
-    return len(matchstr(lineStr, '^##*\ze\s'))
+    return a:hashHeadingHandler(lineStr)
   endif
-  " Check if the lineStr is a heading underline (either == or --).
   if !(s:strIsEmpty(lineStr) || s:strIsListItem(lineStr))
     let nextLine = getline(md#line#lineAsNum(a:line) + 1)
     if s:strIsHeadingUnderline(nextLine)
-      " This is a heading underline, so we return the level based on the
-      " underline character used.
-      return lineStr[0] ==# '=' ? 1 : 2
+      return a:underlineHeadingHandler(lineStr, nextLine)
     endif
   endif
-  " If we get here, it's not a heading.
-  return 0
+  return a:default
+endfunction
+
+"""""""""""""""""""
+" Get heading level
+"""""""""""""""""""
+
+" Count hash characters
+function! s:countHashChars(lineStr)
+  return len(matchstr(a:lineStr, '^##*\ze\s'))
+endfunction
+
+" Convert underline str to heading level
+function! s:underlineType(_, nextLine)
+  return a:nextLine[0] ==# '=' ? 1 : 2
+endfunction
+
+" Get the heading level of the line at line (i.e. 1 for '# foo', 2 for '## foo', etc.
+" Returns 0 if the line is not a heading.
+function! md#line#headingLevel(line)
+  let l:HashHeadingLevelCounter = function('s:countHashChars')
+  let l:UnderlineLevelCounter = function('s:underlineType')
+  return s:handleHeadingTypes(l:HashHeadingLevelCounter, l:UnderlineLevelCounter, 0, a:line)
+endfunction
+
+"""""""""""""""""""""
+" Get heading content
+"""""""""""""""""""""
+
+function! s:hashHeadingContent(lineStr)
+  return matchstr(a:lineStr, '^##*\s\s*\zs.*')
+endfunction
+
+function! s:underlineContent(lineStr, _)
+  return a:lineStr
+endfunction
+
+function! md#line#getHeadingText(line)
+  let l:HashHeadingContent = function('s:hashHeadingContent')
+  let l:UnderlineHeadingContent = function('s:underlineContent')
+  return s:handleHeadingTypes(l:HashHeadingContent, l:UnderlineHeadingContent, 0, a:line)
+endfunction
+
+"""""""""""""""""""""
+" Set heading content
+"""""""""""""""""""""
+
+function! s:repeatChar(char, num)
+  let s = ''
+  for i in range(1, a:num)
+    let s = s . a:char
+  endfor
+  return s
+endfunction
+
+function! s:makeHashHeadingLine(level, text)
+  return s:repeatChar('#', a:level) . ' ' . a:text
+endfunction
+
+function! s:makeUnderlineHeadingLines(level, text)
+  if a:level == 1
+    return [a:text, s:repeatChar('=', len(a:text))]
+  endif
+  if a:level == 2
+    return [a:text, s:repeatChar('-', len(a:text))]
+  endif
+  return [s:makeHashHeadingLine(a:level, a:text)]
+endfunction
+
+" We need the extra _1, _2 args, because this is used as an UnderlineHandler which is expecting lineStr
+" and nextLine
+function! s:setUnderlineHeadingLines(level, text, line, _1, _2)
+  let lnum = md#line#lineAsNum(a:line)
+  execute lnum . 'd2'
+  call append(lnum - 1, s:makeUnderlineHeadingLines(a:level, a:text))
+  execute 'normal! ' . lnum . 'gg'
+endfunction
+
+" We need the extra _ arg, necause this is used as a HashHandler which is expecting lineStr
+function! s:setHashHeadingLine(level, text, line, _)
+  call setline(a:line, s:makeHashHeadingLine(a:level, a:text))
+endfunction
+
+function! md#line#setHeadingAtLine(line, level, text)
+  " The handlers are expecting totally different arguments, so we need to build partials
+  let l:HashHeadingHandler = function('s:setHashHeadingLine', [a:level, a:text, a:line])
+  let l:UnderlineHeadingHandler = function('s:setUnderlineHeadingLines', [a:level, a:text, a:line])
+  return s:handleHeadingTypes(l:HashHeadingHandler, l:UnderlineHeadingHandler, 0, a:line)
 endfunction
