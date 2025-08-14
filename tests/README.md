@@ -2,6 +2,27 @@
 
 This directory contains automated tests for the `md#move` module functions.
 
+## Test Infrastructure
+
+### Automated Test Suite
+- **Test Runner**: `run_tests.sh` - Self-contained script that sets up dependencies and runs tests
+- **Test Framework**: `autoload/test/framework.vim` - Reusable test infrastructure for all mdpp modules
+- **Test Data**: `data/` directory containing markdown files for test scenarios
+- **Current Coverage**: 41 test cases covering all movement functions
+
+### Running Tests
+```bash
+# Run all move module tests
+./run_tests.sh
+
+# The script automatically:
+# - Creates isolated test environment
+# - Clones required dependencies (vim-textobj-user, vim-repeat)
+# - Sets up minimal Vim configuration
+# - Runs tests and reports results
+# - Cleans up test environment
+```
+
 ## Test Coverage
 
 The test suite covers the following functions:
@@ -18,6 +39,70 @@ The test suite covers the following functions:
 1. **Happy Path Tests**: Normal operation scenarios with expected movements
 2. **Edge Cases**: Empty buffers, no headings, single heading, boundary conditions
 3. **Visual Mode**: All movement functions tested in Visual mode
+4. **Document Variations**: Tests with underline-style headings and unusual content structures
+
+## Test Data Files
+
+Test scenarios use markdown files in the `data/` directory for better readability:
+
+- `comprehensive.md` - Main test document with hierarchical heading structure
+- `no_headings.md` - Document with only content, no headings
+- `single_heading.md` - Document with single heading
+- `underline_headings.md` - Document using underline-style heading syntax
+- `content_before_heading.md` - Document with content before first heading
+
+## Framework Architecture
+
+### Reusable Test Framework (`autoload/test/framework.vim`)
+- `test#framework#assert_equal()` - Standard assertion function
+- `test#framework#setup_buffer_from_file()` - Load test data from markdown files
+- `test#framework#setup_buffer_with_content()` - Create buffer with inline content
+- `test#framework#report_results()` - Standard test result reporting
+- `test#framework#reset()` - Reset test counters for new test runs
+
+### Benefits
+- **Maintainable**: Test data stored as readable markdown files
+- **Reusable**: Framework can be used for testing other modules
+- **Isolated**: Each test run uses clean environment
+- **Comprehensive**: Covers normal usage, edge cases, and error conditions
+
+## Adding New Tests
+
+1. **For new test data**: Add markdown files to `tests/data/`
+2. **For new test functions**: Use the framework functions for consistency
+3. **For new modules**: Follow the pattern established in `test_move.vim`
+
+Example test function:
+```vim
+function! s:test_new_function()
+  echo "Testing new function..."
+  
+  call test#framework#setup_buffer_from_file('test_data.md')
+  
+  " Test steps here
+  call cursor(5, 1)
+  call some#module#function()
+  call test#framework#assert_equal(expected, actual, "descriptive message")
+endfunction
+```
+
+## Expected Test Output
+
+```
+Running tests for md#move module...
+==================================
+
+Testing md#move#backToHeading...
+PASS: backToHeading from content should go to section heading
+PASS: backToHeading from section should go to previous heading
+...
+
+Test Results for md#move:
+=============
+Passes: 41
+Failures: 0
+All tests passed!
+```
 4. **Underline Headings**: Support for `===` and `---` style headings
 
 ## Running Tests

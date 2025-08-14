@@ -20,6 +20,13 @@ Always reference these instructions first and fallback to search or bash command
   2. **Navigation**: `[[`/`]]` (headings), `[s`/`]s` (siblings), `(`/`)` (parent/child)
   3. **Structure Manipulation**: `[h`/`]h` (heading levels), `gR` (nest), `[m`/`]m` (move sections)
 
+- **Automated Testing**: The plugin includes comprehensive automated tests in the `tests/` directory:
+  - Run tests with `./tests/run_tests.sh` for self-contained test execution
+  - Refer to `tests/README.md` for detailed testing documentation
+  - Write thorough automated tests for all functions that directly expose functionality to users
+  - Use the test framework in `autoload/test/framework.vim` for consistent test structure
+  - Store test data as markdown files in `tests/data/` for readability
+
 ### Manual Validation Requirements
 ALWAYS validate the plugin functionality with the following test scenario after any changes:
 
@@ -61,14 +68,17 @@ All mappings should show they are loaded from the mdpp plugin files.
 
 ## Validation
 
-- ALWAYS manually validate any code changes by testing the plugin functionality in Vim
+- ALWAYS run automated tests first: `./tests/run_tests.sh` to verify current functionality
+- Tests are comprehensive and self-contained - prefer running automated tests over manual validation when possible
+- Automated tests cover move module navigation functions with 41 test cases across different scenarios
+- ALWAYS manually validate any code changes by testing the plugin functionality in Vim after automated tests pass
 - Use the test-files directory which contains sample markdown files (foo.md, long-test.md)
 - Test scenarios MUST include:
   - Text object operations: Try `vas` to select around a section, `dis` to delete inside a section
   - Navigation: Move between headings with `]]` and `[[`, navigate siblings with `]s` and `[s`
   - Structure changes: Use `]h` to promote headings, `gR` to create parent sections
-- The plugin has no traditional unit tests - validation is entirely manual
-- NEVER assume the plugin works without testing actual functionality in Vim
+- When adding new functionality, write comprehensive automated tests before implementing changes
+- NEVER assume the plugin works without running both automated tests and manual validation
 
 ## Common Tasks
 
