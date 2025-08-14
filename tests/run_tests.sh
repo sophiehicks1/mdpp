@@ -45,6 +45,9 @@ runtime! plugin/**/*.vim
 set nomore
 set cmdheight=2
 set shortmess+=F
+set t_Co=0
+set t_ti=
+set t_te=
 EOF
 
 echo "Running tests..."
@@ -55,11 +58,17 @@ for test_file in "$REPO_ROOT"/tests/test_*.vim; do
         echo "Running $(basename "$test_file")..."
         # Run vim and capture output, then filter out vim file messages and warnings
         vim -u "$TEMP_DIR/test-vimrc" -c "source $test_file" -c "qa!" 2>&1 | \
+        sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | \
+        sed 's/\x1b\[[?][0-9;]*[a-zA-Z]//g' | \
+        sed 's/\x1b\[[>][0-9;]*[a-zA-Z]//g' | \
+        sed 's/\x1b[>]//g' | \
+        sed 's/\x1b[78=]//g' | \
+        sed 's/\x1b(B//g' | \
+        tr -d '\r\a' | \
         grep -v '^".*" \[.*\] [0-9]*L, [0-9]*B$' | \
         grep -v '^".*" \[noeol\] [0-9]*L, [0-9]*B$' | \
         grep -v '^".*"$' | \
         grep -v '^Vim: Warning:' | \
-        sed 's/[0-9]*;[0-9]*m//g' | \
         grep -v '^$'
     fi
 done
