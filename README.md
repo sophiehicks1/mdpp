@@ -1,6 +1,6 @@
 # mdpp
 
-A comprehensive vim plugin that transforms markdown editing with powerful text objects, intelligent navigation, structural manipulation, and optional REPL integration.
+A vim plugin that adds text objects, navigation and structural manipulation to markdown editing.
 
 ## Features
 
@@ -99,19 +99,6 @@ let g:mdpp_default_mappings = 0
 
 You can set your own mappings up by copying the `<Plug>` mappings found in `after/ftplugin/markdown.vim`
 
-## Contributing
-
-This plugin follows standard vim plugin conventions. The codebase is modularly organized:
-
-- `ftplugin/markdown.vim` - Main mappings and initialization
-- `autoload/md/core.vim` - Core functionality and text objects  
-- `autoload/md/move.vim` - Navigation commands
-- `autoload/md/line.vim` - Line-level parsing utilities
-
 ---
 
 **mdpp.vim** - Making markdown editing as powerful as your ideas.
-
-[test]: https://test.com
-
-[^asdf]: This is better
