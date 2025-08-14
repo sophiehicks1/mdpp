@@ -4,13 +4,13 @@
 
 " Check if a line contains a checkbox item
 " Returns 1 if the line matches the pattern: '^\s*-\s*\[[xX ]\]\s'
-function! md#checkbox#isCheckboxLine(lineStr)
+function! s:isCheckboxLine(lineStr)
   return a:lineStr =~ '^\s*-\s*\[[xX ]\]\s'
 endfunction
 
 " Check if a line is a continuation of a list item
 " A continuation line is indented more than the base indentation
-function! md#checkbox#isContinuationLine(lineStr, baseIndent)
+function! s:isContinuationLine(lineStr, baseIndent)
   if a:lineStr =~ '^\s*$'
     return 1  " Empty lines continue the item
   endif
@@ -21,7 +21,7 @@ endfunction
 
 " Check if a line is another list item or structural element
 " Returns 1 if the line starts a new item that would end the current checkbox
-function! md#checkbox#isStructuralBreak(lineStr, baseIndent)
+function! s:isStructuralBreak(lineStr, baseIndent)
   let lineIndent = match(a:lineStr, '\S')
   
   " If it's another list item or heading at same/lower level
@@ -34,12 +34,12 @@ endfunction
 
 " Find the starting line number of a checkbox item containing the given line
 " Returns the line number of the checkbox start, or -1 if not found
-function! md#checkbox#findCheckboxStartFromLine(targetLine)
+function! s:findCheckboxStartFromLine(targetLine)
   let currentLine = a:targetLine
   
   " First check if we're already on a checkbox line
   let lineStr = getline(currentLine)
-  if md#checkbox#isCheckboxLine(lineStr)
+  if s:isCheckboxLine(lineStr)
     return currentLine
   endif
   
@@ -49,7 +49,7 @@ function! md#checkbox#findCheckboxStartFromLine(targetLine)
     let lineStr = getline(currentLine)
     
     " If we find a checkbox line, we found our start
-    if md#checkbox#isCheckboxLine(lineStr)
+    if s:isCheckboxLine(lineStr)
       return currentLine
     endif
     
@@ -64,7 +64,7 @@ endfunction
 
 " Find the ending line number of a checkbox item starting at the given line
 " Returns the line number where the checkbox item ends (inclusive)
-function! md#checkbox#findCheckboxEndFromStart(startLine)
+function! s:findCheckboxEndFromStart(startLine)
   let lastLine = line('$')
   let startLineStr = getline(a:startLine)
   let baseIndent = match(startLineStr, '\S')
@@ -74,13 +74,13 @@ function! md#checkbox#findCheckboxEndFromStart(startLine)
     let lineStr = getline(currentLine)
     
     " Continue if it's a continuation line
-    if md#checkbox#isContinuationLine(lineStr, baseIndent)
+    if s:isContinuationLine(lineStr, baseIndent)
       let currentLine += 1
       continue
     endif
     
     " Stop if we hit a structural break
-    if md#checkbox#isStructuralBreak(lineStr, baseIndent)
+    if s:isStructuralBreak(lineStr, baseIndent)
       break
     endif
     
@@ -99,7 +99,7 @@ endfunction
 " Parse the checkbox prefix and content from a checkbox line
 " Returns a dictionary with 'prefix' and 'content' keys
 " Returns empty dict if the line is not a valid checkbox
-function! md#checkbox#parseCheckboxLine(lineStr)
+function! s:parseCheckboxLine(lineStr)
   let checkboxMatch = matchlist(a:lineStr, '^\(\s*-\s*\[[xX ]\]\s*\)\(.*\)$')
   if empty(checkboxMatch)
     return {}
@@ -114,12 +114,12 @@ endfunction
 " Find the full range of a checkbox item from the current cursor position
 " Returns a dictionary with 'start_line' and 'end_line' keys, or empty dict if not in a checkbox
 function! md#checkbox#findCheckboxRange()
-  let startLine = md#checkbox#findCheckboxStartFromLine(line('.'))
+  let startLine = s:findCheckboxStartFromLine(line('.'))
   if startLine == -1
     return {}
   endif
   
-  let endLine = md#checkbox#findCheckboxEndFromStart(startLine)
+  let endLine = s:findCheckboxEndFromStart(startLine)
   
   return {
     \ 'start_line': startLine,
@@ -139,7 +139,7 @@ function! md#checkbox#getInsideContentRange()
   let endLine = checkboxRange.end_line
   let startLineStr = getline(startLine)
   
-  let parsed = md#checkbox#parseCheckboxLine(startLineStr)
+  let parsed = s:parseCheckboxLine(startLineStr)
   if empty(parsed)
     return {}
   endif
