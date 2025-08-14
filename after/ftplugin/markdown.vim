@@ -1,25 +1,6 @@
 " markdown.vim - Vim plugin for editing Markdown files
 
-" TODO: links, checklists and footnotes
-" - extend the dom model to account for references at the end
-" - reimplement these
-" - also follow links and toggle checklists
-"
-" make it so that it ony refreshes when something hs been changed since lasg
-" edit
-"
-"
-" links:
-" - il / al text objects
-"
-" checklists
-" - ic / ac text object
-"
-" references
-" - <C-f> to create footnote
-" - <C-l> to create reference link
-" - (if possible) small popup window displaying footnote content
-" - function to fetch link content
+" TODO reimplement <c-f> and <c-l> mappings
 " - gf integration for links via (improved) open.vim
 
 nnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingNormal :<C-u>call md#move#backToHeadingNormal()<CR>
