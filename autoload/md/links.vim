@@ -9,6 +9,18 @@ function! md#links#findLinkAtCursor()
   let line_num = cursor_pos[1]
   let col_num = cursor_pos[2]
   
+  " First check if we're on a reference definition line
+  let ref_def_info = s:findReferenceDefinitionAtPosition(line_num, col_num)
+  if !empty(ref_def_info)
+    " Find the first link that references this definition
+    let referring_link = s:findFirstReferringLink(ref_def_info.reference)
+    if !empty(referring_link)
+      return referring_link
+    endif
+    " If no referring link found, fall back to treating as regular reference definition
+    return ref_def_info
+  endif
+  
   " Try to find an inline link first
   let inline_link = s:findInlineLinkAtPosition(line_num, col_num)
   if !empty(inline_link)
@@ -26,6 +38,23 @@ endfunction
 
 " Find inline link at the given position
 " Returns link info dict or {} if none found
+"
+" Link info dictionary structure:
+" {
+"   'type': 'inline' | 'reference',
+"   'line_num': line number where link starts,
+"   'start_col': start column of the link (1-indexed),
+"   'end_col': end column of the link (1-indexed),
+"   'text': the link text (content between [...]),
+"   'text_start_col': start column of link text,
+"   'text_end_col': end column of link text,
+"   'url': the URL (for inline) or resolved URL (for reference),
+"   'url_start_col': start column of URL (inline only),
+"   'url_end_col': end column of URL (inline only),
+"   'reference': reference label (reference links only),
+"   'full_start_col': start column of entire link,
+"   'full_end_col': end column of entire link
+" }
 function! s:findInlineLinkAtPosition(line_num, col_num)
   let line_content = getline(a:line_num)
   let links = md#links#findInlineLinksInLine(a:line_num, line_content)
@@ -324,4 +353,57 @@ function! s:findReferenceDefinitionRange(reference)
   endwhile
   
   return []
+endfunction
+
+" Find reference definition at the given position
+" Returns reference definition info dict or {} if none found
+function! s:findReferenceDefinitionAtPosition(line_num, col_num)
+  let line_content = getline(a:line_num)
+  
+  " Match reference definition: [ref]: url
+  let pattern = '^\s*\[\([^\]]\+\)\]:\s*\(\S\+\)'
+  let match = matchlist(line_content, pattern)
+  if !empty(match)
+    let reference = match[1]
+    let url = match[2]
+    
+    " Check if cursor is within this definition
+    let def_start = match(line_content, pattern)
+    let def_end = def_start + len(match[0]) - 1
+    
+    if a:col_num >= def_start + 1 && a:col_num <= def_end + 1
+      return {
+            \ 'type': 'reference_definition',
+            \ 'line_num': a:line_num,
+            \ 'reference': reference,
+            \ 'url': url,
+            \ 'start_col': def_start + 1,
+            \ 'end_col': def_end + 1
+            \ }
+    endif
+  endif
+  
+  return {}
+endfunction
+
+" Find the first link that references the given reference label
+" Returns link info dict or {} if none found
+function! s:findFirstReferringLink(reference)
+  let line_num = 1
+  let last_line = line('$')
+  
+  while line_num <= last_line
+    let line_content = getline(line_num)
+    let links = md#links#findReferenceLinksInLine(line_num, line_content)
+    
+    for link in links
+      if link.reference ==# a:reference
+        return link
+      endif
+    endfor
+    
+    let line_num += 1
+  endwhile
+  
+  return {}
 endfunction
