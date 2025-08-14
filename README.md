@@ -31,7 +31,7 @@ Supports both inline and reference style links:
 - **Inline links**: `[text](url)` 
 - **Reference links**: `[text][ref]` with `[ref]: url` definitions
 
-**Note**: Multi-line links are not currently supported.
+**Note**: Multi-line links are not currently supported. This will be tracked in a separate issue for future implementation.
 
 ### Smart Navigation
 
