@@ -53,7 +53,7 @@ function! s:load_content_from_file(filename)
   endif
   
   " Load content from file
-  execute 'read ' . fnameescape(test_data_path)
+  execute 'silent read ' . fnameescape(test_data_path)
   " Remove the empty first line created by 'read'
   if line('$') > 1 && getline(1) == ''
     1delete

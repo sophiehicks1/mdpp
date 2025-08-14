@@ -44,6 +44,7 @@ runtime! plugin/**/*.vim
 " Disable any output that might interfere with testing
 set nomore
 set cmdheight=2
+set shortmess+=F
 EOF
 
 echo "Running tests..."
@@ -52,7 +53,14 @@ echo "Running tests..."
 for test_file in "$REPO_ROOT"/tests/test_*.vim; do
     if [ -f "$test_file" ]; then
         echo "Running $(basename "$test_file")..."
-        vim -u "$TEMP_DIR/test-vimrc" -c "source $test_file" -c "qa!" 2>&1
+        # Run vim and capture output, then filter out vim file messages and warnings
+        vim -u "$TEMP_DIR/test-vimrc" -c "source $test_file" -c "qa!" 2>&1 | \
+        grep -v '^".*" \[.*\] [0-9]*L, [0-9]*B$' | \
+        grep -v '^".*" \[noeol\] [0-9]*L, [0-9]*B$' | \
+        grep -v '^".*"$' | \
+        grep -v '^Vim: Warning:' | \
+        sed 's/[0-9]*;[0-9]*m//g' | \
+        grep -v '^$'
     fi
 done
 
