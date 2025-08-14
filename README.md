@@ -11,13 +11,27 @@ Navigate and manipulate markdown structures with precision:
 - **`is`/`as`** - Inside/around section (current heading and its content)
 - **`it`/`at`** - Inside/around tree (current heading tree from root)  
 - **`ih`/`ah`** - Inside/around heading (heading text only)
+- **`il`/`al`** - Inside/around link text (text between `[...]`)
+- **`iu`/`au`** - Inside/around link URL (URL for inline links or reference definition)
+- **`iL`/`aL`** - Inside/around entire link (complete link syntax)
 
 Examples:
 ```
 - `das` - Delete entire section
 - `yis` - Yank section content  
 - `cih` - Change heading text
+- `vil` - Select link text
+- `ciu` - Change link URL
+- `yaL` - Yank entire link
 ```
+
+#### Link Text Objects
+
+Supports both inline and reference style links:
+- **Inline links**: `[text](url)` 
+- **Reference links**: `[text][ref]` with `[ref]: url` definitions
+
+**Note**: Multi-line links are not currently supported.
 
 ### Smart Navigation
 
