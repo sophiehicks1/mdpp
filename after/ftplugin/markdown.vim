@@ -4,8 +4,23 @@
 " - extend the dom model to account for references at the end
 " - reimplement these
 " - also follow links and toggle checklists
-" inoremap <buffer> <C-f> <C-o>:call md#core#footnote()<CR>
-" inoremap <buffer> <C-l> <C-o>:call md#core#referenceLink()<CR>
+"
+" make it so that it ony refreshes when something hs been changed since lasg
+" edit
+"
+"
+" links:
+" - il / al text objects
+"
+" checklists
+" - ic / ac text object
+"
+" references
+" - <C-f> to create footnote
+" - <C-l> to create reference link
+" - (if possible) small popup window displaying footnote content
+" - function to fetch link content
+" - gf integration for links via (improved) open.vim
 
 nnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingNormal :<C-u>call md#move#backToHeadingNormal()<CR>
 vnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<CR>
