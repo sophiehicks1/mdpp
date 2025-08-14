@@ -18,13 +18,33 @@ function! test#framework#assert_equal(expected, actual, message)
   endif
 endfunction
 
-" Setup a test buffer with content from a markdown file
-function! test#framework#setup_buffer_from_file(filename)
+" Internal helper function to setup buffer with shared logic
+function! s:setup_buffer(content_fn)
   " Create a new buffer
   enew!
   setlocal filetype=markdown
   setlocal noswapfile
   
+  " Populate content using the provided function
+  call a:content_fn()
+  
+  " Load the plugin
+  runtime! plugin/**/*.vim
+  runtime! after/ftplugin/markdown.vim
+endfunction
+
+" Setup a test buffer with content from a markdown file
+function! test#framework#setup_buffer_from_file(filename)
+  call s:setup_buffer(function('s:load_content_from_file', [a:filename]))
+endfunction
+
+" Setup a test buffer with inline content (for cases where a file doesn't make sense)
+function! test#framework#setup_buffer_with_content(content_lines)
+  call s:setup_buffer(function('s:load_content_from_lines', [a:content_lines]))
+endfunction
+
+" Helper function to load content from file
+function! s:load_content_from_file(filename)
   " Read content from test data file - resolve relative to tests directory
   let test_data_path = '/home/runner/work/mdpp/mdpp/tests/data/' . a:filename
   if !filereadable(test_data_path)
@@ -38,25 +58,12 @@ function! test#framework#setup_buffer_from_file(filename)
   if line('$') > 1 && getline(1) == ''
     1delete
   endif
-  
-  " Load the plugin
-  runtime! plugin/**/*.vim
-  runtime! after/ftplugin/markdown.vim
 endfunction
 
-" Setup a test buffer with inline content (for cases where a file doesn't make sense)
-function! test#framework#setup_buffer_with_content(content_lines)
-  " Create a new buffer
-  enew!
-  setlocal filetype=markdown
-  setlocal noswapfile
-  
+" Helper function to load content from lines
+function! s:load_content_from_lines(content_lines)
   " Set the content
   call setline(1, a:content_lines)
-  
-  " Load the plugin
-  runtime! plugin/**/*.vim
-  runtime! after/ftplugin/markdown.vim
 endfunction
 
 " Report test results

@@ -1,6 +1,6 @@
-# mdpp Move Module Tests
+# mdpp Test Suite
 
-This directory contains automated tests for the `md#move` module functions.
+This directory contains automated tests for the mdpp plugin modules. Currently, only the `md#move` module has comprehensive test coverage, but the framework is designed to support testing all mdpp modules.
 
 ## Test Infrastructure
 
