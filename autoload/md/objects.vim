@@ -84,3 +84,91 @@ function! md#objects#aroundHeading()
   endif
   return 0
 endfunction
+
+" Returns a vim-textobj-user style range for the text inside a markdown link
+function! md#objects#insideLinkText()
+  let link_info = md#links#findLinkAtCursor()
+  if !empty(link_info)
+    let range = md#links#getLinkTextRange(link_info)
+    if !empty(range)
+      return s:charRange([range[0], range[1]], [range[2], range[3]])
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range around the text of a markdown link (including brackets)
+function! md#objects#aroundLinkText()
+  let link_info = md#links#findLinkAtCursor()
+  if !empty(link_info)
+    let range = md#links#getLinkTextRange(link_info)
+    if !empty(range)
+      " Extend range to include the brackets
+      return s:charRange([range[0], range[1] - 1], [range[2], range[3] + 1])
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range for the URL inside a markdown link
+function! md#objects#insideLinkUrl()
+  let link_info = md#links#findLinkAtCursor()
+  if !empty(link_info)
+    let range = md#links#getLinkUrlRange(link_info)
+    if !empty(range)
+      return s:charRange([range[0], range[1]], [range[2], range[3]])
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range around the URL of a markdown link (including parens/definition)
+function! md#objects#aroundLinkUrl()
+  let link_info = md#links#findLinkAtCursor()
+  if !empty(link_info)
+    if link_info.type == 'inline'
+      let range = md#links#getLinkUrlRange(link_info)
+      if !empty(range)
+        " Extend range to include the parentheses
+        return s:charRange([range[0], range[1] - 1], [range[2], range[3] + 1])
+      endif
+    elseif link_info.type == 'reference'
+      " For reference links, include the entire definition line
+      let range = md#links#getLinkUrlRange(link_info)
+      if !empty(range)
+        " For reference definitions, select the entire line
+        return ['V', s:startOfLine(range[0]), s:startOfLine(range[2])]
+      endif
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range for the entire markdown link
+function! md#objects#insideLink()
+  let link_info = md#links#findLinkAtCursor()
+  if !empty(link_info)
+    let range = md#links#getLinkFullRange(link_info)
+    if !empty(range)
+      " For inside, exclude the outer brackets
+      if link_info.type == 'inline'
+        return s:charRange([range[0], range[1] + 1], [range[2], range[3] - 1])
+      elseif link_info.type == 'reference'
+        return s:charRange([range[0], range[1] + 1], [range[2], range[3] - 1])
+      endif
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range around the entire markdown link
+function! md#objects#aroundLink()
+  let link_info = md#links#findLinkAtCursor()
+  if !empty(link_info)
+    let range = md#links#getLinkFullRange(link_info)
+    if !empty(range)
+      return s:charRange([range[0], range[1]], [range[2], range[3]])
+    endif
+  endif
+  return 0
+endfunction

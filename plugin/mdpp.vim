@@ -20,6 +20,24 @@ else
         \   'select-i-function': 'md#objects#insideHeading',
         \   'select-i': [],
         \ },
+        \ 'link-text': {
+        \   'select-a-function': 'md#objects#aroundLinkText',
+        \   'select-a': [],
+        \   'select-i-function': 'md#objects#insideLinkText',
+        \   'select-i': [],
+        \ },
+        \ 'link-url': {
+        \   'select-a-function': 'md#objects#aroundLinkUrl',
+        \   'select-a': [],
+        \   'select-i-function': 'md#objects#insideLinkUrl',
+        \   'select-i': [],
+        \ },
+        \ 'link': {
+        \   'select-a-function': 'md#objects#aroundLink',
+        \   'select-a': [],
+        \   'select-i-function': 'md#objects#insideLink',
+        \   'select-i': [],
+        \ },
         \})
 
   augroup mdpp_textobjs
@@ -36,6 +54,18 @@ else
           \   'heading': {
           \       'select-a': '<buffer> ah',
           \       'select-i': '<buffer> ih',
+          \   },
+          \   'link-text': {
+          \       'select-a': '<buffer> al',
+          \       'select-i': '<buffer> il',
+          \   },
+          \   'link-url': {
+          \       'select-a': '<buffer> au',
+          \       'select-i': '<buffer> iu',
+          \   },
+          \   'link': {
+          \       'select-a': '<buffer> aL',
+          \       'select-i': '<buffer> iL',
           \   },
           \ })
   augroup END
