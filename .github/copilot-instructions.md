@@ -192,3 +192,22 @@ gR     " Create parent heading for current section
 - This plugin requires no compilation or build process
 - All functionality is implemented in VimScript
 - Simply ensure proper installation and configuration
+
+## Style and structure guidelines
+
+### Module structure
+- Semantic understanding of markdown files should be encapsulated in separate modules from the functions that
+  implement core plugin functionality, so that it can be re-used later for other features.
+- Functions that implement plugin functionality should be built as a thin layer that calls into semantic
+  modules to do all the hard work.
+
+### Code style
+- Keep functions small, simple and readable.
+- Each function should do only one thing, it should only operate at one level of abstraction and it should be
+  trivially easy to understand what each function is trying to do, why and how. You can achieve this by
+  extracting logic into subfunctions with helpful descriptive names, that make the code more readable.
+- If the code is hard to understand, first you should try to make the code simpler. If you can't make it
+  simpler and it's still hard to understand, try to make the naming more descriptive. Only use comments to
+  explain things that can't be made obvious through well written, intentional code.
+- Prioritize making it easy to understand and reusable over making it short.
+- Use human-friendly names.
