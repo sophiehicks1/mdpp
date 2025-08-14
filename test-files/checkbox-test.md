@@ -9,11 +9,11 @@
 ## Multi-line checkbox items
 
 - [ ] This is a todo item that 
-      spans multiple lines with 
-      continued text
+  spans multiple lines with 
+  continued text
 - [x] This completed item
-      also spans multiple lines
-      with some details
+  also spans multiple lines
+  with some details
 
 ## Mixed content
 
