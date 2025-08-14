@@ -8,13 +8,13 @@ function! s:restoreVisual(mode)
   endif
 endfunction
 
-" v:count of 0 means no explicit count was passed, so count ahould be 1
+" v:count of 0 means no explicit count was passed, so count should be 1
 function! s:normalizeCount()
-  let count = v:count
+  let l:count = v:count
   if v:count == 0
-    let count = 1
+    let l:count = 1
   endif
-  return count
+  return l:count
 endfunction
 
 " push current position to the jumplist and then move to the new target line
@@ -39,9 +39,9 @@ endfunction
 "   - move to the target line if one was found.
 function! s:executeMove(domFunction, mode)
   call md#dom#refreshDocument()
-  let count = s:normalizeCount()
+  let l:count = s:normalizeCount()
   call s:restoreVisual(a:mode)
-  for i in range(1, count)
+  for i in range(1, l:count)
     let l:TargetFinder = function("md#dom#" . a:domFunction, ['.'])
     let targetLnum = l:TargetFinder()
     if targetLnum != -1
