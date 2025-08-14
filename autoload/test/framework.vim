@@ -35,12 +35,12 @@ endfunction
 
 " Setup a test buffer with content from a markdown file
 function! test#framework#setup_buffer_from_file(filename)
-  call s:setup_buffer(function('s:load_content_from_file', [a:filename]))
+  call s:setup_buffer({ -> s:load_content_from_file(a:filename) })
 endfunction
 
 " Setup a test buffer with inline content (for cases where a file doesn't make sense)
 function! test#framework#setup_buffer_with_content(content_lines)
-  call s:setup_buffer(function('s:load_content_from_lines', [a:content_lines]))
+  call s:setup_buffer({ -> s:load_content_from_lines(a:content_lines) })
 endfunction
 
 " Helper function to load content from file

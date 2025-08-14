@@ -103,7 +103,7 @@ Passes: 41
 Failures: 0
 All tests passed!
 ```
-4. **Underline Headings**: Support for `===` and `---` style headings
+4. **Document Variations**: Tests with underline-style headings and unusual content structures
 
 ## Running Tests
 
@@ -144,29 +144,39 @@ EOF
 vim -u test-vimrc -c "source /path/to/mdpp/tests/test_move.vim" -c "qa!"
 ```
 
-## Test Structure
+## Framework Usage
 
-### Test Files
-- `test_move.vim` - Main test suite with all test functions
-- `run_tests.sh` - Automated test runner script
+### Creating New Test Modules
 
-### Test Framework
-The tests use a simple assertion framework:
-- `s:assert_equal(expected, actual, message)` - Compare expected vs actual values
-- `s:setup_test_buffer()` - Create standardized test markdown content
-- Test results are reported with pass/fail counts
+To create tests for other mdpp modules:
 
-### Sample Test Content
-Tests use structured markdown content:
-```markdown
-# Root Heading
-Root content
+1. Create a new test file: `tests/test_<module>.vim`
+2. Use the framework functions:
+   ```vim
+   " Load the test framework
+   source autoload/test/framework.vim
+   
+   " Test function
+   function! s:test_your_function()
+     call test#framework#setup_buffer_from_file('your_test_data.md')
+     " Your test code here
+     call test#framework#assert_equal(expected, actual, "Test description")
+   endfunction
+   
+   " Main runner function
+   function! TestYourModule()
+     call test#framework#reset()
+     call s:test_your_function()
+     return test#framework#report_results("your#module")
+   endfunction
+   
+   " Auto-run the tests
+   call TestYourModule()
+   ```
 
-## Section A
-Section A content
+### Test Data Files
 
-### Subsection A1
-Subsection A1 content
+Store test content as markdown files in `tests/data/` for better readability and maintenance. Use descriptive filenames that indicate the test scenario.
 
 #### Deep A1
 Deep A1 content
@@ -206,12 +216,28 @@ All tests passed!
 - Tests must be run with proper plugin loading sequence
 - Visual mode tests require careful buffer state management
 
-## Adding New Tests
+## Contributor Guidelines
 
-To add new tests:
+### Test Requirements
 
-1. Add test function following the naming pattern `s:test_*`
-2. Call the function from `s:run_tests()`
-3. Use `s:assert_equal()` for assertions
-4. Use `s:setup_test_buffer()` for consistent test content
+When adding new functionality to mdpp:
+
+1. **Write comprehensive tests** for all functions that directly expose functionality to users
+2. **Consider underline headings** (`===` and `---` syntax) in addition to standard markdown headings - this is easily forgotten but important for compatibility
+3. **Test edge cases** including empty buffers, no headings, single headings, and boundary conditions
+4. **Use the test framework** in `autoload/test/framework.vim` for consistency
+5. **Store test data** as readable markdown files in `tests/data/`
+
+### Adding Tests to Existing Modules
+
+To add tests to the move module:
+
+### Adding Tests to Existing Modules
+
+To add tests to the move module:
+
+1. Add test function to `tests/test_move.vim` following the naming pattern `s:test_*`
+2. Call the function from `s:run_tests()`  
+3. Use `test#framework#assert_equal()` for assertions
+4. Use `test#framework#setup_buffer_from_file()` for consistent test content
 5. Clean up visual mode state properly if testing visual functions
