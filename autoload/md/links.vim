@@ -21,7 +21,7 @@ function! md#links#findLinkAtCursor()
     return ref_def_info
   endif
   
-  " Try to find an inline link first
+  " Try to find an inline link
   let inline_link = s:findInlineLinkAtPosition(line_num, col_num)
   if !empty(inline_link)
     return inline_link
