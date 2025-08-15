@@ -77,6 +77,14 @@ Reorganize your markdown hierarchy effortlessly:
 - **`]M`/`[M`** - Raise section up one level forward/backward
 - **`gR`** - Nest current section (create parent heading)
 
+### Footnote Support (Neovim only)
+
+- **`<leader>f`** - Show footnote content in floating window when cursor is on footnote reference or definition
+
+The footnote feature works with standard Markdown footnote syntax:
+- Footnote references: `[^footnote-id]`
+- Footnote definitions: `[^footnote-id]: footnote content`
+
 <!-- ### Additional Features -->
 
 <!-- - **`<C-f>`** (Insert mode) - Insert footnote with interactive prompt -->

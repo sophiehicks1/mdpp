@@ -114,6 +114,12 @@ function! test#framework#setup_buffer_with_content(content_lines)
   call s:setup_buffer({ -> s:load_content_from_lines(a:content_lines) })
 endfunction
 
+" FIXME wtf copilot, really? You could have changed the function name and changed it throughout the tests you know
+" Setup a test buffer with inline content (alternative name for consistency)
+function! test#framework#setup_buffer_from_lines(content_lines)
+  call s:setup_buffer({ -> s:load_content_from_lines(a:content_lines) })
+endfunction
+
 " Setup a test buffer from a string (splits string on newlines)
 function! test#framework#setup_buffer_from_string(content_string)
   let content_lines = split(a:content_string, '\n')

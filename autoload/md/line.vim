@@ -196,3 +196,56 @@ function! md#line#headingAroundObjectEndPair(line)
   let l:UnderlineHeadingObjectEndPair = function('s:underlineHeadingAroundObjectEndPair', [a:line])
   return s:handleHeadingTypes(l:HashHeadingObjectEndPair, l:UnderlineHeadingObjectEndPair, 0, a:line)
 endfunction
+
+" FIXME refactor this so it's not a billion lines long
+" Wrap text to fit within specified width, preserving existing line breaks
+" Returns a list of lines that fit within the width
+function md#line#wrapText(text, width)
+  let lines = []
+  let text_lines = split(a:text, "\n")
+  
+  for line in text_lines
+    " If line is empty, add it as-is
+    if empty(line)
+      call add(lines, '')
+      continue
+    endif
+    
+    " If line fits within width, add it as-is
+    if len(line) <= a:width
+      call add(lines, line)
+      continue
+    endif
+    
+    " Need to wrap the line
+    let remaining = line
+    while len(remaining) > a:width
+      " Find the best break point (prefer spaces)
+      let break_point = a:width
+      
+      " Look for a space before the width limit
+      let space_pos = strridx(remaining[0:a:width-1], ' ')
+      if space_pos > 0
+        let break_point = space_pos
+      endif
+      
+      " Extract the part that fits
+      let part = remaining[0:break_point-1]
+      call add(lines, part)
+      
+      " Continue with the remaining text, skip the space if we broke on one
+      if break_point < len(remaining) && remaining[break_point] == ' '
+        let remaining = remaining[break_point+1:]
+      else
+        let remaining = remaining[break_point:]
+      endif
+    endwhile
+    
+    " Add the final part if there's anything left
+    if !empty(remaining)
+      call add(lines, remaining)
+    endif
+  endfor
+  
+  return lines
+endfunction
