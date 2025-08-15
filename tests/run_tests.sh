@@ -48,6 +48,9 @@ EOF
 
 echo "Running tests..."
 
+# Create results directory if it doesn't exist
+mkdir -p "$REPO_ROOT/tests/results"
+
 # Auto-discover and run all test files
 for test_file in "$REPO_ROOT"/tests/test_*.vim; do
     if [ -f "$test_file" ]; then
@@ -55,6 +58,11 @@ for test_file in "$REPO_ROOT"/tests/test_*.vim; do
         vim -u "$TEMP_DIR/test-vimrc" -c "source $test_file" -c "qa!" 2>&1
     fi
 done
+
+echo ""
+echo "Test results written to tests/results/"
+echo "Available result files:"
+ls -1 "$REPO_ROOT/tests/results/"*.md 2>/dev/null | sed 's|.*/||' || echo "No result files found"
 
 # Cleanup
 echo "Cleaning up..."

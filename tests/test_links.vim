@@ -15,10 +15,10 @@ function! s:setup_test_buffer()
 endfunction
 
 function! s:run_tests()
-  call test#framework#reset()
+  call test#framework#reset("links")
   
-  echo "Running tests for md#links module..."
-  echo "===================================="
+  call test#framework#write_info("Running tests for md#links module...")
+  call test#framework#write_info("====================================")
   
   call s:test_findInlineLinksInLine()
   call s:test_findReferenceLinksInLine()
@@ -35,7 +35,7 @@ endfunction
 
 " Test md#links#findInlineLinksInLine function
 function! s:test_findInlineLinksInLine()
-  echo "Testing md#links#findInlineLinksInLine..."
+  call test#framework#write_info("Testing md#links#findInlineLinksInLine...")
   
   call s:setup_test_buffer()
   
@@ -91,7 +91,7 @@ endfunction
 
 " Test md#links#findReferenceLinksInLine function
 function! s:test_findReferenceLinksInLine()
-  echo "Testing md#links#findReferenceLinksInLine..."
+  call test#framework#write_info("Testing md#links#findReferenceLinksInLine...")
   
   call s:setup_test_buffer()
   
@@ -138,7 +138,7 @@ endfunction
 
 " Test md#links#findLinkAtCursor function
 function! s:test_findLinkAtCursor()
-  echo "Testing md#links#findLinkAtCursor..."
+  call test#framework#write_info("Testing md#links#findLinkAtCursor...")
   
   call s:setup_test_buffer()
   
@@ -180,7 +180,7 @@ endfunction
 
 " Test md#links#getLinkText function
 function! s:test_getLinkText()
-  echo "Testing md#links#getLinkText..."
+  call test#framework#write_info("Testing md#links#getLinkText...")
   
   call s:setup_test_buffer()
   
@@ -209,7 +209,7 @@ endfunction
 
 " Test md#links#getLinkUrl function
 function! s:test_getLinkUrl()
-  echo "Testing md#links#getLinkUrl..."
+  call test#framework#write_info("Testing md#links#getLinkUrl...")
   
   call s:setup_test_buffer()
   
@@ -238,7 +238,7 @@ endfunction
 
 " Test md#links#getLinkTextRange function
 function! s:test_getLinkTextRange()
-  echo "Testing md#links#getLinkTextRange..."
+  call test#framework#write_info("Testing md#links#getLinkTextRange...")
   
   call s:setup_test_buffer()
   
@@ -261,7 +261,7 @@ endfunction
 
 " Test md#links#getLinkUrlRange function
 function! s:test_getLinkUrlRange()
-  echo "Testing md#links#getLinkUrlRange..."
+  call test#framework#write_info("Testing md#links#getLinkUrlRange...")
   
   call s:setup_test_buffer()
   
@@ -284,7 +284,7 @@ endfunction
 
 " Test md#links#getLinkFullRange function
 function! s:test_getLinkFullRange()
-  echo "Testing md#links#getLinkFullRange..."
+  call test#framework#write_info("Testing md#links#getLinkFullRange...")
   
   call s:setup_test_buffer()
   
@@ -307,7 +307,7 @@ endfunction
 
 " Test edge cases and error conditions
 function! s:test_edge_cases()
-  echo "Testing edge cases..."
+  call test#framework#write_info("Testing edge cases...")
   
   " Test 1: Empty buffer
   enew!

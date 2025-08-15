@@ -5,15 +5,43 @@
 let s:test_passes = 0
 let s:test_failures = 0
 
+" Current module name and results file
+let s:current_module = ''
+let s:results_file = ''
+
+" Initialize results file for a module
+function! test#framework#init_results(module_name)
+  let s:current_module = a:module_name
+  let s:results_file = '/home/runner/work/mdpp/mdpp/tests/results/' . a:module_name . '.md'
+  
+  " Create results directory if it doesn't exist
+  let results_dir = fnamemodify(s:results_file, ':h')
+  if !isdirectory(results_dir)
+    call mkdir(results_dir, 'p')
+  endif
+  
+  " Initialize the results file
+  call writefile(['# Test Results for ' . a:module_name, '', 'Date: ' . strftime('%Y-%m-%d %H:%M:%S'), ''], s:results_file)
+endfunction
+
+" Write information to results file
+function! test#framework#write_info(message)
+  if s:results_file != ''
+    call writefile([a:message], s:results_file, 'a')
+  endif
+  " Also echo to console for immediate feedback
+  echo a:message
+endfunction
+
 " Assertion function
 function! test#framework#assert_equal(expected, actual, message)
   if a:expected != a:actual
-    echo "FAIL: " . a:message
-    echo "Expected: " . string(a:expected)
-    echo "Actual: " . string(a:actual)
+    call test#framework#write_info("FAIL: " . a:message)
+    call test#framework#write_info("Expected: " . string(a:expected))
+    call test#framework#write_info("Actual: " . string(a:actual))
     let s:test_failures = s:test_failures + 1
   else
-    echo "PASS: " . a:message
+    call test#framework#write_info("PASS: " . a:message)
     let s:test_passes = s:test_passes + 1
   endif
 endfunction
@@ -68,25 +96,26 @@ endfunction
 
 " Report test results
 function! test#framework#report_results(module_name)
-  echo ""
-  echo "Test Results for " . a:module_name . ":"
-  echo "============="
-  echo "Passes: " . s:test_passes
-  echo "Failures: " . s:test_failures
+  call test#framework#write_info("")
+  call test#framework#write_info("Test Results for " . a:module_name . ":")
+  call test#framework#write_info("=============")
+  call test#framework#write_info("Passes: " . s:test_passes)
+  call test#framework#write_info("Failures: " . s:test_failures)
   
   if s:test_failures == 0
-    echo "All tests passed!"
+    call test#framework#write_info("All tests passed!")
     return 0
   else
-    echo "Some tests failed!"
+    call test#framework#write_info("Some tests failed!")
     return 1
   endif
 endfunction
 
-" Reset test counters
-function! test#framework#reset()
+" Reset test counters and initialize module
+function! test#framework#reset(module_name)
   let s:test_passes = 0
   let s:test_failures = 0
+  call test#framework#init_results(a:module_name)
 endfunction
 
 " Get current test counts (for reporting progress)

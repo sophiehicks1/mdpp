@@ -8,20 +8,33 @@ This directory contains automated tests for the mdpp plugin modules. Currently p
 - **Test Runner**: `run_tests.sh` - Self-contained script that sets up dependencies and runs tests
 - **Test Framework**: `autoload/test/framework.vim` - Reusable test infrastructure for all mdpp modules
 - **Test Data**: `data/` directory containing markdown files for test scenarios
+- **Test Results**: `results/` directory containing module-specific test result files
 - **Current Coverage**: 133 test cases covering movement functions and link manipulation
 
 ### Running Tests
 ```bash
-# Run all move module tests
+# Run all tests
 ./run_tests.sh
 
 # The script automatically:
 # - Creates isolated test environment
 # - Clones required dependencies (vim-textobj-user, vim-repeat)
 # - Sets up minimal Vim configuration
-# - Runs tests and reports results
+# - Runs tests and generates result files
+# - Reports available result files
 # - Cleans up test environment
 ```
+
+### Test Results
+Each test module generates a separate result file in `tests/results/`:
+- `move.md` - Results for md#move module tests
+- `links.md` - Results for md#links module tests
+
+Results include:
+- Detailed pass/fail status for each test
+- Expected vs actual values for failures
+- Test execution timestamps
+- Summary statistics per module
 
 ## Test Coverage
 
@@ -68,8 +81,9 @@ Test scenarios use markdown files in the `data/` directory for better readabilit
 - `test#framework#assert_equal()` - Standard assertion function
 - `test#framework#setup_buffer_from_file()` - Load test data from markdown files
 - `test#framework#setup_buffer_with_content()` - Create buffer with inline content
-- `test#framework#report_results()` - Standard test result reporting
-- `test#framework#reset()` - Reset test counters for new test runs
+- `test#framework#report_results()` - Standard test result reporting and file output
+- `test#framework#reset()` - Reset test counters and initialize results file for module
+- `test#framework#write_info()` - Write messages to both console and results file
 
 ### Benefits
 - **Maintainable**: Test data stored as readable markdown files
@@ -86,7 +100,7 @@ Test scenarios use markdown files in the `data/` directory for better readabilit
 Example test function:
 ```vim
 function! s:test_new_function()
-  echo "Testing new function..."
+  call test#framework#write_info("Testing new function...")
   
   call test#framework#setup_buffer_from_file('test_data.md')
   
@@ -176,7 +190,7 @@ To create tests for other mdpp modules:
    
    " Main runner function
    function! TestYourModule()
-     call test#framework#reset()
+     call test#framework#reset("yourmodule")
      call s:test_your_function()
      return test#framework#report_results("your#module")
    endfunction

@@ -118,8 +118,16 @@ The plugin includes comprehensive automated tests covering all major functionali
 # - Sets up isolated test environment  
 # - Clones required dependencies
 # - Runs comprehensive test suite
+# - Generates module-specific result files in tests/results/
 # - Reports results and cleans up
 ```
+
+### Test Results
+Each test module generates a separate result file:
+- `tests/results/move.md` - md#move module test results
+- `tests/results/links.md` - md#links module test results
+
+Results include detailed pass/fail status, timestamps, and summary statistics.
 
 Tests are self-contained and provide detailed output for debugging. See `tests/README.md` for detailed testing documentation.
 
