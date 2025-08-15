@@ -174,7 +174,7 @@ endfunction
 
 " Returns a vim-textobj-user style range for the text inside a checkbox item
 function! md#objects#insideCheckbox()
-  let contentRange = md#checkbox#getInsideContentRange()
+  let contentRange = md#checkbox#getInsideContentRange(line('.'))
   if empty(contentRange)
     return 0
   endif
@@ -185,7 +185,7 @@ endfunction
 
 " Returns a vim-textobj-user style range around the entire checkbox item
 function! md#objects#aroundCheckbox()
-  let checkboxRange = md#checkbox#findCheckboxRange()
+  let checkboxRange = md#checkbox#findCheckboxRange(line('.'))
   if empty(checkboxRange)
     return 0
   endif

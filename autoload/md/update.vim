@@ -99,3 +99,13 @@ function! md#update#raiseSectionForward()
   endif
   call md#update#decHeadingLevel(1)
 endfunction
+
+" Check the checkbox at the current cursor position
+function! md#update#checkCheckbox()
+  call md#checkbox#checkCheckbox(line('.'))
+endfunction
+
+" Uncheck the checkbox at the current cursor position  
+function! md#update#uncheckCheckbox()
+  call md#checkbox#uncheckCheckbox(line('.'))
+endfunction

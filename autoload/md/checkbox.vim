@@ -111,10 +111,10 @@ function! s:parseCheckboxLine(lineStr)
     \ }
 endfunction
 
-" Find the full range of a checkbox item from the current cursor position
+" Find the full range of a checkbox item from a given line number
 " Returns a dictionary with 'start_line' and 'end_line' keys, or empty dict if not in a checkbox
-function! md#checkbox#findCheckboxRange()
-  let startLine = s:findCheckboxStartFromLine(line('.'))
+function! md#checkbox#findCheckboxRange(line_num)
+  let startLine = s:findCheckboxStartFromLine(a:line_num)
   if startLine == -1
     return {}
   endif
@@ -127,10 +127,10 @@ function! md#checkbox#findCheckboxRange()
     \ }
 endfunction
 
-" Get the content range for inside checkbox text object
+" Get the content range for inside checkbox text object from a given line number
 " Returns a dictionary with start/end line/column positions, or empty dict if invalid
-function! md#checkbox#getInsideContentRange()
-  let checkboxRange = md#checkbox#findCheckboxRange()
+function! md#checkbox#getInsideContentRange(line_num)
+  let checkboxRange = md#checkbox#findCheckboxRange(a:line_num)
   if empty(checkboxRange)
     return {}
   endif
@@ -166,17 +166,17 @@ function! md#checkbox#getInsideContentRange()
     \ }
 endfunction
 
-" Check if the current position is within a checkbox item
+" Check if a given line number is within a checkbox item
 " Returns 1 if in a checkbox, 0 otherwise
-function! md#checkbox#isInCheckbox()
-  let checkboxRange = md#checkbox#findCheckboxRange()
+function! md#checkbox#isInCheckbox(line_num)
+  let checkboxRange = md#checkbox#findCheckboxRange(a:line_num)
   return !empty(checkboxRange)
 endfunction
 
-" Check the checkbox at the current cursor position
-" Works regardless of where cursor is within the checkbox item
-function! md#checkbox#checkCheckbox()
-  let checkboxRange = md#checkbox#findCheckboxRange()
+" Check the checkbox at the given line number
+" Works regardless of where within the checkbox item the line is located
+function! md#checkbox#checkCheckbox(line_num)
+  let checkboxRange = md#checkbox#findCheckboxRange(a:line_num)
   if empty(checkboxRange)
     return
   endif
@@ -198,10 +198,10 @@ function! md#checkbox#checkCheckbox()
   call setline(startLine, newLine)
 endfunction
 
-" Uncheck the checkbox at the current cursor position  
-" Works regardless of where cursor is within the checkbox item
-function! md#checkbox#uncheckCheckbox()
-  let checkboxRange = md#checkbox#findCheckboxRange()
+" Uncheck the checkbox at the given line number  
+" Works regardless of where within the checkbox item the line is located
+function! md#checkbox#uncheckCheckbox(line_num)
+  let checkboxRange = md#checkbox#findCheckboxRange(a:line_num)
   if empty(checkboxRange)
     return
   endif
