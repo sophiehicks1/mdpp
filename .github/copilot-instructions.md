@@ -206,6 +206,7 @@ gR     " Create parent heading for current section
 ## Style and structure guidelines
 
 ### Module structure
+
 - Each module should either implement user exposed plugin functionality **or** perform semantic markdown
   operations/calculations. No module should do both.
 - Semantic modules shouldn't care about the operation they are being used for, so that they can later be
@@ -220,7 +221,17 @@ would involve edits to two separate files:
 - implement `md#edit#addX()` in a plugin functionality module, that just passes the current line number into
   `md#text#addXToLine`
 
-This pattern ensures that all public functions exposed in semantic modules are trivially reusable.
+In other words:
+
+- user facing operations should always be bound to thin wrappers which are implemented in modules that only
+  implement plugin functionality.
+- semantic operations should always happen in modules that are ignorant of the purpose or context of the
+  operation they are being called from.
+- semantic modules shouldn't operate on "cursor position" or "the current line", and their functions should
+  never be directly exposed via user mappings.
+- User mapping should be bound to a thin wrapper in a plugin functionality module (like md#move or md#update),
+  and the cursor positions or current line should be calculated in the thin wrapper and passed into the
+  relevant semantic modules (such as md#checkbox or md#links) as runtime arguments.
 
 ### Code style
 - Keep functions small, simple and readable.
