@@ -14,8 +14,8 @@ endfunction
 function! s:run_tests()
   call test#framework#reset()
   
-  echo "Running tests for md#move module..."
-  echo "=================================="
+  call test#framework#write_info("Running tests for md#move module...")
+  call test#framework#write_info("==================================")
   
   call s:test_backToHeading()
   call s:test_forwardToHeading()
@@ -31,8 +31,8 @@ endfunction
 
 " Test md#move#backToHeading function
 function! s:test_backToHeading()
-  echo ""
-  echo "Testing md#move#backToHeading..."
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing md#move#backToHeading...")
   
   call s:setup_test_buffer()
   
@@ -102,8 +102,8 @@ endfunction
 
 " Test md#move#forwardToHeading function
 function! s:test_forwardToHeading()
-  echo ""
-  echo "Testing md#move#forwardToHeading..."
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing md#move#forwardToHeading...")
   
   call s:setup_test_buffer()
   
@@ -169,8 +169,8 @@ endfunction
 
 " Test md#move#backToSibling function
 function! s:test_backToSibling()
-  echo ""
-  echo "Testing md#move#backToSibling..."
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing md#move#backToSibling...")
   
   call s:setup_test_buffer()
   
@@ -204,8 +204,8 @@ endfunction
 
 " Test md#move#forwardToSibling function
 function! s:test_forwardToSibling()
-  echo ""
-  echo "Testing md#move#forwardToSibling..."
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing md#move#forwardToSibling...")
   
   call s:setup_test_buffer()
   
@@ -244,8 +244,8 @@ endfunction
 
 " Test md#move#backToParent function
 function! s:test_backToParent()
-  echo ""
-  echo "Testing md#move#backToParent..."
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing md#move#backToParent...")
   
   call s:setup_test_buffer()
   
@@ -283,8 +283,8 @@ endfunction
 
 " Test md#move#forwardToFirstChild function
 function! s:test_forwardToFirstChild()
-  echo ""
-  echo "Testing md#move#forwardToFirstChild..."
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing md#move#forwardToFirstChild...")
   
   call s:setup_test_buffer()
   
@@ -317,8 +317,8 @@ endfunction
 
 " Test Visual mode functions
 function! s:test_visual_mode()
-  echo ""
-  echo "Testing Visual mode functions..."
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing Visual mode functions...")
   
   " Test Visual mode backToHeading
   call s:setup_test_buffer()
@@ -388,8 +388,8 @@ endfunction
 
 " Test edge cases
 function! s:test_edge_cases()
-  echo ""
-  echo "Testing edge cases..."
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing edge cases...")
   
   " Test with empty buffer
   enew!
@@ -459,4 +459,10 @@ function! s:test_edge_cases()
 endfunction
 
 " Run all tests
-call s:run_tests()
+" Initialize test framework with results file
+if !exists('g:mdpp_repo_root')
+  echoerr "Test error: g:mdpp_repo_root not set. Please run tests via run_tests.sh"
+else
+  call test#framework#init(g:mdpp_repo_root . '/tests/results.md')
+  call s:run_tests()
+endif
