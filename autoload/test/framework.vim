@@ -4,16 +4,39 @@
 " Test result counters
 let s:test_passes = 0
 let s:test_failures = 0
+let s:results_file = ''
+
+" Initialize test framework with results file
+function! test#framework#init(results_file)
+  let s:results_file = a:results_file
+  " Clear any existing results file
+  call writefile([], s:results_file)
+endfunction
+
+" Write a line to both console and results file
+function! s:write_output(message)
+  " Write to console for immediate feedback
+  echo a:message
+  " Append to results file
+  if s:results_file != ''
+    call writefile([a:message], s:results_file, 'a')
+  endif
+endfunction
+
+" Write an informational message (not a test result)
+function! test#framework#write_info(message)
+  call s:write_output(a:message)
+endfunction
 
 " Assertion function
 function! test#framework#assert_equal(expected, actual, message)
   if a:expected != a:actual
-    echo "FAIL: " . a:message
-    echo "Expected: " . string(a:expected)
-    echo "Actual: " . string(a:actual)
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Expected: " . string(a:expected))
+    call s:write_output("Actual: " . string(a:actual))
     let s:test_failures = s:test_failures + 1
   else
-    echo "PASS: " . a:message
+    call s:write_output("PASS: " . a:message)
     let s:test_passes = s:test_passes + 1
   endif
 endfunction
@@ -45,15 +68,19 @@ endfunction
 
 " Helper function to load content from file
 function! s:load_content_from_file(filename)
-  " Read content from test data file - resolve relative to tests directory
-  let test_data_path = '/home/runner/work/mdpp/mdpp/tests/data/' . a:filename
+  " Read content from test data file - resolve relative to repository root
+  if !exists('g:mdpp_repo_root')
+    echoerr "Test framework error: g:mdpp_repo_root not set. Please run tests via run_tests.sh"
+    return
+  endif
+  let test_data_path = g:mdpp_repo_root . '/tests/data/' . a:filename
   if !filereadable(test_data_path)
     echoerr "Test data file not found: " . test_data_path
     return
   endif
   
   " Load content from file
-  execute 'read ' . fnameescape(test_data_path)
+  execute 'silent read ' . fnameescape(test_data_path)
   " Remove the empty first line created by 'read'
   if line('$') > 1 && getline(1) == ''
     1delete
@@ -68,17 +95,17 @@ endfunction
 
 " Report test results
 function! test#framework#report_results(module_name)
-  echo ""
-  echo "Test Results for " . a:module_name . ":"
-  echo "============="
-  echo "Passes: " . s:test_passes
-  echo "Failures: " . s:test_failures
+  call s:write_output("")
+  call s:write_output("Test Results for " . a:module_name . ":")
+  call s:write_output("=============")
+  call s:write_output("Passes: " . s:test_passes)
+  call s:write_output("Failures: " . s:test_failures)
   
   if s:test_failures == 0
-    echo "All tests passed!"
+    call s:write_output("All tests passed!")
     return 0
   else
-    echo "Some tests failed!"
+    call s:write_output("Some tests failed!")
     return 1
   endif
 endfunction

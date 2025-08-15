@@ -2,3 +2,4 @@ test.md
 *.swp
 *.swo
 *.swn
+tests/results.md
