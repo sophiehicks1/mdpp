@@ -77,7 +77,7 @@ for test_file in "$REPO_ROOT"/tests/test_*.vim; do
         grep -v '^".*" \[.*\] [0-9]*L, [0-9]*B$' | \
         grep -v '^".*" \[noeol\] [0-9]*L, [0-9]*B$' | \
         grep -v '^".*"$' | \
-        grep -v '^Vim: Warning:' | \
+
         grep -v '^$'
     fi
 done

@@ -46,8 +46,11 @@ endfunction
 " Helper function to load content from file
 function! s:load_content_from_file(filename)
   " Read content from test data file - resolve relative to repository root
-  let repo_root = exists('g:mdpp_repo_root') ? g:mdpp_repo_root : '/home/runner/work/mdpp/mdpp'
-  let test_data_path = repo_root . '/tests/data/' . a:filename
+  if !exists('g:mdpp_repo_root')
+    echoerr "Test framework error: g:mdpp_repo_root not set. Please run tests via run_tests.sh"
+    return
+  endif
+  let test_data_path = g:mdpp_repo_root . '/tests/data/' . a:filename
   if !filereadable(test_data_path)
     echoerr "Test data file not found: " . test_data_path
     return
