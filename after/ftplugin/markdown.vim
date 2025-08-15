@@ -38,7 +38,7 @@ nnoremap <buffer> <silent> <Plug>MarkdownMoveSectionForward :<C-u>call md#update
 nnoremap <buffer> <silent> <Plug>MarkdownRaiseSectionBack :<C-u>call md#update#raiseSectionBack()<CR>
 nnoremap <buffer> <silent> <Plug>MarkdownRaiseSectionForward :<C-u>call md#update#raiseSectionForward()<CR>
 
-nnoremap <buffer> <silent> <Plug>MarkdownShowFootnote :<C-u>call md#footnotes#showFootnoteInFloat()<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownShowFootnote :<C-u>call md#ux#showFootnoteInFloat()<CR>
 
 nnoremap <buffer> <silent> <Plug>MarkdownCheckCheckbox :<C-u>call md#update#checkCheckbox()<CR>
 nnoremap <buffer> <silent> <Plug>MarkdownUncheckCheckbox :<C-u>call md#update#uncheckCheckbox()<CR>
