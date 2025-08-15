@@ -161,7 +161,6 @@ function! md#links#findInlineLinksInLine(line_num)
   return links
 endfunction
 
-" FIXME unnecessary arg
 " Find all reference links in a line - PUBLIC for testing
 " Returns list of link info dictionaries
 function! md#links#findReferenceLinksInLine(line_num)
@@ -231,7 +230,6 @@ function! md#links#findReferenceLinksInLine(line_num)
   return links
 endfunction
 
-" FIXME unnecessary arg
 " Find all wiki links in a line - PUBLIC for testing
 " Returns list of link info dictionaries
 function! md#links#findWikiLinksInLine(line_num)
