@@ -180,8 +180,10 @@ function! s:getFootnoteDefinitionContent(def_line_num, footnote_id)
     let line_num += 1
   endwhile
   
-  " Join all content lines with newlines and trim trailing whitespace
-  return substitute(join(content_lines, "\n"), '\s\+$', '', '')
+  " Join all content lines with newlines and trim trailing whitespace/newlines
+  let result = join(content_lines, "\n")
+  " Remove trailing whitespace and newlines
+  return substitute(result, '\s*\n*$', '', '')
 endfunction
 
 " Show footnote content in a floating window (Neovim only)

@@ -79,7 +79,7 @@ Reorganize your markdown hierarchy effortlessly:
 
 ### Footnote Support (Neovim only)
 
-- **`gf`** - Show footnote content in floating window when cursor is on footnote reference or definition
+- **`<leader>f`** - Show footnote content in floating window when cursor is on footnote reference or definition
 
 The footnote feature works with standard Markdown footnote syntax:
 - Footnote references: `[^footnote-id]`

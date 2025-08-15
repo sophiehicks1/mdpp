@@ -78,5 +78,5 @@ else
   nmap <buffer> [M <Plug>MarkdownRaiseSectionBack
   nmap <buffer> ]M <Plug>MarkdownRaiseSectionForward
   
-  nmap <buffer> gf <Plug>MarkdownShowFootnote
+  nmap <buffer> <leader>f <Plug>MarkdownShowFootnote
 endif
