@@ -165,3 +165,60 @@ function! md#checkbox#getInsideContentRange()
     \ 'end_col': endCol
     \ }
 endfunction
+
+" Check if the current position is within a checkbox item
+" Returns 1 if in a checkbox, 0 otherwise
+function! md#checkbox#isInCheckbox()
+  let checkboxRange = md#checkbox#findCheckboxRange()
+  return !empty(checkboxRange)
+endfunction
+
+" Check the checkbox at the current cursor position
+" Works regardless of where cursor is within the checkbox item
+function! md#checkbox#checkCheckbox()
+  let checkboxRange = md#checkbox#findCheckboxRange()
+  if empty(checkboxRange)
+    return
+  endif
+  
+  let startLine = checkboxRange.start_line
+  let lineStr = getline(startLine)
+  
+  " Parse the checkbox line to get the components
+  let parsed = s:parseCheckboxLine(lineStr)
+  if empty(parsed)
+    return
+  endif
+  
+  " Replace the checkbox state with checked 'x'
+  let newPrefix = substitute(parsed.prefix, '\[[xX ]\]', '[x]', '')
+  let newLine = newPrefix . parsed.content
+  
+  " Update the line in the buffer
+  call setline(startLine, newLine)
+endfunction
+
+" Uncheck the checkbox at the current cursor position  
+" Works regardless of where cursor is within the checkbox item
+function! md#checkbox#uncheckCheckbox()
+  let checkboxRange = md#checkbox#findCheckboxRange()
+  if empty(checkboxRange)
+    return
+  endif
+  
+  let startLine = checkboxRange.start_line
+  let lineStr = getline(startLine)
+  
+  " Parse the checkbox line to get the components
+  let parsed = s:parseCheckboxLine(lineStr)
+  if empty(parsed)
+    return
+  endif
+  
+  " Replace the checkbox state with unchecked ' '
+  let newPrefix = substitute(parsed.prefix, '\[[xX ]\]', '[ ]', '')
+  let newLine = newPrefix . parsed.content
+  
+  " Update the line in the buffer
+  call setline(startLine, newLine)
+endfunction
