@@ -85,7 +85,6 @@ endfunction
 
 " Returns a vim-textobj-user style range for the text inside a markdown link
 function! md#objects#insideLinkText()
-  " FIXME this should pass in '.', not assume it
   let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
     let range = md#links#getLinkTextRange(link_info)

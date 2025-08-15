@@ -22,6 +22,7 @@ function! s:run_tests()
   return test#framework#report_results("md#checkbox")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test md#checkbox#findCheckboxRange function
 function! s:test_findCheckboxRange()
   call test#framework#write_info("Testing md#checkbox#findCheckboxRange...")
@@ -53,6 +54,7 @@ function! s:test_findCheckboxRange()
   call test#framework#assert_equal(21, range.start_line, "Should find correct nested checkbox start")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test md#checkbox#checkCheckbox function
 function! s:test_checkCheckbox()
   call test#framework#write_info("Testing md#checkbox#checkCheckbox...")
@@ -92,6 +94,7 @@ function! s:test_checkCheckbox()
   call test#framework#assert_true(line =~ '^\s*-\s*\[x\]', "Should check checkbox from any cursor position within item")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test md#checkbox#uncheckCheckbox function  
 function! s:test_uncheckCheckbox()
   call test#framework#write_info("Testing md#checkbox#uncheckCheckbox...")
@@ -131,6 +134,7 @@ function! s:test_uncheckCheckbox()
   call test#framework#assert_true(line =~ '^\s*-\s*\[ \]', "Should uncheck [X] checkbox")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test edge cases
 function! s:test_edge_cases()
   call test#framework#write_info("Testing edge cases...")
