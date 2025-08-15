@@ -1,6 +1,6 @@
 # mdpp Test Suite
 
-This directory contains automated tests for the mdpp plugin modules. Currently, only the `md#move` module has comprehensive test coverage, but the framework is designed to support testing all mdpp modules.
+This directory contains automated tests for the mdpp plugin modules. Currently provides comprehensive test coverage for both the `md#move` and `md#links` modules, with the framework designed to support testing all mdpp modules.
 
 ## Test Infrastructure
 
@@ -8,7 +8,7 @@ This directory contains automated tests for the mdpp plugin modules. Currently, 
 - **Test Runner**: `run_tests.sh` - Self-contained script that sets up dependencies and runs tests
 - **Test Framework**: `autoload/test/framework.vim` - Reusable test infrastructure for all mdpp modules
 - **Test Data**: `data/` directory containing markdown files for test scenarios
-- **Current Coverage**: 41 test cases covering all movement functions
+- **Current Coverage**: 133 test cases covering movement functions and link manipulation
 
 ### Running Tests
 ```bash
@@ -45,11 +45,22 @@ The test suite covers the following functions:
 
 Test scenarios use markdown files in the `data/` directory for better readability:
 
+### Movement Test Data
 - `comprehensive.md` - Main test document with hierarchical heading structure
 - `no_headings.md` - Document with only content, no headings
 - `single_heading.md` - Document with single heading
 - `underline_headings.md` - Document using underline-style heading syntax
 - `content_before_heading.md` - Document with content before first heading
+
+### Link Test Data
+- `links.md` - Comprehensive link test document with various link types:
+  - Simple inline links: `[example](http://example.com)`
+  - Complex inline links: `[**bold** and *italic*](http://example.com)`
+  - Multiple links per line
+  - Reference links: `[example reference][ref1]`
+  - Implicit reference links: `[example][]`
+  - Reference definitions: `[ref1]: http://example.com`
+  - Edge cases and malformed links
 
 ## Framework Architecture
 
@@ -195,6 +206,19 @@ Another root content
 
 All tests should pass. Example output:
 ```
+Running tests for md#links module...
+====================================
+
+Testing md#links#findInlineLinksInLine...
+PASS: Should find one inline link
+PASS: Link type should be inline
+PASS: Link text should match
+...
+
+Passes: 67
+Failures: 0
+All tests passed!
+
 Running tests for md#move module...
 ==================================
 
@@ -203,11 +227,11 @@ PASS: backToHeading from content should go to section heading
 PASS: backToHeading from section should go to previous heading
 ...
 
-Test Results:
-=============
-Passes: 41
+Passes: 66
 Failures: 0
 All tests passed!
+
+Total test results: 133 tests passed
 ```
 
 ## Known Issues
@@ -229,6 +253,18 @@ When adding new functionality to mdpp:
 5. **Store test data** as readable markdown files in `tests/data/`
 
 ### Adding Tests to Existing Modules
+
+To add tests to the move module:
+
+### Adding Tests to Existing Modules
+
+To add tests to the move module:
+
+1. Add test function to `tests/test_move.vim` following the naming pattern `s:test_*`
+2. Call the function from `s:run_tests()`  
+3. Use `test#framework#assert_equal()` for assertions
+4. Use `test#framework#setup_buffer_from_file()` for consistent test content
+5. Clean up visual mode state properly if testing visual functionsg Modules
 
 To add tests to the move module:
 

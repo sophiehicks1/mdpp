@@ -101,6 +101,28 @@ Given this structure:
 - tpope/vim-repeat
 - kana/vim-textob-user
 
+## Testing
+
+The plugin includes comprehensive automated tests covering all major functionality:
+
+- **133 total tests** with complete coverage for text objects, navigation, and link manipulation
+- **md#move module** (66 tests): All navigation functions
+- **md#links module** (67 tests): Link parsing and manipulation functions
+
+### Running Tests
+```bash
+# Run all tests
+./tests/run_tests.sh
+
+# The test runner automatically:
+# - Sets up isolated test environment  
+# - Clones required dependencies
+# - Runs comprehensive test suite
+# - Reports results and cleans up
+```
+
+Tests are self-contained and provide detailed output for debugging. See `tests/README.md` for detailed testing documentation.
+
 ## Configuration
 
 ```vim
