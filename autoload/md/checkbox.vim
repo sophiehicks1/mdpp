@@ -48,12 +48,29 @@ function! s:findCheckboxStartFromLine(targetLine)
     let currentLine -= 1
     let lineStr = getline(currentLine)
     
-    " If we find a checkbox line, we found our start
+    " If we find a checkbox line, check if target line could be its continuation
     if s:isCheckboxLine(lineStr)
-      return currentLine
+      let checkboxIndent = match(lineStr, '\S')
+      " Check if all lines between checkbox and target are valid continuations
+      let isValidContinuation = 1
+      for lineNum in range(currentLine + 1, a:targetLine)
+        let intermediateLine = getline(lineNum)
+        if !s:isContinuationLine(intermediateLine, checkboxIndent)
+          let isValidContinuation = 0
+          break
+        endif
+      endfor
+      
+      if isValidContinuation
+        return currentLine
+      else
+        " Not a valid continuation, so target is not part of this checkbox
+        return -1
+      endif
     endif
     
-    " If we hit a structural element (not a continuation), stop searching
+    " If we hit a non-empty line that's not a checkbox and not indented enough to be 
+    " a continuation, then we've gone too far
     if lineStr !~ '^\s*$' && lineStr !~ '^\s\+\S'
       break
     endif

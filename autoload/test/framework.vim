@@ -28,12 +28,60 @@ function! test#framework#write_info(message)
   call s:write_output(a:message)
 endfunction
 
-" Assertion function
+" Assertion functions
 function! test#framework#assert_equal(expected, actual, message)
   if a:expected != a:actual
     call s:write_output("FAIL: " . a:message)
     call s:write_output("Expected: " . string(a:expected))
     call s:write_output("Actual: " . string(a:actual))
+    let s:test_failures = s:test_failures + 1
+  else
+    call s:write_output("PASS: " . a:message)
+    let s:test_passes = s:test_passes + 1
+  endif
+endfunction
+
+function! test#framework#assert_true(condition, message)
+  if !a:condition
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Expected: true")
+    call s:write_output("Actual: " . string(a:condition))
+    let s:test_failures = s:test_failures + 1
+  else
+    call s:write_output("PASS: " . a:message)
+    let s:test_passes = s:test_passes + 1
+  endif
+endfunction
+
+function! test#framework#assert_false(condition, message)
+  if a:condition
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Expected: false")
+    call s:write_output("Actual: " . string(a:condition))
+    let s:test_failures = s:test_failures + 1
+  else
+    call s:write_output("PASS: " . a:message)
+    let s:test_passes = s:test_passes + 1
+  endif
+endfunction
+
+function! test#framework#assert_empty(value, message)
+  if !empty(a:value)
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Expected: empty")
+    call s:write_output("Actual: " . string(a:value))
+    let s:test_failures = s:test_failures + 1
+  else
+    call s:write_output("PASS: " . a:message)
+    let s:test_passes = s:test_passes + 1
+  endif
+endfunction
+
+function! test#framework#assert_not_empty(value, message)
+  if empty(a:value)
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Expected: not empty")
+    call s:write_output("Actual: " . string(a:value))
     let s:test_failures = s:test_failures + 1
   else
     call s:write_output("PASS: " . a:message)
@@ -64,6 +112,12 @@ endfunction
 " Setup a test buffer with inline content (for cases where a file doesn't make sense)
 function! test#framework#setup_buffer_with_content(content_lines)
   call s:setup_buffer({ -> s:load_content_from_lines(a:content_lines) })
+endfunction
+
+" Setup a test buffer from a string (splits string on newlines)
+function! test#framework#setup_buffer_from_string(content_string)
+  let content_lines = split(a:content_string, '\n')
+  call test#framework#setup_buffer_with_content(content_lines)
 endfunction
 
 " Helper function to load content from file
