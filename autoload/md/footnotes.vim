@@ -221,10 +221,30 @@ function! md#footnotes#showFootnoteInFloat()
   let lines = ['[^' . footnote_info.id . ']:']
   call extend(lines, split(content, "\n"))
   
+  " Apply ellision for content that's too long
+  let max_width = 70
+  let max_height = 11
+  
+  " Ellide lines that are too long
+  for i in range(len(lines))
+    if len(lines[i]) > max_width
+      let lines[i] = lines[i][0:max_width-4] . '...'
+    endif
+  endfor
+  
+  " Ellide if there are too many lines
+  if len(lines) > max_height
+    let lines = lines[0:max_height-1]
+    if len(lines[max_height-1]) > max_width - 3
+      let lines[max_height-1] = lines[max_height-1][0:max_width-4] . '...'
+    else
+      let lines[max_height-1] = lines[max_height-1] . '...'
+    endif
+  endif
+  
   " Calculate window dimensions
-  let max_width = 60
   let width = min([max_width, max(map(copy(lines), 'len(v:val)'))])
-  let height = min([10, len(lines)])
+  let height = len(lines)
   
   " Get cursor position for positioning the float
   let cursor_pos = screenpos(0, line('.'), col('.'))

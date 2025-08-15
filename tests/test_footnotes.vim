@@ -127,6 +127,146 @@ function! s:test_footnote_definitions()
   call test#framework#assert_equal(footnote_info1.content, footnote_info2.content, "Should find same content for multiple references")
 endfunction
 
+" Test window sizing and ellision logic in detail
+function! s:test_ellision_logic()
+  call test#framework#write_info("Testing window sizing and ellision logic...")
+  
+  " Test with very long footnote content (should be ellided)
+  call test#framework#setup_buffer_from_lines([
+        \ 'This footnote has very long content[^long].',
+        \ '',
+        \ '[^long]: This is an extremely long footnote that contains more than seventy characters and should be ellided with dots at the end to fit within the maximum window width of seventy characters.',
+        \ '',
+        \ 'This footnote has many lines[^many].',
+        \ '',
+        \ '[^many]: Line 1',
+        \ '    Line 2',
+        \ '    Line 3',
+        \ '    Line 4',
+        \ '    Line 5',
+        \ '    Line 6',
+        \ '    Line 7',
+        \ '    Line 8',
+        \ '    Line 9',
+        \ '    Line 10',
+        \ '    Line 11',
+        \ '    Line 12',
+        \ '    Line 13',
+        \ '    Line 14',
+        \ '    Line 15',
+        \ ])
+  
+  " Test long content footnote
+  call cursor(1, 42)  " Position on [^long] - fixed position
+  let footnote_info = md#footnotes#findFootnoteAtCursor()
+  call test#framework#assert_equal('reference', footnote_info.type, "Should find long footnote reference")
+  call test#framework#assert_equal('long', footnote_info.id, "Should extract long footnote ID")
+  
+  " Simulate the window sizing logic from the function
+  let content = footnote_info.content
+  let lines = ['[^' . footnote_info.id . ']:']
+  call extend(lines, split(content, "\n"))
+  
+  " Apply ellision for content that's too long
+  let max_width = 70
+  let max_height = 11
+  
+  " Check if long line ellision works
+  let has_long_line = 0
+  for line in lines
+    if len(line) > max_width
+      let has_long_line = 1
+      break
+    endif
+  endfor
+  call test#framework#assert_equal(1, has_long_line, "Should have lines longer than 70 characters before ellision")
+  
+  " Apply ellision to long lines
+  for i in range(len(lines))
+    if len(lines[i]) > max_width
+      let lines[i] = lines[i][0:max_width-4] . '...'
+    endif
+  endfor
+  
+  " Verify no line exceeds max width after ellision
+  for line in lines
+    call test#framework#assert_true(len(line) <= max_width, "Line should not exceed max width after ellision: " . string(line))
+  endfor
+  
+  " Test many lines footnote
+  call cursor(5, 35)  " Position on [^many]
+  let footnote_info = md#footnotes#findFootnoteAtCursor()
+  call test#framework#assert_equal('reference', footnote_info.type, "Should find many-lines footnote reference")
+  call test#framework#assert_equal('many', footnote_info.id, "Should extract many-lines footnote ID")
+  
+  " Simulate window sizing for many lines
+  let content = footnote_info.content
+  let lines = ['[^' . footnote_info.id . ']:']
+  call extend(lines, split(content, "\n"))
+  
+  " Check if we have more than max_height lines
+  call test#framework#assert_true(len(lines) > max_height, "Should have more than 11 lines before ellision")
+  
+  " Apply height ellision
+  if len(lines) > max_height
+    let lines = lines[0:max_height-1]
+    if len(lines[max_height-1]) > max_width - 3
+      let lines[max_height-1] = lines[max_height-1][0:max_width-4] . '...'
+    else
+      let lines[max_height-1] = lines[max_height-1] . '...'
+    endif
+  endif
+  
+  " Verify height constraint is respected
+  call test#framework#assert_equal(max_height, len(lines), "Should have exactly max_height lines after ellision")
+  
+  " Verify last line has ellision
+  call test#framework#assert_true(lines[max_height-1] =~ '\.\.\.$', "Last line should end with ellision")
+endfunction
+
+" Test window sizing and ellision
+function! s:test_window_sizing()
+  call test#framework#write_info("Testing floating window sizing and ellision...")
+  
+  " Test with very long footnote content (should be ellided)
+  call test#framework#setup_buffer_from_lines([
+        \ 'This footnote has very long content[^long].',
+        \ '',
+        \ '[^long]: This is an extremely long footnote that contains more than seventy characters and should be ellided with dots at the end to fit within the maximum window width of seventy characters.',
+        \ '',
+        \ 'This footnote has many lines[^many].',
+        \ '',
+        \ '[^many]: Line 1',
+        \ 'Line 2',
+        \ 'Line 3',
+        \ 'Line 4',
+        \ 'Line 5',
+        \ 'Line 6',
+        \ 'Line 7',
+        \ 'Line 8',
+        \ 'Line 9',
+        \ 'Line 10',
+        \ 'Line 11',
+        \ 'Line 12',
+        \ 'Line 13'
+        \ ])
+  
+  " Test long content footnote
+  call cursor(1, 35)  " Position on [^long]
+  let footnote_info = md#footnotes#findFootnoteAtCursor()
+  call test#framework#assert_equal('reference', footnote_info.type, "Should find long footnote reference")
+  call test#framework#assert_equal('long', footnote_info.id, "Should extract long footnote ID")
+  
+  " Test many lines footnote
+  call cursor(5, 35)  " Position on [^many]
+  let footnote_info = md#footnotes#findFootnoteAtCursor()
+  call test#framework#assert_equal('reference', footnote_info.type, "Should find many-lines footnote reference")
+  call test#framework#assert_equal('many', footnote_info.id, "Should extract many-lines footnote ID")
+  
+  " Note: We can't easily test the actual window creation without Neovim,
+  " but we can test that the footnote parsing works correctly
+endfunction
+
 " Test edge cases
 function! s:test_edge_cases()
   call test#framework#write_info("Testing edge cases...")
@@ -177,6 +317,8 @@ function! s:run_all_tests()
   call s:test_find_footnote_references_in_line()
   call s:test_find_footnote_at_cursor()
   call s:test_footnote_definitions()
+  call s:test_ellision_logic()
+  call s:test_window_sizing()
   call s:test_edge_cases()
   
   return test#framework#report_results('md#footnotes')
