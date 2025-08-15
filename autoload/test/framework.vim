@@ -66,6 +66,11 @@ function! test#framework#setup_buffer_with_content(content_lines)
   call s:setup_buffer({ -> s:load_content_from_lines(a:content_lines) })
 endfunction
 
+" Setup a test buffer with inline content (alternative name for consistency)
+function! test#framework#setup_buffer_from_lines(content_lines)
+  call s:setup_buffer({ -> s:load_content_from_lines(a:content_lines) })
+endfunction
+
 " Helper function to load content from file
 function! s:load_content_from_file(filename)
   " Read content from test data file - resolve relative to repository root
