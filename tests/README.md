@@ -166,7 +166,9 @@ To create tests for other mdpp modules:
    " Main runner function
    function! TestYourModule()
      call test#framework#reset()
-     call s:test_your_function()
+     " You must run test functions using the test function runner, so that errors in your test code are
+     " visible.
+     call test#framework#run_test_function("test_your_function", function("s:test_your_function"))
      return test#framework#report_results("your#module")
    endfunction
    
