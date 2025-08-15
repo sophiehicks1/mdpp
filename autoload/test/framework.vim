@@ -120,3 +120,18 @@ endfunction
 function! test#framework#get_counts()
   return {'passes': s:test_passes, 'failures': s:test_failures}
 endfunction
+
+" Execute a test function safely with error handling
+" This will catch any errors (including calls to non-existent functions)
+" and report them as test failures
+function! test#framework#run_test_function(test_function_name, test_function_ref)
+  try
+    call call(a:test_function_ref, [])
+  catch
+    " Report the error as a test failure
+    call s:write_output("FAIL: Test function '" . a:test_function_name . "' encountered an error")
+    call s:write_output("Error: " . v:exception)
+    call s:write_output("Location: " . v:throwpoint)
+    let s:test_failures = s:test_failures + 1
+  endtry
+endfunction
