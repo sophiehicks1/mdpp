@@ -86,7 +86,7 @@ endfunction
 " Returns a vim-textobj-user style range for the text inside a markdown link
 function! md#objects#insideLinkText()
   " FIXME this should pass in '.', not assume it
-  let link_info = md#links#findLinkAtCursor()
+  let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
     let range = md#links#getLinkTextRange(link_info)
     if !empty(range)
@@ -98,7 +98,7 @@ endfunction
 
 " Returns a vim-textobj-user style range around the text of a markdown link (including brackets)
 function! md#objects#aroundLinkText()
-  let link_info = md#links#findLinkAtCursor()
+  let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
     let range = md#links#getLinkTextRange(link_info)
     if !empty(range)
@@ -116,7 +116,7 @@ endfunction
 
 " Returns a vim-textobj-user style range for the URL inside a markdown link
 function! md#objects#insideLinkUrl()
-  let link_info = md#links#findLinkAtCursor()
+  let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
     let range = md#links#getLinkUrlRange(link_info)
     if !empty(range)
@@ -128,7 +128,7 @@ endfunction
 
 " Returns a vim-textobj-user style range around the URL of a markdown link (including parens/definition)
 function! md#objects#aroundLinkUrl()
-  let link_info = md#links#findLinkAtCursor()
+  let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
     if link_info.type == 'inline'
       let range = md#links#getLinkUrlRange(link_info)
@@ -156,7 +156,7 @@ endfunction
 
 " Returns a vim-textobj-user style range for the entire markdown link
 function! md#objects#insideLink()
-  let link_info = md#links#findLinkAtCursor()
+  let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
     let range = md#links#getLinkFullRange(link_info)
     if !empty(range)
@@ -175,7 +175,7 @@ endfunction
 
 " Returns a vim-textobj-user style range around the entire markdown link
 function! md#objects#aroundLink()
-  let link_info = md#links#findLinkAtCursor()
+  let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
     let range = md#links#getLinkFullRange(link_info)
     if !empty(range)

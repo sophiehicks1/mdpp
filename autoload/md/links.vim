@@ -2,12 +2,11 @@
 " Functions for parsing and handling markdown links
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" Find the link that contains the cursor position
+" Find the link that contains the given position
 " Returns a dictionary with link information or {} if no link found
-function! md#links#findLinkAtCursor()
-  let cursor_pos = getpos('.')
-  let line_num = cursor_pos[1]
-  let col_num = cursor_pos[2]
+function! md#links#findLinkAtPos(pos)
+  let line_num = a:pos[1]
+  let col_num = a:pos[2]
   
   " First check if we're on a reference definition line
   let ref_def_info = s:findReferenceDefinitionAtPosition(line_num, col_num)
