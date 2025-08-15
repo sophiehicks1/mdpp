@@ -14,10 +14,10 @@ function! s:run_tests()
   call test#framework#write_info("======================================")
   call test#framework#write_info("")
   
-  call s:test_findCheckboxRange()
-  call s:test_checkCheckbox()  
-  call s:test_uncheckCheckbox()
-  call s:test_edge_cases()
+  call test#framework#run_test_function("test_findCheckboxRange", function('s:test_findCheckboxRange'))
+  call test#framework#run_test_function("test_checkCheckbox", function('s:test_checkCheckbox'))
+  call test#framework#run_test_function("test_uncheckCheckbox", function('s:test_uncheckCheckbox'))
+  call test#framework#run_test_function("test_edge_cases", function('s:test_edge_cases'))
   
   return test#framework#report_results("md#checkbox")
 endfunction
