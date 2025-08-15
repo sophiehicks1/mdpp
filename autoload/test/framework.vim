@@ -28,12 +28,60 @@ function! test#framework#write_info(message)
   call s:write_output(a:message)
 endfunction
 
-" Assertion function
+" Assertion functions
 function! test#framework#assert_equal(expected, actual, message)
   if a:expected != a:actual
     call s:write_output("FAIL: " . a:message)
     call s:write_output("Expected: " . string(a:expected))
     call s:write_output("Actual: " . string(a:actual))
+    let s:test_failures = s:test_failures + 1
+  else
+    call s:write_output("PASS: " . a:message)
+    let s:test_passes = s:test_passes + 1
+  endif
+endfunction
+
+function! test#framework#assert_true(condition, message)
+  if !a:condition
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Expected: true")
+    call s:write_output("Actual: " . string(a:condition))
+    let s:test_failures = s:test_failures + 1
+  else
+    call s:write_output("PASS: " . a:message)
+    let s:test_passes = s:test_passes + 1
+  endif
+endfunction
+
+function! test#framework#assert_false(condition, message)
+  if a:condition
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Expected: false")
+    call s:write_output("Actual: " . string(a:condition))
+    let s:test_failures = s:test_failures + 1
+  else
+    call s:write_output("PASS: " . a:message)
+    let s:test_passes = s:test_passes + 1
+  endif
+endfunction
+
+function! test#framework#assert_empty(value, message)
+  if !empty(a:value)
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Expected: empty")
+    call s:write_output("Actual: " . string(a:value))
+    let s:test_failures = s:test_failures + 1
+  else
+    call s:write_output("PASS: " . a:message)
+    let s:test_passes = s:test_passes + 1
+  endif
+endfunction
+
+function! test#framework#assert_not_empty(value, message)
+  if empty(a:value)
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Expected: not empty")
+    call s:write_output("Actual: " . string(a:value))
     let s:test_failures = s:test_failures + 1
   else
     call s:write_output("PASS: " . a:message)
@@ -66,9 +114,16 @@ function! test#framework#setup_buffer_with_content(content_lines)
   call s:setup_buffer({ -> s:load_content_from_lines(a:content_lines) })
 endfunction
 
+" FIXME wtf copilot, really? You could have changed the function name and changed it throughout the tests you know
 " Setup a test buffer with inline content (alternative name for consistency)
 function! test#framework#setup_buffer_from_lines(content_lines)
   call s:setup_buffer({ -> s:load_content_from_lines(a:content_lines) })
+endfunction
+
+" Setup a test buffer from a string (splits string on newlines)
+function! test#framework#setup_buffer_from_string(content_string)
+  let content_lines = split(a:content_string, '\n')
+  call test#framework#setup_buffer_with_content(content_lines)
 endfunction
 
 " Helper function to load content from file
@@ -124,4 +179,19 @@ endfunction
 " Get current test counts (for reporting progress)
 function! test#framework#get_counts()
   return {'passes': s:test_passes, 'failures': s:test_failures}
+endfunction
+
+" Execute a test function safely with error handling
+" This will catch any errors (including calls to non-existent functions)
+" and report them as test failures
+function! test#framework#run_test_function(test_function_name, test_function_ref)
+  try
+    call call(a:test_function_ref, [])
+  catch
+    " Report the error as a test failure
+    call s:write_output("FAIL: Test function '" . a:test_function_name . "' encountered an error")
+    call s:write_output("Error: " . v:exception)
+    call s:write_output("Location: " . v:throwpoint)
+    let s:test_failures = s:test_failures + 1
+  endtry
 endfunction

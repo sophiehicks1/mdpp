@@ -48,12 +48,29 @@ function! s:findCheckboxStartFromLine(targetLine)
     let currentLine -= 1
     let lineStr = getline(currentLine)
     
-    " If we find a checkbox line, we found our start
+    " If we find a checkbox line, check if target line could be its continuation
     if s:isCheckboxLine(lineStr)
-      return currentLine
+      let checkboxIndent = match(lineStr, '\S')
+      " Check if all lines between checkbox and target are valid continuations
+      let isValidContinuation = 1
+      for lineNum in range(currentLine + 1, a:targetLine)
+        let intermediateLine = getline(lineNum)
+        if !s:isContinuationLine(intermediateLine, checkboxIndent)
+          let isValidContinuation = 0
+          break
+        endif
+      endfor
+      
+      if isValidContinuation
+        return currentLine
+      else
+        " Not a valid continuation, so target is not part of this checkbox
+        return -1
+      endif
     endif
     
-    " If we hit a structural element (not a continuation), stop searching
+    " If we hit a non-empty line that's not a checkbox and not indented enough to be 
+    " a continuation, then we've gone too far
     if lineStr !~ '^\s*$' && lineStr !~ '^\s\+\S'
       break
     endif
@@ -111,10 +128,10 @@ function! s:parseCheckboxLine(lineStr)
     \ }
 endfunction
 
-" Find the full range of a checkbox item from the current cursor position
+" Find the full range of a checkbox item from a given line number
 " Returns a dictionary with 'start_line' and 'end_line' keys, or empty dict if not in a checkbox
-function! md#checkbox#findCheckboxRange()
-  let startLine = s:findCheckboxStartFromLine(line('.'))
+function! md#checkbox#findCheckboxRange(line_num)
+  let startLine = s:findCheckboxStartFromLine(a:line_num)
   if startLine == -1
     return {}
   endif
@@ -127,10 +144,10 @@ function! md#checkbox#findCheckboxRange()
     \ }
 endfunction
 
-" Get the content range for inside checkbox text object
+" Get the content range for inside checkbox text object from a given line number
 " Returns a dictionary with start/end line/column positions, or empty dict if invalid
-function! md#checkbox#getInsideContentRange()
-  let checkboxRange = md#checkbox#findCheckboxRange()
+function! md#checkbox#getInsideContentRange(line_num)
+  let checkboxRange = md#checkbox#findCheckboxRange(a:line_num)
   if empty(checkboxRange)
     return {}
   endif
@@ -164,4 +181,61 @@ function! md#checkbox#getInsideContentRange()
     \ 'end_line': endLine,
     \ 'end_col': endCol
     \ }
+endfunction
+
+" Check if a given line number is within a checkbox item
+" Returns 1 if in a checkbox, 0 otherwise
+function! md#checkbox#isInCheckbox(line_num)
+  let checkboxRange = md#checkbox#findCheckboxRange(a:line_num)
+  return !empty(checkboxRange)
+endfunction
+
+" Check the checkbox at the given line number
+" Works regardless of where within the checkbox item the line is located
+function! md#checkbox#checkCheckbox(line_num)
+  let checkboxRange = md#checkbox#findCheckboxRange(a:line_num)
+  if empty(checkboxRange)
+    return
+  endif
+  
+  let startLine = checkboxRange.start_line
+  let lineStr = getline(startLine)
+  
+  " Parse the checkbox line to get the components
+  let parsed = s:parseCheckboxLine(lineStr)
+  if empty(parsed)
+    return
+  endif
+  
+  " Replace the checkbox state with checked 'x'
+  let newPrefix = substitute(parsed.prefix, '\[[xX ]\]', '[x]', '')
+  let newLine = newPrefix . parsed.content
+  
+  " Update the line in the buffer
+  call setline(startLine, newLine)
+endfunction
+
+" Uncheck the checkbox at the given line number  
+" Works regardless of where within the checkbox item the line is located
+function! md#checkbox#uncheckCheckbox(line_num)
+  let checkboxRange = md#checkbox#findCheckboxRange(a:line_num)
+  if empty(checkboxRange)
+    return
+  endif
+  
+  let startLine = checkboxRange.start_line
+  let lineStr = getline(startLine)
+  
+  " Parse the checkbox line to get the components
+  let parsed = s:parseCheckboxLine(lineStr)
+  if empty(parsed)
+    return
+  endif
+  
+  " Replace the checkbox state with unchecked ' '
+  let newPrefix = substitute(parsed.prefix, '\[[xX ]\]', '[ ]', '')
+  let newLine = newPrefix . parsed.content
+  
+  " Update the line in the buffer
+  call setline(startLine, newLine)
 endfunction

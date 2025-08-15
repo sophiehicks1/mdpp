@@ -40,6 +40,9 @@ nnoremap <buffer> <silent> <Plug>MarkdownRaiseSectionForward :<C-u>call md#updat
 
 nnoremap <buffer> <silent> <Plug>MarkdownShowFootnote :<C-u>call md#footnotes#showFootnoteInFloat()<CR>
 
+nnoremap <buffer> <silent> <Plug>MarkdownCheckCheckbox :<C-u>call md#update#checkCheckbox()<CR>
+nnoremap <buffer> <silent> <Plug>MarkdownUncheckCheckbox :<C-u>call md#update#uncheckCheckbox()<CR>
+
 if exists('g:mdpp_default_mappings') && g:mdpp_default_mappings == 0
   " If the user has disabled the mappings, don't set them.
 else
@@ -79,4 +82,7 @@ else
   nmap <buffer> ]M <Plug>MarkdownRaiseSectionForward
   
   nmap <buffer> <leader>f <Plug>MarkdownShowFootnote
+
+  nmap <buffer> [d <Plug>MarkdownUncheckCheckbox
+  nmap <buffer> ]d <Plug>MarkdownCheckCheckbox
 endif

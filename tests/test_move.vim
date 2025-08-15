@@ -17,14 +17,15 @@ function! s:run_tests()
   call test#framework#write_info("Running tests for md#move module...")
   call test#framework#write_info("==================================")
   
-  call s:test_backToHeading()
-  call s:test_forwardToHeading()
-  call s:test_backToSibling()
-  call s:test_forwardToSibling()
-  call s:test_backToParent()
-  call s:test_forwardToFirstChild()
-  call s:test_visual_mode()
-  call s:test_edge_cases()
+  " Use individual safe execution calls
+  call test#framework#run_test_function("test_backToHeading", function("s:test_backToHeading"))
+  call test#framework#run_test_function("test_forwardToHeading", function("s:test_forwardToHeading"))
+  call test#framework#run_test_function("test_backToSibling", function("s:test_backToSibling"))
+  call test#framework#run_test_function("test_forwardToSibling", function("s:test_forwardToSibling"))
+  call test#framework#run_test_function("test_backToParent", function("s:test_backToParent"))
+  call test#framework#run_test_function("test_forwardToFirstChild", function("s:test_forwardToFirstChild"))
+  call test#framework#run_test_function("test_visual_mode", function("s:test_visual_mode"))
+  call test#framework#run_test_function("test_edge_cases", function("s:test_edge_cases"))
   
   return test#framework#report_results("md#move")
 endfunction
