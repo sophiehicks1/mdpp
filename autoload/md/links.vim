@@ -2,12 +2,11 @@
 " Functions for parsing and handling markdown links
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" Find the link that contains the cursor position
+" Find the link that contains the given position
 " Returns a dictionary with link information or {} if no link found
-function! md#links#findLinkAtCursor()
-  let cursor_pos = getpos('.')
-  let line_num = cursor_pos[1]
-  let col_num = cursor_pos[2]
+function! md#links#findLinkAtPos(pos)
+  let line_num = a:pos[1]
+  let col_num = a:pos[2]
   
   " First check if we're on a reference definition line
   let ref_def_info = s:findReferenceDefinitionAtPosition(line_num, col_num)
@@ -19,6 +18,12 @@ function! md#links#findLinkAtCursor()
     endif
     " If no referring link found, fall back to treating as regular reference definition
     return ref_def_info
+  endif
+  
+  " Try to find a wiki link
+  let wiki_link = s:findWikiLinkAtPosition(line_num, col_num)
+  if !empty(wiki_link)
+    return wiki_link
   endif
   
   " Try to find an inline link
@@ -58,6 +63,21 @@ endfunction
 function! s:findInlineLinkAtPosition(line_num, col_num)
   let line_content = getline(a:line_num)
   let links = md#links#findInlineLinksInLine(a:line_num, line_content)
+  
+  for link in links
+    if a:col_num >= link.start_col && a:col_num <= link.end_col
+      return link
+    endif
+  endfor
+  
+  return {}
+endfunction
+
+" Find wiki link at the given position
+" Returns link info dict or {} if none found
+function! s:findWikiLinkAtPosition(line_num, col_num)
+  let line_content = getline(a:line_num)
+  let links = md#links#findWikiLinksInLine(a:line_num, line_content)
   
   for link in links
     if a:col_num >= link.start_col && a:col_num <= link.end_col
@@ -211,6 +231,75 @@ function! md#links#findReferenceLinksInLine(line_num, line_content)
   return links
 endfunction
 
+" Find all wiki links in a line - PUBLIC for testing
+" Returns list of link info dictionaries
+function! md#links#findWikiLinksInLine(line_num, line_content)
+  let links = []
+  let pos = 0
+  
+  while 1
+    " Find the next [[ sequence
+    let wiki_start = stridx(a:line_content, '[[', pos)
+    if wiki_start == -1
+      break
+    endif
+    
+    " Find the matching ]] sequence
+    let wiki_end = stridx(a:line_content, ']]', wiki_start + 2)
+    if wiki_end == -1
+      let pos = wiki_start + 2
+      continue
+    endif
+    
+    " Extract the content between [[ and ]]
+    let wiki_content = a:line_content[wiki_start + 2 : wiki_end - 1]
+    
+    " Parse target and alias
+    let pipe_pos = stridx(wiki_content, '|')
+    if pipe_pos != -1
+      " Has alias: [[Target|Alias]]
+      let target = wiki_content[0 : pipe_pos - 1]
+      let alias = wiki_content[pipe_pos + 1 : -1]
+      let display_text = alias
+      let target_start_col = wiki_start + 3
+      let target_end_col = wiki_start + 2 + pipe_pos
+      let text_start_col = wiki_start + 3 + pipe_pos + 1
+      let text_end_col = wiki_end
+    else
+      " No alias: [[Target]]
+      let target = wiki_content
+      let alias = ''
+      let display_text = target
+      let target_start_col = wiki_start + 3
+      let target_end_col = wiki_end
+      let text_start_col = wiki_start + 3
+      let text_end_col = wiki_end
+    endif
+    
+    let link_info = {
+          \ 'type': 'wiki',
+          \ 'line_num': a:line_num,
+          \ 'start_col': wiki_start + 1,
+          \ 'end_col': wiki_end + 2,
+          \ 'text': display_text,
+          \ 'text_start_col': text_start_col,
+          \ 'text_end_col': text_end_col,
+          \ 'target': target,
+          \ 'target_start_col': target_start_col,
+          \ 'target_end_col': target_end_col,
+          \ 'alias': alias,
+          \ 'url': target,
+          \ 'full_start_col': wiki_start + 1,
+          \ 'full_end_col': wiki_end + 2
+          \ }
+    
+    call add(links, link_info)
+    let pos = wiki_end + 2
+  endwhile
+  
+  return links
+endfunction
+
 " Find matching bracket, handling nested brackets
 function! s:findMatchingBracket(text, start_pos)
   let bracket_count = 1
@@ -313,6 +402,9 @@ function! md#links#getLinkUrlRange(link_info)
     " For reference links, find the definition line
     let def_range = s:findReferenceDefinitionRange(a:link_info.reference)
     return def_range
+  elseif a:link_info.type == 'wiki'
+    " For wiki links, return the target portion
+    return [a:link_info.line_num, a:link_info.target_start_col, a:link_info.line_num, a:link_info.target_end_col]
   endif
   
   return []
