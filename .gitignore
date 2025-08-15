@@ -2,6 +2,5 @@ test.md
 *.swp
 *.swo
 *.swn
-
 # Test results are generated dynamically
 tests/results/

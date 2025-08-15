@@ -11,6 +11,7 @@ Navigate and manipulate markdown structures with precision:
 - **`is`/`as`** - Inside/around section (current heading and its content)
 - **`it`/`at`** - Inside/around tree (current heading tree from root)  
 - **`ih`/`ah`** - Inside/around heading (heading text only)
+- **`ic`/`ac`** - Inside/around checkbox (checkbox list item)
 - **`il`/`al`** - Inside/around link text (text between `[...]`)
 - **`iu`/`au`** - Inside/around link URL (URL for inline links or reference definition)
 - **`iL`/`aL`** - Inside/around entire link (complete link syntax)
@@ -20,6 +21,8 @@ Examples:
 - `das` - Delete entire section
 - `yis` - Yank section content  
 - `cih` - Change heading text
+- `vic` - Select checkbox content
+- `dac` - Delete entire checkbox item
 - `vil` - Select link text
 - `ciu` - Change link URL
 - `yaL` - Yank entire link
@@ -32,6 +35,26 @@ Supports both inline and reference style links:
 - **Reference links**: `[text][ref]` with `[ref]: url` definitions
 
 **Note**: Multi-line links are not currently supported. This will be tracked in a separate issue for future implementation.
+
+#### Checkbox Text Objects
+
+Work with markdown checkbox list items:
+- **`ic`** - Select the text content of a checkbox item (excluding the `- [ ] ` prefix)
+- **`ac`** - Select the entire checkbox item (including the `- [ ] ` prefix)
+
+Supports:
+- Both checked (`- [x]`) and unchecked (`- [ ]`) checkboxes
+- Multi-line checkbox items with proper indentation
+- Works regardless of cursor position within the checkbox item
+
+Examples:
+```
+- [ ] This is a todo item
+      that spans multiple lines
+- [x] Completed task
+```
+- `vic` on either line selects just the text content
+- `vac` selects the entire checkbox including prefix and continuation lines
 
 ### Smart Navigation
 

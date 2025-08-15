@@ -38,6 +38,12 @@ else
         \   'select-i-function': 'md#objects#insideLink',
         \   'select-i': [],
         \ },
+        \ 'checkbox': {
+        \   'select-a-function': 'md#objects#aroundCheckbox',
+        \   'select-a': [],
+        \   'select-i-function': 'md#objects#insideCheckbox',
+        \   'select-i': [],
+        \ },
         \})
 
   augroup mdpp_textobjs
@@ -66,6 +72,10 @@ else
           \   'link': {
           \       'select-a': '<buffer> aL',
           \       'select-i': '<buffer> iL',
+          \   },
+          \   'checkbox': {
+          \       'select-a': '<buffer> ac',
+          \       'select-i': '<buffer> ic',
           \   },
           \ })
   augroup END

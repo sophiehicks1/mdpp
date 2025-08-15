@@ -41,9 +41,16 @@ execute 'set runtimepath+=' . '$REPO_ROOT'
 " Force load plugins
 runtime! plugin/**/*.vim
 
+" Set repository root for test framework
+let g:mdpp_repo_root = '$REPO_ROOT'
+
 " Disable any output that might interfere with testing
 set nomore
 set cmdheight=2
+set shortmess+=F
+set t_Co=0
+set t_ti=
+set t_te=
 EOF
 
 echo "Running tests..."
@@ -55,7 +62,15 @@ mkdir -p "$REPO_ROOT/tests/results"
 for test_file in "$REPO_ROOT"/tests/test_*.vim; do
     if [ -f "$test_file" ]; then
         echo "Running $(basename "$test_file")..."
-        vim -u "$TEMP_DIR/test-vimrc" -c "source $test_file" -c "qa!" 2>&1
+        # Run vim silently and let it write to the results file
+        vim -u "$TEMP_DIR/test-vimrc" -c "source $test_file" -c "qa!" >/dev/null 2>&1
+        
+        # Display the results from the results file
+        if [ -f "$REPO_ROOT/tests/results.md" ]; then
+            cat "$REPO_ROOT/tests/results.md"
+        else
+            echo "Error: No results file generated"
+        fi
     fi
 done
 

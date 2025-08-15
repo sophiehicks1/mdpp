@@ -171,3 +171,24 @@ function! md#objects#aroundLink()
   endif
   return 0
 endfunction
+
+" Returns a vim-textobj-user style range for the text inside a checkbox item
+function! md#objects#insideCheckbox()
+  let contentRange = md#checkbox#getInsideContentRange()
+  if empty(contentRange)
+    return 0
+  endif
+  
+  return s:charRange([contentRange.start_line, contentRange.start_col], 
+                   \ [contentRange.end_line, contentRange.end_col])
+endfunction
+
+" Returns a vim-textobj-user style range around the entire checkbox item
+function! md#objects#aroundCheckbox()
+  let checkboxRange = md#checkbox#findCheckboxRange()
+  if empty(checkboxRange)
+    return 0
+  endif
+  
+  return s:lineRange(checkboxRange.start_line, checkboxRange.end_line)
+endfunction

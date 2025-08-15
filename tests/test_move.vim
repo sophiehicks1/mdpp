@@ -31,7 +31,8 @@ endfunction
 
 " Test md#move#backToHeading function
 function! s:test_backToHeading()
-  echo ""
+
+  call test#framework#write_info("")
   call test#framework#write_info("Testing md#move#backToHeading...")
   
   call s:setup_test_buffer()
@@ -102,7 +103,7 @@ endfunction
 
 " Test md#move#forwardToHeading function
 function! s:test_forwardToHeading()
-  echo ""
+  call test#framework#write_info("")
   call test#framework#write_info("Testing md#move#forwardToHeading...")
   
   call s:setup_test_buffer()
@@ -169,7 +170,7 @@ endfunction
 
 " Test md#move#backToSibling function
 function! s:test_backToSibling()
-  echo ""
+  call test#framework#write_info("")
   call test#framework#write_info("Testing md#move#backToSibling...")
   
   call s:setup_test_buffer()
@@ -204,7 +205,8 @@ endfunction
 
 " Test md#move#forwardToSibling function
 function! s:test_forwardToSibling()
-  echo ""
+
+  call test#framework#write_info("")
   call test#framework#write_info("Testing md#move#forwardToSibling...")
   
   call s:setup_test_buffer()
@@ -244,7 +246,7 @@ endfunction
 
 " Test md#move#backToParent function
 function! s:test_backToParent()
-  echo ""
+  call test#framework#write_info("")
   call test#framework#write_info("Testing md#move#backToParent...")
   
   call s:setup_test_buffer()
@@ -283,7 +285,7 @@ endfunction
 
 " Test md#move#forwardToFirstChild function
 function! s:test_forwardToFirstChild()
-  echo ""
+  call test#framework#write_info("")
   call test#framework#write_info("Testing md#move#forwardToFirstChild...")
   
   call s:setup_test_buffer()
@@ -317,7 +319,7 @@ endfunction
 
 " Test Visual mode functions
 function! s:test_visual_mode()
-  echo ""
+  call test#framework#write_info("")
   call test#framework#write_info("Testing Visual mode functions...")
   
   " Test Visual mode backToHeading
@@ -388,7 +390,7 @@ endfunction
 
 " Test edge cases
 function! s:test_edge_cases()
-  echo ""
+  call test#framework#write_info("")
   call test#framework#write_info("Testing edge cases...")
   
   " Test with empty buffer
@@ -459,4 +461,10 @@ function! s:test_edge_cases()
 endfunction
 
 " Run all tests
-call s:run_tests()
+" Initialize test framework with results file
+if !exists('g:mdpp_repo_root')
+  echoerr "Test error: g:mdpp_repo_root not set. Please run tests via run_tests.sh"
+else
+  call test#framework#init(g:mdpp_repo_root . '/tests/results.md')
+  call s:run_tests()
+endif

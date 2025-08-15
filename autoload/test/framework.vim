@@ -4,6 +4,29 @@
 " Test result counters
 let s:test_passes = 0
 let s:test_failures = 0
+let s:results_file = ''
+
+" Initialize test framework with results file
+function! test#framework#init(results_file)
+  let s:results_file = a:results_file
+  " Clear any existing results file
+  call writefile([], s:results_file)
+endfunction
+
+" Write a line to both console and results file
+function! s:write_output(message)
+  " Write to console for immediate feedback
+  echo a:message
+  " Append to results file
+  if s:results_file != ''
+    call writefile([a:message], s:results_file, 'a')
+  endif
+endfunction
+
+" Write an informational message (not a test result)
+function! test#framework#write_info(message)
+  call s:write_output(a:message)
+endfunction
 
 " Current module name and results file
 let s:current_module = ''
@@ -73,15 +96,19 @@ endfunction
 
 " Helper function to load content from file
 function! s:load_content_from_file(filename)
-  " Read content from test data file - resolve relative to tests directory
-  let test_data_path = '/home/runner/work/mdpp/mdpp/tests/data/' . a:filename
+  " Read content from test data file - resolve relative to repository root
+  if !exists('g:mdpp_repo_root')
+    echoerr "Test framework error: g:mdpp_repo_root not set. Please run tests via run_tests.sh"
+    return
+  endif
+  let test_data_path = g:mdpp_repo_root . '/tests/data/' . a:filename
   if !filereadable(test_data_path)
     echoerr "Test data file not found: " . test_data_path
     return
   endif
   
   " Load content from file
-  execute 'read ' . fnameescape(test_data_path)
+  execute 'silent read ' . fnameescape(test_data_path)
   " Remove the empty first line created by 'read'
   if line('$') > 1 && getline(1) == ''
     1delete
