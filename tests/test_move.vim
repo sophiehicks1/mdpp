@@ -30,6 +30,7 @@ function! s:run_tests()
   return test#framework#report_results("md#move")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test md#move#backToHeading function
 function! s:test_backToHeading()
   call test#framework#write_info("")
@@ -64,6 +65,7 @@ function! s:test_backToHeading()
   call test#framework#assert_equal(original_line, line('.'), "backToHeading from before first heading should not move")
 endfunction
 
+" TODO make sure this actually makes sense
 " Comprehensive test for backward navigation across all heading levels
 function! s:test_comprehensive_backward_navigation()
   call s:setup_test_buffer()
@@ -101,6 +103,7 @@ function! s:test_comprehensive_backward_navigation()
         \ "From first heading should not move")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test md#move#forwardToHeading function
 function! s:test_forwardToHeading()
   call test#framework#write_info("")
@@ -132,6 +135,7 @@ function! s:test_forwardToHeading()
   call test#framework#assert_equal(original_line, line('.'), "forwardToHeading from last heading should not move")
 endfunction
 
+" TODO make sure this actually makes sense
 " Comprehensive test for forward navigation across all heading levels
 function! s:test_comprehensive_forward_navigation()
   call s:setup_test_buffer()
@@ -168,6 +172,7 @@ function! s:test_comprehensive_forward_navigation()
         \ "Final forward move from last heading should not move")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test md#move#backToSibling function
 function! s:test_backToSibling()
   call test#framework#write_info("")
@@ -203,6 +208,7 @@ function! s:test_backToSibling()
   call test#framework#assert_equal(original_line, line('.'), "backToSibling with no siblings should not move")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test md#move#forwardToSibling function
 function! s:test_forwardToSibling()
   call test#framework#write_info("")
@@ -243,6 +249,7 @@ function! s:test_forwardToSibling()
   call test#framework#assert_equal(original_line, line('.'), "forwardToSibling with no siblings should not move")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test md#move#backToParent function
 function! s:test_backToParent()
   call test#framework#write_info("")
@@ -282,6 +289,7 @@ function! s:test_backToParent()
   call test#framework#assert_equal(1, line('.'), "backToParent should skip siblings and go to parent (# Root Heading)")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test md#move#forwardToFirstChild function
 function! s:test_forwardToFirstChild()
   call test#framework#write_info("")
@@ -316,6 +324,7 @@ function! s:test_forwardToFirstChild()
   call test#framework#assert_equal(6, line('.'), "forwardToFirstChild from root should go to first level 2 heading")
 endfunction
 
+" TODO make sure this actually makes sense
 " Test Visual mode functions
 function! s:test_visual_mode()
   call test#framework#write_info("")
@@ -387,6 +396,7 @@ function! s:test_visual_mode()
   execute "normal! \<Esc>"
 endfunction
 
+" TODO make sure this actually makes sense
 " Test edge cases
 function! s:test_edge_cases()
   call test#framework#write_info("")
