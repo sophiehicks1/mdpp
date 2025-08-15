@@ -102,8 +102,13 @@ function! md#objects#aroundLinkText()
   if !empty(link_info)
     let range = md#links#getLinkTextRange(link_info)
     if !empty(range)
-      " Extend range to include the brackets
-      return s:charRange([range[0], range[1] - 1], [range[2], range[3] + 1])
+      if link_info.type == 'wiki'
+        " For wiki links, just return the text range since there are no dedicated brackets around the display text
+        return s:charRange([range[0], range[1]], [range[2], range[3]])
+      else
+        " For regular links, extend range to include the brackets
+        return s:charRange([range[0], range[1] - 1], [range[2], range[3] + 1])
+      endif
     endif
   endif
   return 0
@@ -138,6 +143,12 @@ function! md#objects#aroundLinkUrl()
         " For reference definitions, select the entire line
         return ['V', s:startOfLine(range[0]), s:startOfLine(range[2])]
       endif
+    elseif link_info.type == 'wiki'
+      " For wiki links, around the target means just the target since there are no dedicated brackets around it
+      let range = md#links#getLinkUrlRange(link_info)
+      if !empty(range)
+        return s:charRange([range[0], range[1]], [range[2], range[3]])
+      endif
     endif
   endif
   return 0
@@ -154,6 +165,8 @@ function! md#objects#insideLink()
         return s:charRange([range[0], range[1] + 1], [range[2], range[3] - 1])
       elseif link_info.type == 'reference'
         return s:charRange([range[0], range[1] + 1], [range[2], range[3] - 1])
+      elseif link_info.type == 'wiki'
+        return s:charRange([range[0], range[1] + 2], [range[2], range[3] - 2])
       endif
     endif
   endif
