@@ -186,6 +186,58 @@ function! s:getFootnoteDefinitionContent(def_line_num, footnote_id)
   return substitute(result, '\s*\n*$', '', '')
 endfunction
 
+" Wrap text to fit within specified width, preserving existing line breaks
+" Returns a list of lines that fit within the width
+function! s:wrapText(text, width)
+  let lines = []
+  let text_lines = split(a:text, "\n")
+  
+  for line in text_lines
+    " If line is empty, add it as-is
+    if empty(line)
+      call add(lines, '')
+      continue
+    endif
+    
+    " If line fits within width, add it as-is
+    if len(line) <= a:width
+      call add(lines, line)
+      continue
+    endif
+    
+    " Need to wrap the line
+    let remaining = line
+    while len(remaining) > a:width
+      " Find the best break point (prefer spaces)
+      let break_point = a:width
+      
+      " Look for a space before the width limit
+      let space_pos = strridx(remaining[0:a:width-1], ' ')
+      if space_pos > 0
+        let break_point = space_pos
+      endif
+      
+      " Extract the part that fits
+      let part = remaining[0:break_point-1]
+      call add(lines, part)
+      
+      " Continue with the remaining text, skip the space if we broke on one
+      if break_point < len(remaining) && remaining[break_point] == ' '
+        let remaining = remaining[break_point+1:]
+      else
+        let remaining = remaining[break_point:]
+      endif
+    endwhile
+    
+    " Add the final part if there's anything left
+    if !empty(remaining)
+      call add(lines, remaining)
+    endif
+  endfor
+  
+  return lines
+endfunction
+
 " Show footnote content in a floating window (Neovim only)
 function! md#footnotes#showFootnoteInFloat()
   " Check if we're in Neovim
@@ -217,24 +269,21 @@ function! md#footnotes#showFootnoteInFloat()
     return
   endif
   
-  " Split content into lines and add footnote ID header
-  let lines = ['[^' . footnote_info.id . ']:']
-  call extend(lines, split(content, "\n"))
-  
-  " Apply ellision for content that's too long
+  " Prepare content with text wrapping instead of line-by-line ellision
   let max_width = 70
   let max_height = 11
   
-  " Ellide lines that are too long
-  for i in range(len(lines))
-    if len(lines[i]) > max_width
-      let lines[i] = lines[i][0:max_width-4] . '...'
-    endif
-  endfor
+  " Start with footnote ID header
+  let lines = ['[^' . footnote_info.id . ']:']
   
-  " Ellide if there are too many lines
+  " Wrap the content text within max_width
+  let wrapped_content = s:wrapText(content, max_width)
+  call extend(lines, wrapped_content)
+  
+  " Only apply ellision if there are too many lines after wrapping
   if len(lines) > max_height
     let lines = lines[0:max_height-1]
+    " Add ellision to the last line
     if len(lines[max_height-1]) > max_width - 3
       let lines[max_height-1] = lines[max_height-1][0:max_width-4] . '...'
     else

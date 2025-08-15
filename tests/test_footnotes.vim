@@ -127,15 +127,15 @@ function! s:test_footnote_definitions()
   call test#framework#assert_equal(footnote_info1.content, footnote_info2.content, "Should find same content for multiple references")
 endfunction
 
-" Test window sizing and ellision logic in detail
-function! s:test_ellision_logic()
-  call test#framework#write_info("Testing window sizing and ellision logic...")
+" Test window sizing and text wrapping logic in detail
+function! s:test_text_wrapping_logic()
+  call test#framework#write_info("Testing window sizing and text wrapping logic...")
   
-  " Test with very long footnote content (should be ellided)
+  " Test with very long footnote content (should be wrapped, not ellided per line)
   call test#framework#setup_buffer_from_lines([
         \ 'This footnote has very long content[^long].',
         \ '',
-        \ '[^long]: This is an extremely long footnote that contains more than seventy characters and should be ellided with dots at the end to fit within the maximum window width of seventy characters.',
+        \ '[^long]: This is an extremely long footnote that contains more than seventy characters and should be wrapped within the window instead of being ellided per line.',
         \ '',
         \ 'This footnote has many lines[^many].',
         \ '',
@@ -162,35 +162,60 @@ function! s:test_ellision_logic()
   call test#framework#assert_equal('reference', footnote_info.type, "Should find long footnote reference")
   call test#framework#assert_equal('long', footnote_info.id, "Should extract long footnote ID")
   
-  " Simulate the window sizing logic from the function
+  " Simulate the window sizing logic with new text wrapping
   let content = footnote_info.content
-  let lines = ['[^' . footnote_info.id . ']:']
-  call extend(lines, split(content, "\n"))
-  
-  " Apply ellision for content that's too long
   let max_width = 70
   let max_height = 11
   
-  " Check if long line ellision works
-  let has_long_line = 0
-  for line in lines
-    if len(line) > max_width
-      let has_long_line = 1
-      break
+  " Start with footnote ID header
+  let lines = ['[^' . footnote_info.id . ']:']
+  
+  " Test the text wrapping logic by creating our own simple wrapper for testing
+  let content_lines = split(content, "\n")
+  for line in content_lines
+    if empty(line)
+      call add(lines, '')
+      continue
+    endif
+    
+    if len(line) <= max_width
+      call add(lines, line)
+      continue
+    endif
+    
+    " Simple wrapping logic for testing - break at spaces
+    let remaining = line
+    while len(remaining) > max_width
+      let break_point = max_width
+      let space_pos = strridx(remaining[0:max_width-1], ' ')
+      if space_pos > 0
+        let break_point = space_pos
+      endif
+      
+      let part = remaining[0:break_point-1]
+      call add(lines, part)
+      
+      if break_point < len(remaining) && remaining[break_point] == ' '
+        let remaining = remaining[break_point+1:]
+      else
+        let remaining = remaining[break_point:]
+      endif
+    endwhile
+    
+    if !empty(remaining)
+      call add(lines, remaining)
     endif
   endfor
-  call test#framework#assert_equal(1, has_long_line, "Should have lines longer than 70 characters before ellision")
   
-  " Apply ellision to long lines
-  for i in range(len(lines))
-    if len(lines[i]) > max_width
-      let lines[i] = lines[i][0:max_width-4] . '...'
+  " Verify that long content is wrapped, not truncated with ... on each line
+  let has_wrapped_content = 0
+  for line in lines[1:]  " Skip the header line
+    " No line should be truncated with ... (unless it's the final ellision)
+    if line =~ '\.\.\.$' && line != lines[-1]
+      call test#framework#assert_true(0, "Lines should be wrapped, not truncated: " . string(line))
     endif
-  endfor
-  
-  " Verify no line exceeds max width after ellision
-  for line in lines
-    call test#framework#assert_true(len(line) <= max_width, "Line should not exceed max width after ellision: " . string(line))
+    " All lines should fit within max width
+    call test#framework#assert_true(len(line) <= max_width, "Line should fit within max width after wrapping: " . string(line))
   endfor
   
   " Test many lines footnote
@@ -207,7 +232,7 @@ function! s:test_ellision_logic()
   " Check if we have more than max_height lines
   call test#framework#assert_true(len(lines) > max_height, "Should have more than 11 lines before ellision")
   
-  " Apply height ellision
+  " Apply height ellision only
   if len(lines) > max_height
     let lines = lines[0:max_height-1]
     if len(lines[max_height-1]) > max_width - 3
@@ -317,7 +342,7 @@ function! s:run_all_tests()
   call s:test_find_footnote_references_in_line()
   call s:test_find_footnote_at_cursor()
   call s:test_footnote_definitions()
-  call s:test_ellision_logic()
+  call s:test_text_wrapping_logic()
   call s:test_window_sizing()
   call s:test_edge_cases()
   
