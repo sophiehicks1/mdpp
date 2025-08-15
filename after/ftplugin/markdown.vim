@@ -76,3 +76,8 @@ else
   nmap <buffer> [M <Plug>MarkdownRaiseSectionBack
   nmap <buffer> ]M <Plug>MarkdownRaiseSectionForward
 endif
+
+" List editing functionality
+" Insert expression mappings for <Enter> and <S-Enter> in list contexts
+inoremap <buffer> <expr> <CR> md#lists#handleEnter()
+inoremap <buffer> <expr> <S-CR> md#lists#handleShiftEnter()

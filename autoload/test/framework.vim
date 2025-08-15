@@ -120,3 +120,13 @@ endfunction
 function! test#framework#get_counts()
   return {'passes': s:test_passes, 'failures': s:test_failures}
 endfunction
+
+" Get current pass count
+function! test#framework#get_passes()
+  return s:test_passes
+endfunction
+
+" Get current failure count
+function! test#framework#get_failures()
+  return s:test_failures
+endfunction
