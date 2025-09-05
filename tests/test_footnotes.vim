@@ -270,7 +270,22 @@ function! s:test_text_wrapping_logic()
   call test#framework#assert_equal('reference', footnote_info.type, "Should find many-lines footnote reference")
   call test#framework#assert_equal('many', footnote_info.id, "Should extract many-lines footnote ID")
 
-  " Prepare content with ellision
+  " Prepare content for display
+  " The content should be joined as a single paragraph (no newlines between continuation lines)
+  let raw_lines = split(footnote_info.content, "\n")
+  let window_lines = md#ux#prepareContentForFloatingWindow(max_window, footnote_info.id, footnote_info.content)
+  call test#framework#assert_equal(1, len(raw_lines), "Continuation lines should be joined into single paragraph")
+
+  " Verify last line doesn't have ellision
+  call test#framework#assert_true(!(window_lines[-1] =~ '\.\.\.$'), "Last line shouldn't end with ellision")
+
+  " Test many paras footnote
+  call cursor(21, 45)  " Position on [^paras]
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  call test#framework#assert_equal('reference', footnote_info.type, "Should find paras footnote reference")
+  call test#framework#assert_equal('paras', footnote_info.id, "Should extract paras footnote ID")
+
+  " Prepare content for ellision
   let raw_lines = split(footnote_info.content, "\n")
   let window_lines = md#ux#prepareContentForFloatingWindow(max_window, footnote_info.id, footnote_info.content)
 
@@ -296,11 +311,11 @@ function! s:test_window_sizing()
   call test#framework#assert_equal('long', footnote_info.id, "Should extract long footnote ID")
 
   " Test many lines footnote
-  call cursor(5, 35)  " Position on [^many]
+  call cursor(21, 45)  " Position on [^paras]
   let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
-  call test#framework#assert_equal('reference', footnote_info.type, "Should find many-lines footnote reference")
-  call test#framework#assert_equal('many', footnote_info.id, "Should extract many-lines footnote ID")
-  call test#framework#assert_equal(13, len(split(footnote_info.content, "\n")), "Should have exactly 13 lines before ellision")
+  call test#framework#assert_equal('reference', footnote_info.type, "Should find paras footnote reference")
+  call test#framework#assert_equal('paras', footnote_info.id, "Should extract paras footnote ID")
+  call test#framework#assert_equal(25, len(split(footnote_info.content, "\n")), "Should have exactly 25 lines before ellision")
 
   " Note: We can't easily test the actual window creation without Neovim,
   " but we can test that the footnote parsing works correctly
