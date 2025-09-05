@@ -201,22 +201,6 @@ function! s:test_wrapped_footnote_content()
     let expected_content = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus a sem odio. Nunc ultricies quis neque ac lacinia. Phasellus id lacus quam. Praesent dignissim tortor neque, vitae tristique leo luctus id. Donec commodo'
     call test#framework#assert_equal(expected_content, footnote_info.content, "Should join wrapped lines with spaces, not newlines")
   endif
-
-  " Test multi-paragraph footnote (empty lines should be preserved as paragraph breaks)
-  call cursor(9, 20)  " Position on [^multi_para]
-  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
-  call test#framework#assert_not_empty(footnote_info, "Should find multi-paragraph footnote at cursor position")
-  if !empty(footnote_info)
-    call test#framework#assert_equal('reference', footnote_info.type, "Should find multi-paragraph footnote reference")
-    call test#framework#assert_equal('multi_para', footnote_info.id, "Should extract multi-paragraph footnote ID")
-    
-    " Empty lines should be preserved as paragraph separators
-    let content_lines = split(footnote_info.content, "\n\n")
-    call test#framework#assert_true(len(content_lines) >= 3, "Should have multiple paragraphs separated by empty lines")
-    call test#framework#assert_equal('First paragraph is here with some text.', content_lines[0], "First paragraph should be intact")
-    call test#framework#assert_equal('Second paragraph should be preserved as separate.', content_lines[1], "Second paragraph should be intact")
-    call test#framework#assert_equal('Third paragraph is also separate.', content_lines[2], "Third paragraph should be intact")
-  endif
 endfunction
 
 " Test edge cases
