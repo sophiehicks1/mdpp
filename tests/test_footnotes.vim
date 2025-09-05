@@ -196,7 +196,7 @@ function! s:test_wrapped_footnote_content()
   if !empty(footnote_info)
     call test#framework#assert_equal('reference', footnote_info.type, "Should find wrapped footnote reference")
     call test#framework#assert_equal('wrapped', footnote_info.id, "Should extract wrapped footnote ID")
-    
+
     " The content should be joined as a single paragraph (spaces, not newlines between continuation lines)
     let expected_content = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus a sem odio. Nunc ultricies quis neque ac lacinia. Phasellus id lacus quam. Praesent dignissim tortor neque, vitae tristique leo luctus id. Donec commodo'
     call test#framework#assert_equal(expected_content, footnote_info.content, "Should join wrapped lines with spaces, not newlines")
