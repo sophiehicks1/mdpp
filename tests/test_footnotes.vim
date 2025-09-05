@@ -363,6 +363,109 @@ function! s:test_edge_cases()
   call test#framework#assert_equal('reference', footnote_info.type, "Should find valid footnote among malformed ones")
 endfunction
 
+" Test footnote detection from continuation lines  
+function! s:test_continuation_line_detection()
+  call test#framework#write_info("Testing footnote detection from continuation lines...")
+
+  " Create test buffer with multi-line footnotes
+  enew!
+  setlocal filetype=markdown
+  setlocal noswapfile
+  runtime! plugin/**/*.vim
+  runtime! after/ftplugin/markdown.vim
+
+  " Add content with multi-line footnotes
+  call setline(1, ['# Test', '', 'Reference[^multi].', '', '[^multi]: First line', '    Second line', '    Third line', '', '[^simple]: Single line'])
+
+  " Test cursor on continuation line
+  call cursor(6, 8)  " Position on "Second line" 
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  call test#framework#assert_not_empty(footnote_info, "Should find footnote from continuation line")
+  if !empty(footnote_info)
+    call test#framework#assert_equal('definition', footnote_info.type, "Should identify as definition type")
+    call test#framework#assert_equal('multi', footnote_info.id, "Should extract correct footnote ID")
+    call test#framework#assert_equal(5, footnote_info.line_num, "Should point to definition line")
+  endif
+
+  " Test cursor on third continuation line
+  call cursor(7, 8)  " Position on "Third line"
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  call test#framework#assert_not_empty(footnote_info, "Should find footnote from third continuation line")
+  if !empty(footnote_info)
+    call test#framework#assert_equal('multi', footnote_info.id, "Should extract correct footnote ID from third line")
+  endif
+
+  " Test cursor not on continuation line
+  call cursor(8, 1)  " Position on empty line between footnotes
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  call test#framework#assert_equal({}, footnote_info, "Should not find footnote on empty line between definitions")
+endfunction
+
+" Test footnote detection from definition content (not just marker)
+function! s:test_definition_content_detection()
+  call test#framework#write_info("Testing footnote detection from definition content...")
+
+  call s:setup_test_buffer()
+
+  " Test cursor on content part of definition line 
+  call cursor(23, 10)  " Position on "This is a simple footnote." content
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  call test#framework#assert_not_empty(footnote_info, "Should find footnote from definition content")
+  if !empty(footnote_info)
+    call test#framework#assert_equal('definition', footnote_info.type, "Should identify as definition type")
+    call test#framework#assert_equal('1', footnote_info.id, "Should extract correct footnote ID from content")
+  endif
+
+  " Test cursor on content part of longer definition
+  call cursor(31, 40)  " Position in middle of complex footnote content
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  call test#framework#assert_not_empty(footnote_info, "Should find footnote from complex definition content")
+  if !empty(footnote_info)
+    call test#framework#assert_equal('definition', footnote_info.type, "Should identify as definition type")
+    call test#framework#assert_equal('complex', footnote_info.id, "Should extract complex footnote ID from content")
+  endif
+endfunction
+
+" Test that newlines are handled correctly in ranges
+function! s:test_newline_handling()
+  call test#framework#write_info("Testing newline handling in footnote ranges...")
+
+  " Create test buffer with footnotes separated by blank lines
+  enew!
+  setlocal filetype=markdown
+  setlocal noswapfile
+  runtime! plugin/**/*.vim
+  runtime! after/ftplugin/markdown.vim
+
+  " Add content that specifically tests the newline issue
+  call setline(1, ['# Test', '', 'Reference[^1] and [^2].', '', '[^1]: blah blah blah', '', '[^2]: foo bar baz'])
+
+  " Test definition range for first footnote
+  call cursor(5, 5)  " Position on [^1]: definition line
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  call test#framework#assert_not_empty(footnote_info, "Should find first footnote")
+  
+  if !empty(footnote_info)
+    let def_range = md#footnotes#getFootnoteDefinitionRange(footnote_info)
+    call test#framework#assert_not_empty(def_range, "Should get definition range")
+    if !empty(def_range)
+      " The range should end on line 5 (content line), not line 6 (blank line)
+      call test#framework#assert_equal(5, def_range[2], "Range should end on content line, not include trailing blank line")
+      
+      " Content should be exactly from after ": " to end of content
+      " Line is "[^1]: blah blah blah" 
+      " [^1]: = 5 chars, + space = 6 chars, so content starts at position 7
+      let content_start_expected = 7  " After "[^1]: "
+      call test#framework#assert_equal(content_start_expected, def_range[1], "Range should start after marker")
+      
+      " End column should be at end of "blah blah blah" 
+      " Length of line "[^1]: blah blah blah" = 20, so end col should be 20
+      let expected_end_col = 20
+      call test#framework#assert_equal(expected_end_col, def_range[3], "Range should end after content")
+    endif
+  endif
+endfunction
+
 " Run all tests
 function! s:run_all_tests()
   call test#framework#reset()
@@ -380,6 +483,9 @@ function! s:run_all_tests()
   call test#framework#run_test_function('test_text_wrapping_logic', function('s:test_text_wrapping_logic'))
   call test#framework#run_test_function('test_window_sizing', function('s:test_window_sizing'))
   call test#framework#run_test_function('test_edge_cases', function('s:test_edge_cases'))
+  call test#framework#run_test_function('test_continuation_line_detection', function('s:test_continuation_line_detection'))
+  call test#framework#run_test_function('test_definition_content_detection', function('s:test_definition_content_detection'))
+  call test#framework#run_test_function('test_newline_handling', function('s:test_newline_handling'))
 
   return test#framework#report_results('md#footnotes')
 endfunction

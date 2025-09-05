@@ -14,6 +14,12 @@ function! md#footnotes#findFootnoteAtPos(position)
     return def_info
   endif
 
+  " Check if we're on a continuation line of a footnote definition
+  let continuation_info = s:findFootnoteContinuationAtPosition(line_num, col_num)
+  if !empty(continuation_info)
+    return continuation_info
+  endif
+  
   " Try to find a footnote reference
   let ref_info = s:findFootnoteReferenceAtPosition(line_num, col_num)
   if !empty(ref_info)
@@ -60,11 +66,17 @@ function! s:findFootnoteDefinitionAtPosition(line_num, col_num)
           \ 'id': footnote_id,
           \ 'content': full_content
           \ }
-
-    " Check if cursor is within the footnote definition
+    " Check if cursor is within the footnote definition (marker or content)
     let def_start = match(line_content, '\[\^\([^]]\+\)\]:')
     let def_end = def_start + len('[^' . footnote_id . ']:')
+    
+    " First check if cursor is in the marker itself
     if a:col_num >= def_start + 1 && a:col_num <= def_end
+      return footnote_info
+    endif
+    
+    " Also check if cursor is in the content part of the definition
+    if a:col_num >= def_end + 1 && a:col_num <= len(line_content)
       return footnote_info
     endif
   endif
@@ -197,9 +209,6 @@ function! s:getFootnoteDefinitionContent(def_line_num, footnote_id)
     call add(paragraphs, join(current_paragraph, ' '))
   endif
 
-  " Debug output for testing
-  " echom "DEBUG: paragraphs = " . string(paragraphs)
-
   " Join paragraphs with double newlines for proper paragraph separation
   " If we only have one paragraph, return it directly
   if len(paragraphs) == 1
@@ -313,6 +322,7 @@ function! s:getDefinitionContentRange(def_line_num, footnote_id)
   
   " Look for continuation lines
   let line_num = a:def_line_num + 1
+  let last_content_line = a:def_line_num
   while line_num <= last_line
     let line_content = getline(line_num)
     
@@ -321,8 +331,12 @@ function! s:getDefinitionContentRange(def_line_num, footnote_id)
       break
     endif
     
-    " Include indented lines and empty lines
-    if line_content =~ '^\s\+' || line_content =~ '^\s*$'
+    " Include indented lines and track the last line with actual content
+    if line_content =~ '^\s\+'
+      let end_line = line_num
+      let last_content_line = line_num
+    elseif line_content =~ '^\s*$'
+      " Include empty lines within footnote, but don't update last_content_line
       let end_line = line_num
     else
       break
@@ -331,11 +345,15 @@ function! s:getDefinitionContentRange(def_line_num, footnote_id)
     let line_num += 1
   endwhile
   
-  " Get the end column of the last line with content
-  let end_col = len(getline(end_line))
+  " Get the end column of the last line with actual content (excluding trailing blank lines)
+  let actual_end_line = last_content_line
+  let end_col = len(getline(actual_end_line))
   if end_col == 0
     let end_col = 1
   endif
+  
+  " Return range ending at the last line with content, not including trailing blank lines
+  let end_line = actual_end_line
   
   return [a:def_line_num, content_start_col, end_line, end_col]
 endfunction
@@ -349,4 +367,119 @@ function! s:getFullDefinitionRange(def_line_num, footnote_id)
   
   " Start from the beginning of the definition line
   return [a:def_line_num, 1, content_range[2], content_range[3]]
+endfunction
+
+" Find footnote continuation line at the given position
+" Returns footnote definition info dict or {} if none found
+function! s:findFootnoteContinuationAtPosition(line_num, col_num)
+  let line_content = getline(a:line_num)
+  
+  " Check if current line is an indented continuation line
+  " Empty lines can be part of footnotes, but we need to verify they're actually within a footnote
+  if line_content !~ '^\s\+' && line_content !~ '^\s*$'
+    return {}
+  endif
+  
+  " For empty lines, we need to be more careful - they should only match if they're 
+  " truly within a footnote definition, not just any empty line
+  let is_empty_line = line_content =~ '^\s*$'
+  
+  " Look backward to find the footnote definition this line belongs to
+  let search_line = a:line_num - 1
+  while search_line >= 1
+    let search_content = getline(search_line)
+    
+    " Check if we found a footnote definition
+    let pattern = '^\s*\[\^\([^]]\+\)\]:\s*\(.*\)$'
+    let match = matchlist(search_content, pattern)
+    if !empty(match)
+      let footnote_id = match[1]
+      
+      " Verify that our line is part of this footnote's content
+      if s:isLinePartOfFootnote(a:line_num, search_line, footnote_id)
+        " For empty lines, also check if there's another footnote definition after our line
+        " If so, this empty line is likely a separator, not part of the footnote
+        if is_empty_line && s:hasFootnoteDefinitionAfter(a:line_num)
+          break
+        endif
+        
+        " Get full content including wrapped lines
+        let full_content = s:getFootnoteDefinitionContent(search_line, footnote_id)
+        
+        return {
+              \ 'type': 'definition',
+              \ 'line_num': search_line,
+              \ 'start_col': 1,
+              \ 'end_col': len(search_content),
+              \ 'id': footnote_id,
+              \ 'content': full_content
+              \ }
+      else
+        " This line is not part of the footnote, stop searching
+        break
+      endif
+    endif
+    
+    " If we hit a non-indented, non-empty line that's not a footnote definition, stop
+    if search_content !~ '^\s*$' && search_content !~ '^\s\+' && search_content !~ '^\s*\[\^[^]]\+\]:'
+      break
+    endif
+    
+    let search_line -= 1
+  endwhile
+  
+  return {}
+endfunction
+
+" Helper function to check if a line is part of a footnote definition's content
+function! s:isLinePartOfFootnote(line_num, def_line_num, footnote_id)
+  let line_num = a:def_line_num + 1
+  let last_line = line('$')
+  
+  while line_num <= last_line && line_num <= a:line_num
+    let line_content = getline(line_num)
+    
+    " Stop if we hit another footnote definition
+    if line_content =~ '^\s*\[\^[^]]\+\]:'
+      return 0
+    endif
+    
+    " Stop if we hit non-indented content (but allow empty lines)
+    if line_content !~ '^\s*$' && line_content !~ '^\s\+'
+      return 0
+    endif
+    
+    " If this is our target line and we got here, it's part of the footnote
+    if line_num == a:line_num
+      return 1
+    endif
+    
+    let line_num += 1
+  endwhile
+  
+  return 0
+endfunction
+
+" Helper function to check if there's a footnote definition after a given line
+function! s:hasFootnoteDefinitionAfter(line_num)
+  let line_num = a:line_num + 1
+  let last_line = line('$')
+  
+  while line_num <= last_line
+    let line_content = getline(line_num)
+    
+    " If we find a footnote definition, return true
+    if line_content =~ '^\s*\[\^[^]]\+\]:'
+      return 1
+    endif
+    
+    " If we hit non-empty, non-indented content that's not a footnote, stop searching
+    if line_content !~ '^\s*$' && line_content !~ '^\s\+'
+      break
+    endif
+    
+    let line_num += 1
+  endwhile
+  
+  return 0
 endfunction
