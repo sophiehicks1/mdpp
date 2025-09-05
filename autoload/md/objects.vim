@@ -204,3 +204,100 @@ function! md#objects#aroundCheckbox()
   
   return s:lineRange(checkboxRange.start_line, checkboxRange.end_line)
 endfunction
+
+" Returns a vim-textobj-user style range for the text inside a footnote reference
+function! md#objects#insideFootnoteText()
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  if !empty(footnote_info) && footnote_info.type == 'reference'
+    let range = md#footnotes#getFootnoteTextRange(footnote_info)
+    if !empty(range)
+      return s:charRange([range[0], range[1]], [range[2], range[3]])
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range around the text of a footnote reference (including brackets)
+function! md#objects#aroundFootnoteText()
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  if !empty(footnote_info) && footnote_info.type == 'reference'
+    let range = md#footnotes#getFootnoteTextRange(footnote_info)
+    if !empty(range)
+      " Extend range to include the [^ and ]
+      return s:charRange([range[0], range[1] - 2], [range[2], range[3] + 1])
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range for the content inside a footnote definition
+function! md#objects#insideFootnoteDefinition()
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  if !empty(footnote_info)
+    let range = md#footnotes#getFootnoteDefinitionRange(footnote_info)
+    if !empty(range)
+      return s:charRange([range[0], range[1]], [range[2], range[3]])
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range around the entire footnote definition (including marker)
+function! md#objects#aroundFootnoteDefinition()
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  if !empty(footnote_info)
+    if footnote_info.type == 'definition'
+      " For definitions, use line-wise selection to include the entire definition
+      let range = md#footnotes#getFootnoteDefinitionRange(footnote_info)
+      if !empty(range)
+        return s:lineRange(range[0], range[2])
+      endif
+    elseif footnote_info.type == 'reference'
+      " For references, find the definition and select it
+      let range = md#footnotes#getFootnoteDefinitionRange(footnote_info)
+      if !empty(range)
+        return s:lineRange(range[0], range[2])
+      endif
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range for the entire footnote structure (inside)
+function! md#objects#insideFootnote()
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  if !empty(footnote_info)
+    let range = md#footnotes#getFootnoteFullRange(footnote_info)
+    if !empty(range)
+      if footnote_info.type == 'reference'
+        " For references, exclude the outer [^ and ]
+        return s:charRange([range[0], range[1] + 2], [range[2], range[3] - 1])
+      elseif footnote_info.type == 'definition'
+        " For definitions, exclude the [^id]: part
+        let def_range = md#footnotes#getFootnoteDefinitionRange(footnote_info)
+        if !empty(def_range)
+          return s:charRange([def_range[0], def_range[1]], [def_range[2], def_range[3]])
+        endif
+      endif
+    endif
+  endif
+  return 0
+endfunction
+
+" Returns a vim-textobj-user style range around the entire footnote structure
+function! md#objects#aroundFootnote()
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  if !empty(footnote_info)
+    let range = md#footnotes#getFootnoteFullRange(footnote_info)
+    if !empty(range)
+      if footnote_info.type == 'reference'
+        " For references, include the entire [^id]
+        return s:charRange([range[0], range[1]], [range[2], range[3]])
+      elseif footnote_info.type == 'definition'
+        " For definitions, use line-wise selection
+        return s:lineRange(range[0], range[2])
+      endif
+    endif
+  endif
+  return 0
+endfunction
