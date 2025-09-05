@@ -44,6 +44,24 @@ else
         \   'select-i-function': 'md#objects#insideCheckbox',
         \   'select-i': [],
         \ },
+        \ 'footnote-text': {
+        \   'select-a-function': 'md#objects#aroundFootnoteText',
+        \   'select-a': [],
+        \   'select-i-function': 'md#objects#insideFootnoteText',
+        \   'select-i': [],
+        \ },
+        \ 'footnote-definition': {
+        \   'select-a-function': 'md#objects#aroundFootnoteDefinition',
+        \   'select-a': [],
+        \   'select-i-function': 'md#objects#insideFootnoteDefinition',
+        \   'select-i': [],
+        \ },
+        \ 'footnote': {
+        \   'select-a-function': 'md#objects#aroundFootnote',
+        \   'select-a': [],
+        \   'select-i-function': 'md#objects#insideFootnote',
+        \   'select-i': [],
+        \ },
         \})
 
   augroup mdpp_textobjs
@@ -76,6 +94,18 @@ else
           \   'checkbox': {
           \       'select-a': '<buffer> ac',
           \       'select-i': '<buffer> ic',
+          \   },
+          \   'footnote-text': {
+          \       'select-a': '<buffer> af',
+          \       'select-i': '<buffer> if',
+          \   },
+          \   'footnote-definition': {
+          \       'select-a': '<buffer> ad',
+          \       'select-i': '<buffer> id',
+          \   },
+          \   'footnote': {
+          \       'select-a': '<buffer> aF',
+          \       'select-i': '<buffer> iF',
           \   },
           \ })
   augroup END

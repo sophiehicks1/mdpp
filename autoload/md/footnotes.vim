@@ -211,3 +211,142 @@ function! s:getFootnoteDefinitionContent(def_line_num, footnote_id)
   " Remove trailing whitespace and newlines
   return substitute(result, '\s*\n*$', '', '')
 endfunction
+
+" Get the range of the footnote ID text (e.g., "1" in [^1])
+" Returns [start_line, start_col, end_line, end_col] or empty array if not found
+function! md#footnotes#getFootnoteTextRange(footnote_info)
+  if empty(a:footnote_info) || a:footnote_info.type != 'reference'
+    return []
+  endif
+  
+  " For footnote references like [^1], the text is just the ID
+  " start_col points to '[', so ID starts at start_col + 2
+  let text_start_col = a:footnote_info.start_col + 2
+  let text_end_col = a:footnote_info.end_col - 1
+  
+  return [a:footnote_info.line_num, text_start_col, a:footnote_info.line_num, text_end_col]
+endfunction
+
+" Get the range of the footnote definition content (everything after [^id]:)
+" Returns [start_line, start_col, end_line, end_col] or empty array if not found
+function! md#footnotes#getFootnoteDefinitionRange(footnote_info)
+  if empty(a:footnote_info)
+    return []
+  endif
+  
+  if a:footnote_info.type == 'reference'
+    " For references, find the definition and return its content range
+    let def_line = s:findFootnoteDefinitionLine(a:footnote_info.id)
+    if def_line == -1
+      return []
+    endif
+    return s:getDefinitionContentRange(def_line, a:footnote_info.id)
+  elseif a:footnote_info.type == 'definition'
+    " For definitions, return the content range
+    return s:getDefinitionContentRange(a:footnote_info.line_num, a:footnote_info.id)
+  endif
+  
+  return []
+endfunction
+
+" Get the range of the entire footnote structure
+" For references: [^id]
+" For definitions: entire definition including continuation lines
+function! md#footnotes#getFootnoteFullRange(footnote_info)
+  if empty(a:footnote_info)
+    return []
+  endif
+  
+  if a:footnote_info.type == 'reference'
+    " For references, return the entire [^id] range
+    return [a:footnote_info.line_num, a:footnote_info.start_col, a:footnote_info.line_num, a:footnote_info.end_col]
+  elseif a:footnote_info.type == 'definition'
+    " For definitions, return the entire definition including continuation lines
+    return s:getFullDefinitionRange(a:footnote_info.line_num, a:footnote_info.id)
+  endif
+  
+  return []
+endfunction
+
+" Helper function to find the line number of a footnote definition
+function! s:findFootnoteDefinitionLine(footnote_id)
+  let line_num = 1
+  let last_line = line('$')
+  
+  while line_num <= last_line
+    let line_content = getline(line_num)
+    let pattern = '^\s*\[\^' . escape(a:footnote_id, '[]^$.*\~') . '\]:'
+    if line_content =~ pattern
+      return line_num
+    endif
+    let line_num += 1
+  endwhile
+  
+  return -1
+endfunction
+
+" Helper function to get the content range of a footnote definition
+function! s:getDefinitionContentRange(def_line_num, footnote_id)
+  let line_content = getline(a:def_line_num)
+  let pattern = '^\s*\[\^' . escape(a:footnote_id, '[]^$.*\~') . '\]:\s*\(.*\)$'
+  let match = matchlist(line_content, pattern)
+  
+  if empty(match)
+    return []
+  endif
+  
+  " Find where the content starts on the first line
+  let def_marker_end = match(line_content, '\]:\s*') + 2
+  let content_start_col = def_marker_end + 1
+  
+  " If there's content on the first line, start there
+  if !empty(match[1])
+    let content_start_col = def_marker_end + 1
+    while content_start_col <= len(line_content) && line_content[content_start_col - 1] == ' '
+      let content_start_col += 1
+    endwhile
+  endif
+  
+  " Find the end of the definition content
+  let end_line = a:def_line_num
+  let last_line = line('$')
+  
+  " Look for continuation lines
+  let line_num = a:def_line_num + 1
+  while line_num <= last_line
+    let line_content = getline(line_num)
+    
+    " Stop if we hit another footnote definition or non-indented content
+    if line_content =~ '^\s*\[\^[^]]\+\]:' || (line_content !~ '^\s*$' && line_content !~ '^\s\+')
+      break
+    endif
+    
+    " Include indented lines and empty lines
+    if line_content =~ '^\s\+' || line_content =~ '^\s*$'
+      let end_line = line_num
+    else
+      break
+    endif
+    
+    let line_num += 1
+  endwhile
+  
+  " Get the end column of the last line with content
+  let end_col = len(getline(end_line))
+  if end_col == 0
+    let end_col = 1
+  endif
+  
+  return [a:def_line_num, content_start_col, end_line, end_col]
+endfunction
+
+" Helper function to get the full range of a footnote definition including the marker
+function! s:getFullDefinitionRange(def_line_num, footnote_id)
+  let content_range = s:getDefinitionContentRange(a:def_line_num, a:footnote_id)
+  if empty(content_range)
+    return []
+  endif
+  
+  " Start from the beginning of the definition line
+  return [a:def_line_num, 1, content_range[2], content_range[3]]
+endfunction

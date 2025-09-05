@@ -83,6 +83,129 @@ function! s:test_find_footnote_at_position()
   endif
 endfunction
 
+" Test footnote text object range functions
+function! s:test_footnote_text_object_ranges()
+  call test#framework#write_info("Testing footnote text object range functions...")
+
+  call s:setup_test_buffer()
+
+  " Test footnote text range for reference
+  call cursor(7, 36)  " Position on [^1]
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  let text_range = md#footnotes#getFootnoteTextRange(footnote_info)
+  call test#framework#assert_not_empty(text_range, "Should get footnote text range")
+  if !empty(text_range)
+    call test#framework#assert_equal(4, len(text_range), "Text range should have 4 elements")
+    call test#framework#assert_equal(7, text_range[0], "Text range line should be correct")
+    call test#framework#assert_equal(36, text_range[1], "Text range start column should be correct")
+    call test#framework#assert_equal(7, text_range[2], "Text range end line should be correct")
+    call test#framework#assert_equal(36, text_range[3], "Text range end column should be correct")
+  endif
+
+  " Test footnote definition range for reference
+  let def_range = md#footnotes#getFootnoteDefinitionRange(footnote_info)
+  call test#framework#assert_not_empty(def_range, "Should get footnote definition range")
+  if !empty(def_range)
+    call test#framework#assert_equal(4, len(def_range), "Definition range should have 4 elements")
+    call test#framework#assert_equal(23, def_range[0], "Definition range line should be correct")
+  endif
+
+  " Test footnote full range for reference
+  let full_range = md#footnotes#getFootnoteFullRange(footnote_info)
+  call test#framework#assert_not_empty(full_range, "Should get footnote full range")
+  if !empty(full_range)
+    call test#framework#assert_equal(4, len(full_range), "Full range should have 4 elements")
+    call test#framework#assert_equal(7, full_range[0], "Full range line should be correct")
+    call test#framework#assert_equal(34, full_range[1], "Full range start column should be correct")
+    call test#framework#assert_equal(37, full_range[3], "Full range end column should be correct")
+  endif
+
+  " Test footnote definition range for definition
+  call cursor(23, 5)  " Position on [^1]: definition line
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  let def_range = md#footnotes#getFootnoteDefinitionRange(footnote_info)
+  call test#framework#assert_not_empty(def_range, "Should get definition range from definition position")
+  if !empty(def_range)
+    call test#framework#assert_equal(23, def_range[0], "Definition range line should be correct")
+  endif
+endfunction
+
+" Test footnote text objects
+function! s:test_footnote_text_objects()
+  call test#framework#write_info("Testing footnote text object functions...")
+
+  call s:setup_test_buffer()
+
+  " Test inside footnote text on reference
+  call cursor(7, 36)  " Position on [^1]
+  let result = md#objects#insideFootnoteText()
+  call test#framework#assert_false(type(result) == type(0) && result == 0, "Should return valid range for inside footnote text")
+  if type(result) == type([])
+    call test#framework#assert_equal('v', result[0], "Should be character-wise selection")
+  endif
+
+  " Test around footnote text on reference
+  let result = md#objects#aroundFootnoteText()
+  call test#framework#assert_false(type(result) == type(0) && result == 0, "Should return valid range for around footnote text")
+  if type(result) == type([])
+    call test#framework#assert_equal('v', result[0], "Should be character-wise selection")
+  endif
+
+  " Test inside footnote definition
+  let result = md#objects#insideFootnoteDefinition()
+  call test#framework#assert_false(type(result) == type(0) && result == 0, "Should return valid range for inside footnote definition")
+  if type(result) == type([])
+    call test#framework#assert_equal('v', result[0], "Should be character-wise selection")
+  endif
+
+  " Test around footnote definition
+  let result = md#objects#aroundFootnoteDefinition()
+  call test#framework#assert_false(type(result) == type(0) && result == 0, "Should return valid range for around footnote definition")
+  if type(result) == type([])
+    call test#framework#assert_equal('V', result[0], "Should be line-wise selection")
+  endif
+
+  " Test inside footnote
+  let result = md#objects#insideFootnote()
+  call test#framework#assert_false(type(result) == type(0) && result == 0, "Should return valid range for inside footnote")
+  if type(result) == type([])
+    call test#framework#assert_equal('v', result[0], "Should be character-wise selection")
+  endif
+
+  " Test around footnote
+  let result = md#objects#aroundFootnote()
+  call test#framework#assert_false(type(result) == type(0) && result == 0, "Should return valid range for around footnote")
+  if type(result) == type([])
+    call test#framework#assert_equal('v', result[0], "Should be character-wise selection")
+  endif
+
+  " Test on footnote definition line
+  call cursor(23, 5)  " Position on [^1]: definition line
+  let result = md#objects#insideFootnoteDefinition()
+  call test#framework#assert_false(type(result) == type(0) && result == 0, "Should return valid range for definition line")
+
+  let result = md#objects#aroundFootnoteDefinition()
+  call test#framework#assert_false(type(result) == type(0) && result == 0, "Should return valid range for around definition")
+  if type(result) == type([])
+    call test#framework#assert_equal('V', result[0], "Should be line-wise selection for definition")
+  endif
+
+  " Test that text objects return 0 when not on footnote
+  call cursor(3, 10)  " Position on regular text
+  let result = md#objects#insideFootnoteText()
+  call test#framework#assert_true(type(result) == type(0) && result == 0, "Should return 0 when not on footnote")
+  let result = md#objects#aroundFootnoteText()
+  call test#framework#assert_true(type(result) == type(0) && result == 0, "Should return 0 when not on footnote")
+  let result = md#objects#insideFootnoteDefinition()
+  call test#framework#assert_true(type(result) == type(0) && result == 0, "Should return 0 when not on footnote")
+  let result = md#objects#aroundFootnoteDefinition()
+  call test#framework#assert_true(type(result) == type(0) && result == 0, "Should return 0 when not on footnote")
+  let result = md#objects#insideFootnote()
+  call test#framework#assert_true(type(result) == type(0) && result == 0, "Should return 0 when not on footnote")
+  let result = md#objects#aroundFootnote()
+  call test#framework#assert_true(type(result) == type(0) && result == 0, "Should return 0 when not on footnote")
+endfunction
+
 " Test finding footnote definitions
 function! s:test_footnote_definitions()
   call test#framework#write_info("Testing footnote definition parsing...")
@@ -250,6 +373,8 @@ function! s:run_all_tests()
 
   call test#framework#run_test_function('test_find_footnote_references_in_line', function('s:test_find_footnote_references_in_line'))
   call test#framework#run_test_function('test_find_footnote_at_position', function('s:test_find_footnote_at_position'))
+  call test#framework#run_test_function('test_footnote_text_object_ranges', function('s:test_footnote_text_object_ranges'))
+  call test#framework#run_test_function('test_footnote_text_objects', function('s:test_footnote_text_objects'))
   call test#framework#run_test_function('test_footnote_definitions', function('s:test_footnote_definitions'))
   call test#framework#run_test_function('test_wrapped_footnote_content', function('s:test_wrapped_footnote_content'))
   call test#framework#run_test_function('test_text_wrapping_logic', function('s:test_text_wrapping_logic'))
