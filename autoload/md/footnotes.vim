@@ -144,7 +144,8 @@ endfunction
 " Get the full content of a footnote definition, including wrapped lines
 " Returns the complete footnote content as a string
 function! s:getFootnoteDefinitionContent(def_line_num, footnote_id)
-  let content_lines = []
+  let paragraphs = []
+  let current_paragraph = []
   let line_num = a:def_line_num
   let last_line = line('$')
   
@@ -152,12 +153,13 @@ function! s:getFootnoteDefinitionContent(def_line_num, footnote_id)
   let first_line = getline(line_num)
   let pattern = '^\s*\[\^' . escape(a:footnote_id, '[]^$.*\~') . '\]:\s*\(.*\)$'
   let match = matchlist(first_line, pattern)
-  if !empty(match)
-    call add(content_lines, match[1])
+  if !empty(match) && !empty(trim(match[1]))
+    call add(current_paragraph, match[1])
   endif
   
   " Look for continuation lines (indented lines that follow)
   let line_num += 1
+  let saw_empty_line = 0
   while line_num <= last_line
     let line_content = getline(line_num)
     
@@ -166,12 +168,22 @@ function! s:getFootnoteDefinitionContent(def_line_num, footnote_id)
       break
     endif
     
-    " Add indented continuation lines
+    " Handle different line types
     if line_content =~ '^\s\+'
-      call add(content_lines, substitute(line_content, '^\s\+', '', ''))
+      " Indented continuation line
+      let cleaned_line = substitute(line_content, '^\s\+', '', '')
+      if !empty(trim(cleaned_line))
+        " If we saw an empty line before this content line, it starts a new paragraph
+        if saw_empty_line && !empty(current_paragraph)
+          call add(paragraphs, join(current_paragraph, ' '))
+          let current_paragraph = []
+        endif
+        call add(current_paragraph, cleaned_line)
+        let saw_empty_line = 0
+      endif
     elseif line_content =~ '^\s*$'
-      " Add empty lines within the footnote
-      call add(content_lines, '')
+      " Empty line - flag that we saw it
+      let saw_empty_line = 1
     else
       " Non-indented, non-empty line means end of footnote
       break
@@ -180,8 +192,22 @@ function! s:getFootnoteDefinitionContent(def_line_num, footnote_id)
     let line_num += 1
   endwhile
   
-  " Join all content lines with newlines and trim trailing whitespace/newlines
-  let result = join(content_lines, "\n")
+  " Add final paragraph if exists
+  if !empty(current_paragraph)
+    call add(paragraphs, join(current_paragraph, ' '))
+  endif
+  
+  " Debug output for testing
+  " echom "DEBUG: paragraphs = " . string(paragraphs)
+  
+  " Join paragraphs with double newlines for proper paragraph separation
+  " If we only have one paragraph, return it directly
+  if len(paragraphs) == 1
+    return paragraphs[0]
+  endif
+  
+  " For multiple paragraphs, join with double newlines
+  let result = join(paragraphs, "\n\n")
   " Remove trailing whitespace and newlines
   return substitute(result, '\s*\n*$', '', '')
 endfunction

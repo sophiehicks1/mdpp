@@ -156,7 +156,7 @@ function! s:test_text_wrapping_logic()
   call test#framework#assert_equal(max_window.height, len(window_lines), "Should have exactly max_window.height lines after ellision")
 
   " Verify last line has ellision
-  call test#framework#assert_true(lines[-1] =~ '\.\.\.$', "Last line should end with ellision")
+  call test#framework#assert_true(window_lines[-1] =~ '\.\.\.$', "Last line should end with ellision")
 endfunction
 
 " Test window sizing and ellision
@@ -181,6 +181,42 @@ function! s:test_window_sizing()
 
   " Note: We can't easily test the actual window creation without Neovim,
   " but we can test that the footnote parsing works correctly
+endfunction
+
+" Test wrapped footnote content parsing
+function! s:test_wrapped_footnote_content()
+  call test#framework#write_info("Testing wrapped footnote content parsing...")
+
+  call test#framework#setup_buffer_from_file('wrapped_footnote_test.md')
+
+  " Test cursor on wrapped footnote reference
+  call cursor(3, 20)  " Position on [^wrapped]
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  call test#framework#assert_not_empty(footnote_info, "Should find wrapped footnote at cursor position")
+  if !empty(footnote_info)
+    call test#framework#assert_equal('reference', footnote_info.type, "Should find wrapped footnote reference")
+    call test#framework#assert_equal('wrapped', footnote_info.id, "Should extract wrapped footnote ID")
+    
+    " The content should be joined as a single paragraph (spaces, not newlines between continuation lines)
+    let expected_content = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus a sem odio. Nunc ultricies quis neque ac lacinia. Phasellus id lacus quam. Praesent dignissim tortor neque, vitae tristique leo luctus id. Donec commodo'
+    call test#framework#assert_equal(expected_content, footnote_info.content, "Should join wrapped lines with spaces, not newlines")
+  endif
+
+  " Test multi-paragraph footnote (empty lines should be preserved as paragraph breaks)
+  call cursor(9, 20)  " Position on [^multi_para]
+  let footnote_info = md#footnotes#findFootnoteAtPos(getpos('.'))
+  call test#framework#assert_not_empty(footnote_info, "Should find multi-paragraph footnote at cursor position")
+  if !empty(footnote_info)
+    call test#framework#assert_equal('reference', footnote_info.type, "Should find multi-paragraph footnote reference")
+    call test#framework#assert_equal('multi_para', footnote_info.id, "Should extract multi-paragraph footnote ID")
+    
+    " Empty lines should be preserved as paragraph separators
+    let content_lines = split(footnote_info.content, "\n\n")
+    call test#framework#assert_true(len(content_lines) >= 3, "Should have multiple paragraphs separated by empty lines")
+    call test#framework#assert_equal('First paragraph is here with some text.', content_lines[0], "First paragraph should be intact")
+    call test#framework#assert_equal('Second paragraph should be preserved as separate.', content_lines[1], "Second paragraph should be intact")
+    call test#framework#assert_equal('Third paragraph is also separate.', content_lines[2], "Third paragraph should be intact")
+  endif
 endfunction
 
 " Test edge cases
@@ -231,6 +267,7 @@ function! s:run_all_tests()
   call test#framework#run_test_function('test_find_footnote_references_in_line', function('s:test_find_footnote_references_in_line'))
   call test#framework#run_test_function('test_find_footnote_at_position', function('s:test_find_footnote_at_position'))
   call test#framework#run_test_function('test_footnote_definitions', function('s:test_footnote_definitions'))
+  call test#framework#run_test_function('test_wrapped_footnote_content', function('s:test_wrapped_footnote_content'))
   call test#framework#run_test_function('test_text_wrapping_logic', function('s:test_text_wrapping_logic'))
   call test#framework#run_test_function('test_window_sizing', function('s:test_window_sizing'))
   call test#framework#run_test_function('test_edge_cases', function('s:test_edge_cases'))
