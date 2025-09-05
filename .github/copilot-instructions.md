@@ -243,3 +243,4 @@ In other words:
   explain things that can't be made obvious through well written, intentional code.
 - Prioritize making it easy to understand and reusable over making it short.
 - Use human-friendly names.
+- Do not leave trailing whitespace on any lines.
