@@ -481,6 +481,101 @@ function! s:test_newline_handling()
   endif
 endfunction
 
+" Test finding next available footnote ID
+function! s:test_find_next_available_id()
+  call test#framework#write_info("Testing md#footnotes#findNextAvailableId...")
+
+  " Test with empty buffer
+  enew!
+  setlocal filetype=markdown
+  setlocal noswapfile
+  runtime! plugin/**/*.vim
+  runtime! after/ftplugin/markdown.vim
+  
+  let next_id = md#footnotes#findNextAvailableId()
+  call test#framework#assert_equal('1', next_id, "Should return '1' for empty buffer")
+
+  " Test with existing footnotes
+  call setline(1, ['# Test', 'Text with footnote[^1].', 'Another footnote[^3].', '', '[^1]: First footnote', '[^3]: Third footnote'])
+  
+  let next_id = md#footnotes#findNextAvailableId()
+  call test#framework#assert_equal('2', next_id, "Should return '2' when 1 and 3 exist")
+
+  " Test with consecutive footnotes
+  call setline(1, ['# Test', 'Text[^1] and [^2] and [^3].', '', '[^1]: First', '[^2]: Second', '[^3]: Third'])
+  
+  let next_id = md#footnotes#findNextAvailableId()
+  call test#framework#assert_equal('4', next_id, "Should return '4' when 1,2,3 exist")
+
+  " Test with mixed ID types (numbers and letters)
+  call setline(1, ['# Test', 'Text[^1] and [^note] and [^2].', '', '[^1]: First', '[^note]: Named', '[^2]: Second'])
+  
+  let next_id = md#footnotes#findNextAvailableId()
+  call test#framework#assert_equal('3', next_id, "Should return '3' even with mixed ID types")
+endfunction
+
+" Test adding footnote reference
+function! s:test_add_footnote_reference()
+  call test#framework#write_info("Testing md#footnotes#addFootnoteReference...")
+
+  enew!
+  setlocal filetype=markdown
+  setlocal noswapfile
+  runtime! plugin/**/*.vim
+  runtime! after/ftplugin/markdown.vim
+  
+  " Test adding at beginning of line
+  call setline(1, 'Lorem ipsum dolor sit amet')
+  call md#footnotes#addFootnoteReference(1, 1, '1')
+  let result = getline(1)
+  call test#framework#assert_equal('[^1]Lorem ipsum dolor sit amet', result, "Should add reference at beginning")
+
+  " Test adding in middle of line
+  call setline(1, 'Lorem ipsum dolor sit amet')
+  call md#footnotes#addFootnoteReference(1, 12, '2') " After "Lorem ipsum"
+  let result = getline(1)
+  call test#framework#assert_equal('Lorem ipsum[^2] dolor sit amet', result, "Should add reference in middle")
+
+  " Test adding at end of line
+  call setline(1, 'Lorem ipsum dolor sit amet')
+  call md#footnotes#addFootnoteReference(1, 27, '3') " After last character
+  let result = getline(1)
+  call test#framework#assert_equal('Lorem ipsum dolor sit amet[^3]', result, "Should add reference at end")
+endfunction
+
+" Test adding footnote definition
+function! s:test_add_footnote_definition()
+  call test#framework#write_info("Testing md#footnotes#addFootnoteDefinition...")
+
+  enew!
+  setlocal filetype=markdown
+  setlocal noswapfile
+  runtime! plugin/**/*.vim
+  runtime! after/ftplugin/markdown.vim
+  
+  " Test adding to empty buffer
+  let def_line = md#footnotes#addFootnoteDefinition('1')
+  call test#framework#assert_equal(1, def_line, "Should return line 1 for empty buffer")
+  let result = getline(1)
+  call test#framework#assert_equal('[^1]: ', result, "Should add definition correctly")
+
+  " Test adding to non-empty buffer
+  call setline(1, ['# Test', 'Some content'])
+  let def_line = md#footnotes#addFootnoteDefinition('2')
+  call test#framework#assert_equal(4, def_line, "Should return line 4 after content and blank line")
+  let blank_line = getline(3)
+  let def_line_content = getline(4)
+  call test#framework#assert_equal('', blank_line, "Should add blank line before definition")
+  call test#framework#assert_equal('[^2]: ', def_line_content, "Should add definition after blank line")
+
+  " Test adding when last line is already empty
+  call setline(1, ['# Test', 'Content', ''])
+  let def_line = md#footnotes#addFootnoteDefinition('3')
+  call test#framework#assert_equal(4, def_line, "Should add definition after existing blank line")
+  let result = getline(4)
+  call test#framework#assert_equal('[^3]: ', result, "Should add definition correctly after blank line")
+endfunction
+
 " Run all tests
 function! s:run_all_tests()
   call test#framework#reset()
@@ -501,6 +596,9 @@ function! s:run_all_tests()
   call test#framework#run_test_function('test_continuation_line_detection', function('s:test_continuation_line_detection'))
   call test#framework#run_test_function('test_definition_content_detection', function('s:test_definition_content_detection'))
   call test#framework#run_test_function('test_newline_handling', function('s:test_newline_handling'))
+  call test#framework#run_test_function('test_find_next_available_id', function('s:test_find_next_available_id'))
+  call test#framework#run_test_function('test_add_footnote_reference', function('s:test_add_footnote_reference'))
+  call test#framework#run_test_function('test_add_footnote_definition', function('s:test_add_footnote_definition'))
 
   return test#framework#report_results('md#footnotes')
 endfunction

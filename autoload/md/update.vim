@@ -109,3 +109,28 @@ endfunction
 function! md#update#uncheckCheckbox()
   call md#checkbox#uncheckCheckbox(line('.'))
 endfunction
+
+" Add a new footnote at the current cursor position
+function! md#update#addFootnote()
+  " Get the current cursor position
+  let current_line = line('.')
+  let current_col = col('.')
+  
+  " Find the next available footnote ID
+  let footnote_id = md#footnotes#findNextAvailableId()
+  
+  " Add the footnote reference at the current position
+  call md#footnotes#addFootnoteReference(current_line, current_col, footnote_id)
+  
+  " Add the footnote definition at the end of the file
+  let def_line = md#footnotes#addFootnoteDefinition(footnote_id)
+  
+  " Add current position to jump list before moving
+  normal! m`
+  
+  " Move cursor to the footnote definition, positioning after the colon and space
+  call cursor(def_line, len('[^' . footnote_id . ']: ') + 1)
+  
+  " Enter insert mode
+  startinsert
+endfunction
