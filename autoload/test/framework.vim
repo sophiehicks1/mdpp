@@ -7,8 +7,12 @@ let s:test_failures = 0
 let s:results_file = ''
 
 " Initialize test framework with results file
-function! test#framework#init(results_file)
-  let s:results_file = a:results_file
+function! test#framework#init(results_file_name)
+  let s:results_file = g:mdpp_repo_root . '/tests/results/' . a:results_file_name
+  " Ensure the results directory exists
+  if !isdirectory(g:mdpp_repo_root . '/tests/results')
+    call mkdir(g:mdpp_repo_root . '/tests/results', 'p')
+  endif
   " Clear any existing results file
   call writefile([], s:results_file)
 endfunction
@@ -124,6 +128,10 @@ endfunction
 function! test#framework#setup_buffer_from_string(content_string)
   let content_lines = split(a:content_string, '\n')
   call test#framework#setup_buffer_with_content(content_lines)
+endfunction
+
+function! test#framework#setup_empty_buffer()
+  call test#framework#setup_buffer_with_content([])
 endfunction
 
 " Helper function to load content from file

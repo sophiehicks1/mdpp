@@ -483,3 +483,73 @@ function! s:hasFootnoteDefinitionAfter(line_num)
   
   return 0
 endfunction
+
+" Find the next available integer footnote ID
+" Returns the lowest integer not currently used as a footnote ID
+function! md#footnotes#findNextAvailableId()
+  " Collect all existing footnote IDs from both references and definitions
+  let existing_ids = []
+  let line_num = 1
+  let last_line = line('$')
+  
+  while line_num <= last_line
+    let line_content = getline(line_num)
+    
+    " Check for footnote definitions
+    let def_pattern = '^\s*\[\^\([^]]\+\)\]:'
+    let def_match = matchlist(line_content, def_pattern)
+    if !empty(def_match)
+      call add(existing_ids, def_match[1])
+    endif
+    
+    " Check for footnote references in the line
+    let footnotes = md#footnotes#findFootnoteReferencesInLine(line_num)
+    for footnote in footnotes
+      call add(existing_ids, footnote.id)
+    endfor
+    
+    let line_num += 1
+  endwhile
+  
+  " Find the lowest integer ID not in use
+  let next_id = 1
+  while index(existing_ids, string(next_id)) != -1
+    let next_id += 1
+  endwhile
+  
+  return string(next_id)
+endfunction
+
+" Append a footnote reference at the specified position.
+" Returns the footnote ID that was added
+function! md#footnotes#addFootnoteReference(line_num, col_num, footnote_id)
+  let line_content = getline(a:line_num)
+  let reference = '[^' . a:footnote_id . ']'
+  
+  " Append the reference at the specified position
+  let before = line_content[:a:col_num]
+  let after = line_content[a:col_num + 1:]
+  let new_line = before . reference . after
+  
+  call setline(a:line_num, new_line)
+  
+  return a:footnote_id
+endfunction
+
+" Add a footnote definition at the end of the file
+" Returns the line number where the definition was added
+function! md#footnotes#addFootnoteDefinition(footnote_id)
+  let last_line = line('$')
+  let definition = '[^' . a:footnote_id . ']: '
+  
+  " Add an empty line before the definition if the last line isn't empty
+  if getline(last_line) !~ '^\s*$'
+    call append(last_line, '')
+    let last_line += 1
+  endif
+  
+  " Add the footnote definition
+  call append(last_line, definition)
+  
+  return last_line + 1
+endfunction

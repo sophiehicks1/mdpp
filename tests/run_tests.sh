@@ -57,18 +57,22 @@ echo "Running tests..."
 
 # Auto-discover and run all test files
 for test_file in "$REPO_ROOT"/tests/test_*.vim; do
-    if [ -f "$test_file" ]; then
-        echo "Running $(basename "$test_file")..."
-        # Run vim silently and let it write to the results file
-        vim -u "$TEMP_DIR/test-vimrc" -c "source $test_file" -c "qa!" >/dev/null 2>&1
-        
-        # Display the results from the results file
-        if [ -f "$REPO_ROOT/tests/results.md" ]; then
-            cat "$REPO_ROOT/tests/results.md"
-        else
-            echo "Error: No results file generated"
-        fi
-    fi
+  if [ -f "$test_file" ]; then
+    echo "Running $(basename "$test_file")..."
+    # Run vim silently and let it write to the results file
+    vim -u "$TEMP_DIR/test-vimrc" -c "source $test_file" -c "qa!" >/dev/null 2>&1
+  fi
+done
+
+# print empty line
+echo ''
+
+# Display results
+for result_file in "$REPO_ROOT"/tests/results/*.txt; do
+  if [ -f "$result_file" ]; then
+    cat "$result_file" | grep -v '^PASS:' | grep -v '^=*$' | grep -v '^Testing'
+    echo ""
+  fi
 done
 
 # Cleanup
