@@ -3,3 +3,4 @@ test.md
 *.swo
 *.swn
 tests/results.md
+tests/results/

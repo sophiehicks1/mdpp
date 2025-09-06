@@ -520,15 +520,15 @@ function! md#footnotes#findNextAvailableId()
   return string(next_id)
 endfunction
 
-" Add a footnote reference at the specified position
+" Append a footnote reference at the specified position.
 " Returns the footnote ID that was added
 function! md#footnotes#addFootnoteReference(line_num, col_num, footnote_id)
   let line_content = getline(a:line_num)
   let reference = '[^' . a:footnote_id . ']'
   
-  " Insert the reference at the specified position
-  let before = line_content[:a:col_num - 2]
-  let after = line_content[a:col_num - 1:]
+  " Append the reference at the specified position
+  let before = line_content[:a:col_num]
+  let after = line_content[a:col_num + 1:]
   let new_line = before . reference . after
   
   call setline(a:line_num, new_line)

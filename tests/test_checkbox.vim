@@ -174,6 +174,6 @@ endfunction
 if !exists('g:mdpp_repo_root')
   echoerr "Test error: g:mdpp_repo_root not set. Please run tests via run_tests.sh"
 else
-  call test#framework#init(g:mdpp_repo_root . '/tests/results.md')
+  call test#framework#init('checkbox.txt')
   call s:run_tests()
 endif
