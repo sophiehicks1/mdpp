@@ -89,20 +89,25 @@ The footnote feature works with standard Markdown footnote syntax:
 
 When [vim-open](https://github.com/sophiehicks1/vim-open) is installed, **`gf`** can be used to open markdown links:
 
-- **`gf`** - Open file links in current window (works on any part of markdown links)
-- **`gF`** - Open file links in new tab
+- **`gf`** - Open links in current window (works on any part of markdown links)
+- **`gF`** - Open links in new tab
 
 Supported link types:
-- Inline links: `[text](./file.md)`, `[text](../docs/readme.txt)`
+- Inline links: `[text](./file.md)`, `[text](https://example.com)`, `[text](@username)`
 - Reference links: `[text][ref]` with `[ref]: ./file.md` definitions  
 - Wiki links: `[[Internal Page]]`, `[[docs/another-page]]`
 
 Features:
-- Automatically filters out web URLs (leaves them for vim-open's built-in browser opener)
-- Handles relative paths (`./`, `../`), absolute paths (`/`), and home directory (`~/`)
-- URL decodes common encoded characters (`%20` → space, `%23` → `#`, etc.)
-- Removes URL fragments (`#section`) and query parameters (`?param=value`)
+- Passes all link addresses to vim-open for processing (files, URLs, custom identifiers)
+- Works with vim-open's configurable "opener" system for handling different resource types
+- Supports file paths, web URLs, and custom identifiers like Slack usernames or Jira ticket IDs
 - Only activates in markdown files
+
+Examples of supported links:
+- `[File](./readme.md)` - Opens file in vim
+- `[Website](https://example.com)` - Opens in browser  
+- `[Slack user](@sophie.hicks)` - Can be configured to open Slack DM
+- `[Ticket](AB-1234)` - Can be configured to open Jira ticket
 
 <!-- ### Additional Features -->
 

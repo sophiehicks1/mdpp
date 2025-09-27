@@ -63,93 +63,45 @@ function! s:test_is_markdown_link_detection()
       return 0
     endif
     
-    " Simulate link detection
-    if a:context.line =~ '\[.*\](\..*\.md)'
+    " Simulate link detection - now detects any link, not just file links
+    if a:context.line =~ '\[.*\](.*)'
       return 1
-    elseif a:context.line =~ '\[.*\](https\?://.*)'
-      return 0  " Web URLs should not be handled
     else
       return 0
     endif
   endfunction
   
   call test#framework#assert_equal(1, TestIsMarkdownLink(context_file_link), "Should detect file link")
-  call test#framework#assert_equal(0, TestIsMarkdownLink(context_web_link), "Should not detect web link")
+  call test#framework#assert_equal(1, TestIsMarkdownLink(context_web_link), "Should detect web link")
   call test#framework#assert_equal(0, TestIsMarkdownLink(context_no_link), "Should not detect non-link text")
   call test#framework#assert_equal(0, TestIsMarkdownLink(context_non_markdown), "Should not work in non-markdown files")
   
   delfunction TestIsMarkdownLink
 endfunction
 
-" Test file path detection logic
-function! s:test_looks_like_file_path()
-  call test#framework#write_info("Testing file path detection...")
+" Test link address extraction logic
+function! s:test_extract_link_addresses()
+  call test#framework#write_info("Testing link address extraction...")
   
   " Mock the internal function for testing
-  function! TestLooksLikeFilePath(url)
-    if empty(a:url)
-      return 0
-    endif
-    
-    " Exclude web URLs
-    if a:url =~? '^https\?://' || a:url =~? '^ftp://' || a:url =~? '^mailto:'
-      return 0
-    endif
-    
-    " Include things that look like file paths
-    return a:url =~ '^\~/' || 
-         \ a:url =~ '^\.\./' ||
-         \ a:url =~ '^\.\/' ||
-         \ a:url =~ '^/' ||
-         \ a:url =~ '\.\w\+$' ||
-         \ a:url !~ '://'
+  function! TestExtractLinkAddress(url)
+    " Simply return the URL as-is since we no longer clean or filter
+    return a:url
   endfunction
   
-  " Test various URL types
-  call test#framework#assert_equal(1, TestLooksLikeFilePath('./file.md'), "Should detect relative path with ./")
-  call test#framework#assert_equal(1, TestLooksLikeFilePath('../file.md'), "Should detect parent path with ../")
-  call test#framework#assert_equal(1, TestLooksLikeFilePath('~/file.md'), "Should detect home directory path")
-  call test#framework#assert_equal(1, TestLooksLikeFilePath('/absolute/path/file.md'), "Should detect absolute path")
-  call test#framework#assert_equal(1, TestLooksLikeFilePath('file.md'), "Should detect simple filename with extension")
-  call test#framework#assert_equal(1, TestLooksLikeFilePath('docs/readme.txt'), "Should detect relative directory path")
+  " Test various link types - all should be returned as-is
+  call test#framework#assert_equal('./file.md', TestExtractLinkAddress('./file.md'), "Should return relative path as-is")
+  call test#framework#assert_equal('../file.md', TestExtractLinkAddress('../file.md'), "Should return parent path as-is")
+  call test#framework#assert_equal('~/file.md', TestExtractLinkAddress('~/file.md'), "Should return home directory path as-is")
+  call test#framework#assert_equal('/absolute/path/file.md', TestExtractLinkAddress('/absolute/path/file.md'), "Should return absolute path as-is")
+  call test#framework#assert_equal('https://example.com', TestExtractLinkAddress('https://example.com'), "Should return HTTPS URL as-is")
+  call test#framework#assert_equal('http://example.com/page', TestExtractLinkAddress('http://example.com/page'), "Should return HTTP URL as-is")
+  call test#framework#assert_equal('ftp://server.com/file', TestExtractLinkAddress('ftp://server.com/file'), "Should return FTP URL as-is")
+  call test#framework#assert_equal('mailto:test@example.com', TestExtractLinkAddress('mailto:test@example.com'), "Should return mailto URL as-is")
+  call test#framework#assert_equal('@sophie.hicks', TestExtractLinkAddress('@sophie.hicks'), "Should return slack username as-is")
+  call test#framework#assert_equal('AB-1234', TestExtractLinkAddress('AB-1234'), "Should return jira ticket ID as-is")
   
-  call test#framework#assert_equal(0, TestLooksLikeFilePath('https://example.com'), "Should not detect HTTPS URL")
-  call test#framework#assert_equal(0, TestLooksLikeFilePath('http://example.com/file.html'), "Should not detect HTTP URL")
-  call test#framework#assert_equal(0, TestLooksLikeFilePath('ftp://server.com/file'), "Should not detect FTP URL")
-  call test#framework#assert_equal(0, TestLooksLikeFilePath('mailto:test@example.com'), "Should not detect mailto URL")
-  call test#framework#assert_equal(0, TestLooksLikeFilePath(''), "Should not detect empty string")
-  
-  delfunction TestLooksLikeFilePath
-endfunction
-
-" Test file path cleaning logic
-function! s:test_clean_file_path()
-  call test#framework#write_info("Testing file path cleaning...")
-  
-  " Mock the internal function for testing
-  function! TestCleanFilePath(url)
-    let path = a:url
-    
-    " Remove URL fragments and query parameters
-    let path = substitute(path, '[#?].*$', '', '')
-    
-    " URL decode common encoded characters
-    let path = substitute(path, '%20', ' ', 'g')
-    let path = substitute(path, '%23', '#', 'g')
-    let path = substitute(path, '%25', '%', 'g')
-    
-    return path
-  endfunction
-  
-  call test#framework#assert_equal('./file.md', TestCleanFilePath('./file.md'), "Should leave simple path unchanged")
-  call test#framework#assert_equal('./file.md', TestCleanFilePath('./file.md#section'), "Should remove fragment")
-  call test#framework#assert_equal('./file.md', TestCleanFilePath('./file.md?param=value'), "Should remove query parameters")
-  call test#framework#assert_equal('./my file.md', TestCleanFilePath('./my%20file.md'), "Should decode %20 to space")
-  call test#framework#assert_equal('./file#name.md', TestCleanFilePath('./file%23name.md'), "Should decode %23 to #")
-  call test#framework#assert_equal('./file%name.md', TestCleanFilePath('./file%25name.md'), "Should decode %25 to %")
-  call test#framework#assert_equal('./my file.md', TestCleanFilePath('./my%20file.md#section?param=value'), "Should handle multiple cleanups")
-  
-  delfunction TestCleanFilePath
+  delfunction TestExtractLinkAddress
 endfunction
 
 " Test integration with actual link detection
@@ -181,8 +133,7 @@ function! s:run_all_tests()
 
   call test#framework#run_test_function('test_setup', function('s:test_setup'))
   call test#framework#run_test_function('test_is_markdown_link_detection', function('s:test_is_markdown_link_detection'))
-  call test#framework#run_test_function('test_looks_like_file_path', function('s:test_looks_like_file_path'))
-  call test#framework#run_test_function('test_clean_file_path', function('s:test_clean_file_path'))
+  call test#framework#run_test_function('test_extract_link_addresses', function('s:test_extract_link_addresses'))
   call test#framework#run_test_function('test_integration', function('s:test_integration'))
 
   call test#framework#report_results('md#vimopen')

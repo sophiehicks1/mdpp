@@ -12,7 +12,7 @@ function! md#vimopen#setup()
   call gopher#add_finder(function('s:is_markdown_link'), function('s:extract_markdown_link'))
 endfunction
 
-" Check if the cursor is on a markdown link that could be a file path
+" Check if the cursor is on a markdown link
 function! s:is_markdown_link(context)
   " Only apply to markdown files
   if a:context.filetype != 'markdown'
@@ -30,11 +30,11 @@ function! s:is_markdown_link(context)
   " Get the URL from the link
   let url = md#links#getLinkUrl(link_info)
   
-  " Check if it looks like a file path (not a URL)
-  return s:looks_like_file_path(url)
+  " Return true if we have any non-empty URL/address
+  return !empty(url)
 endfunction
 
-" Extract the file path from a markdown link
+" Extract the link address from a markdown link
 function! s:extract_markdown_link(context)
   let pos = [0, a:context.lnum, a:context.col, 0]
   let link_info = md#links#findLinkAtPos(pos)
@@ -43,47 +43,6 @@ function! s:extract_markdown_link(context)
     return ''
   endif
   
-  let url = md#links#getLinkUrl(link_info)
-  
-  " Clean up the URL to make it a proper file path
-  return s:clean_file_path(url)
-endfunction
-
-" Check if a URL looks like a file path rather than a web URL
-function! s:looks_like_file_path(url)
-  if empty(a:url)
-    return 0
-  endif
-  
-  " Exclude web URLs
-  if a:url =~? '^https\?://' || a:url =~? '^ftp://' || a:url =~? '^mailto:'
-    return 0
-  endif
-  
-  " Include things that look like file paths
-  " - Relative paths: ./file.md, ../file.md, file.md
-  " - Absolute paths: /path/to/file.md
-  " - Home directory paths: ~/file.md
-  " - Paths with common file extensions
-  return a:url =~ '^\~/' || 
-       \ a:url =~ '^\.\./' ||
-       \ a:url =~ '^\.\/' ||
-       \ a:url =~ '^/' ||
-       \ a:url =~ '\.\w\+$' ||
-       \ a:url !~ '://'
-endfunction
-
-" Clean up a URL to make it a proper file path
-function! s:clean_file_path(url)
-  let path = a:url
-  
-  " Remove URL fragments and query parameters
-  let path = substitute(path, '[#?].*$', '', '')
-  
-  " URL decode common encoded characters
-  let path = substitute(path, '%20', ' ', 'g')
-  let path = substitute(path, '%23', '#', 'g')
-  let path = substitute(path, '%25', '%', 'g')
-  
-  return path
+  " Return the raw URL/address - let vim-open decide how to handle it
+  return md#links#getLinkUrl(link_info)
 endfunction
