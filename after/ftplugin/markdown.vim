@@ -1,8 +1,5 @@
 " markdown.vim - Vim plugin for editing Markdown files
 
-" TODO reimplement <c-f> and <c-l> mappings
-" - gf integration for links via (improved) open.vim
-
 " Setup vim-open integration if available
 call md#vimopen#setup()
 

@@ -85,6 +85,25 @@ The footnote feature works with standard Markdown footnote syntax:
 - Footnote references: `[^footnote-id]`
 - Footnote definitions: `[^footnote-id]: footnote content`
 
+### Enhanced Link Navigation (vim-open integration)
+
+When [vim-open](https://github.com/sophiehicks1/vim-open) is installed, **`gf`** can be used to open markdown links:
+
+- **`gf`** - Open file links in current window (works on any part of markdown links)
+- **`gF`** - Open file links in new tab
+
+Supported link types:
+- Inline links: `[text](./file.md)`, `[text](../docs/readme.txt)`
+- Reference links: `[text][ref]` with `[ref]: ./file.md` definitions  
+- Wiki links: `[[Internal Page]]`, `[[docs/another-page]]`
+
+Features:
+- Automatically filters out web URLs (leaves them for vim-open's built-in browser opener)
+- Handles relative paths (`./`, `../`), absolute paths (`/`), and home directory (`~/`)
+- URL decodes common encoded characters (`%20` → space, `%23` → `#`, etc.)
+- Removes URL fragments (`#section`) and query parameters (`?param=value`)
+- Only activates in markdown files
+
 <!-- ### Additional Features -->
 
 <!-- - **`<C-f>`** (Insert mode) - Insert footnote with interactive prompt -->
@@ -131,6 +150,10 @@ Given this structure:
 
 - tpope/vim-repeat
 - kana/vim-textob-user
+
+## Optional Dependencies
+
+- [sophiehicks1/vim-open](https://github.com/sophiehicks1/vim-open) - Enhanced `gf` functionality for opening markdown links
 
 ## Configuration
 
