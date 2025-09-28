@@ -3,11 +3,6 @@
 " Setup vim-open integration if available
 call md#vimopen#setup()
 
-" Setup wikilink autocomplete if enabled
-if md#autocomplete#isEnabled()
-  setlocal completefunc=md#autocomplete#complete
-endif
-
 nnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingNormal :<C-u>call md#move#backToHeadingNormal()<CR>
 vnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<CR>
 onoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<CR>
@@ -94,9 +89,4 @@ else
 
   nmap <buffer> [d <Plug>MarkdownUncheckCheckbox
   nmap <buffer> ]d <Plug>MarkdownCheckCheckbox
-endif
-
-" Wikilink autocomplete trigger (independent of other mappings)
-if md#autocomplete#isEnabled()
-  inoremap <buffer> <expr> [[ md#autocomplete#triggerCompletion()
 endif

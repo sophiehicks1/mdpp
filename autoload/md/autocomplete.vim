@@ -24,7 +24,13 @@ endfunction
 " Uses same semantics as the default wiki-link resolver
 function! s:defaultCompletion(text)
   let pattern = './' . (empty(a:text) ? '*' : a:text . '*') . '.md'
-  let files = glob(pattern, 0, 1)
+  
+  " Use glob with list return if available, otherwise split string result
+  if exists('*glob') && has('patch-7.4.279')
+    let files = glob(pattern, 0, 1)
+  else
+    let files = split(glob(pattern), '\n')
+  endif
   
   " Convert to relative paths and remove ./ prefix and .md suffix
   let completions = []
@@ -40,7 +46,13 @@ function! s:defaultCompletion(text)
   
   " Also look for directories that might contain markdown files
   let dir_pattern = './' . (empty(a:text) ? '*' : a:text . '*')
-  let dirs = glob(dir_pattern, 0, 1)
+  
+  if exists('*glob') && has('patch-7.4.279')
+    let dirs = glob(dir_pattern, 0, 1)
+  else
+    let dirs = split(glob(dir_pattern), '\n')
+  endif
+  
   for dir in dirs
     if isdirectory(dir) && dir =~ '^\./'
       let relative_path = dir[2:]  " Remove './' prefix
@@ -56,6 +68,11 @@ endfunction
 
 " Main completion function called by Vim's completion system
 function! md#autocomplete#complete(findstart, base)
+  " Check if autocomplete is disabled
+  if !md#autocomplete#isEnabled()
+    return -1
+  endif
+  
   if a:findstart
     " Find the start of the wikilink text
     let line = getline('.')
