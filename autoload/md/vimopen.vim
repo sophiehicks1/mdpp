@@ -69,8 +69,8 @@ function! s:default_resolver(text)
 endfunction
 
 function! s:get_wiki_link_resolver()
-  if exists('g:mdpp_wiki_resolver') && type(g:mdpp_wiki_resolver) == type(function('tr'))
-    return g:mdpp_wiki_resolver
+  if exists('g:Mdpp_wiki_resolver') && type(g:Mdpp_wiki_resolver) == type(function('tr'))
+    return g:Mdpp_wiki_resolver
   endif
   return function('s:default_resolver')
 endfunction

@@ -120,6 +120,33 @@ function! s:test_wiki_link_defaults()
   call test#framework#assert_equal('./docs/another-page.md', g:test_collected_resources[1], "Should use default resolver")
 endfunction
 
+function! s:custom_resolver(string)
+  return '~/Documents/Stuff/' . a:string . '.md'
+endfunction
+
+function! s:test_custom_wiki_link_resolver()
+  call test#framework#write_info("Testing wiki link syntax with custom resolver...")
+
+  let g:Mdpp_wiki_resolver = function('s:custom_resolver')
+
+  call s:setup_test_buffer()
+
+  " Position cursor on the first wiki style link
+  call cursor(23, 3)
+  call gopher#go()
+  call cursor(24, 3)
+  call gopher#go()
+
+  unlet g:Mdpp_wiki_resolver
+
+  call test#framework#assert_equal(1, g:test_opener_called, "Should call opener")
+  call test#framework#assert_equal(2, len(g:test_collected_resources), "Should collect one resource")
+  call test#framework#assert_equal('~/Documents/Stuff/Internal Page.md', g:test_collected_resources[0], 
+        \ "Should use custom resolver")
+  call test#framework#assert_equal('~/Documents/Stuff/docs/another-page.md', g:test_collected_resources[1],
+        \ "Should use custom resolver")
+endfunction
+
 " Test Jira ticket ID
 function! s:test_jira_ticket()
   call test#framework#write_info("Testing Jira ticket extraction...")
@@ -189,6 +216,8 @@ function! s:run_all_tests()
   call test#framework#run_test_function('test_reference_link', function('s:test_reference_link'))
   call test#framework#run_test_function('test_feedkeys_gf_mapping', function('s:test_feedkeys_gf_mapping'))
   call test#framework#run_test_function('test_wiki_link_defaults', function('s:test_wiki_link_defaults'))
+  call test#framework#run_test_function('test_custom_wiki_link_resolver',
+        \ function('s:test_custom_wiki_link_resolver'))
 
   call test#framework#report_results('md#vimopen')
 endfunction
