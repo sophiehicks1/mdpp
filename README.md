@@ -115,6 +115,41 @@ endfunction
 let g:Mdpp_wiki_resolver = function('CustomWikiResolver')
 ```
 
+### Wikilink Autocomplete
+
+Intelligent autocomplete for wikilinks that activates when typing `[[`:
+
+- **`[[`** - Triggers completion popup for wikilink targets (when enabled)
+- Completes markdown file names relative to current directory
+- Removes `.md` extensions and `./` prefixes from suggestions
+- Includes directories that contain markdown files
+
+#### Configuration
+
+```vim
+" Disable wikilink autocomplete
+let g:mdpp_wikilink_autocomplete = 0
+
+" Enable wikilink autocomplete (default: enabled when vim-open is available)
+let g:mdpp_wikilink_autocomplete = 1
+```
+
+#### Custom Completion Function
+
+You can customize the completion behavior by setting your own completion function:
+
+```vim
+function! MyWikilinkCompletion(text)
+  " Your custom logic here
+  " a:text contains what user has typed after [[
+  return ['custom-page1', 'custom-page2']
+endfunction
+let g:Mdpp_wikilink_completion_fn = function('MyWikilinkCompletion')
+```
+
+The default completion function finds `.md` files in the current directory and subdirectories,
+using the same semantics as the default wiki-link opener.
+
 ## Installation
 
 ### Using vim-plug:
@@ -169,6 +204,9 @@ let g:mdpp_text_objects = 0
 
 " no default mappings
 let g:mdpp_default_mappings = 0
+
+" disable wikilink autocomplete
+let g:mdpp_wikilink_autocomplete = 0
 ```
 
 You can set your own mappings up by copying the `<Plug>` mappings found in `after/ftplugin/markdown.vim`
