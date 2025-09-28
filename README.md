@@ -100,19 +100,20 @@ Supported link types:
 Features:
 - Passes all link addresses to vim-open for processing (files, URLs, custom identifiers)
 - Works with vim-open's configurable "opener" system for handling different resource types
-- Supports file paths, web URLs, and custom identifiers like Slack usernames or Jira ticket IDs
 - Only activates in markdown files
 
-Examples of supported links:
-- `[File](./readme.md)` - Opens file in vim
-- `[Website](https://example.com)` - Opens in browser  
-- `[Slack user](@sophie.hicks)` - Can be configured to open Slack DM
-- `[Ticket](AB-1234)` - Can be configured to open Jira ticket
+#### Custom wiki link resolution
 
-<!-- ### Additional Features -->
+You can also add a custom wiki link resolution function, to preprocess the address from a wikilink before it's
+passed to vim-open, by setting `g:Mdpp_wiki_resolver`. For example, to open all wiki links as md files inside a root
+`~/Wiki` directory, you could the following to your vim config.
 
-<!-- - **`<C-f>`** (Insert mode) - Insert footnote with interactive prompt -->
-<!-- - **`<C-l>`** (Insert mode) - Insert reference link with interactive prompt -->
+```
+function! CustomWikiResolver(text)
+  return '~/Wiki/' . a:text . '.md'
+endfunction
+let g:Mdpp_wiki_resolver = function('CustomWikiResolver')
+```
 
 ## Installation
 
