@@ -27,6 +27,9 @@ git clone --quiet https://github.com/kana/vim-textobj-user.git
 echo "Cloning vim-repeat..."
 git clone --quiet https://github.com/tpope/vim-repeat.git
 
+echo "Cloning vim-open..."
+git clone --quiet https://github.com/sophiehicks1/vim-open.git
+
 # Create test vimrc
 cat > "$TEMP_DIR/test-vimrc" << EOF
 set nocompatible
@@ -36,6 +39,7 @@ filetype plugin on
 " Add dependencies and mdpp to runtimepath
 execute 'set runtimepath+=' . '$TEMP_DIR/vim-textobj-user'
 execute 'set runtimepath+=' . '$TEMP_DIR/vim-repeat'
+execute 'set runtimepath+=' . '$TEMP_DIR/vim-open'
 execute 'set runtimepath+=' . '$REPO_ROOT'
 
 " Force load plugins

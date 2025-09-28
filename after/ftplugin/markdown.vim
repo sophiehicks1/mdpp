@@ -1,7 +1,7 @@
 " markdown.vim - Vim plugin for editing Markdown files
 
-" TODO reimplement <c-f> and <c-l> mappings
-" - gf integration for links via (improved) open.vim
+" Setup vim-open integration if available
+call md#vimopen#setup()
 
 nnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingNormal :<C-u>call md#move#backToHeadingNormal()<CR>
 vnoremap <buffer> <silent> <Plug>MarkdownBackToHeadingVisual :<C-u>call md#move#backToHeadingVisual()<CR>
