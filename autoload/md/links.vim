@@ -46,7 +46,7 @@ endfunction
 "
 " Link info dictionary structure:
 " {
-"   'type': 'inline' | 'reference',
+"   'type': 'inline' | 'reference' | 'wiki' | 'reference_definition',
 "   'line_num': line number where link starts,
 "   'start_col': start column of the link (1-indexed),
 "   'end_col': end column of the link (1-indexed),
