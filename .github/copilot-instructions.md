@@ -123,6 +123,36 @@ All mappings should show they are loaded from the mdpp plugin files.
 - `let g:mdpp_text_objects = 0` - Disable text object mappings
 - `let g:mdpp_default_mappings = 0` - Disable all default key mappings
 
+### vim-open Integration (Enhanced Link Navigation)
+
+When [vim-open](https://github.com/sophiehicks1/vim-open) is installed, mdpp provides enhanced link navigation:
+
+#### Features
+- **`gf`** / **`gF`** - Open markdown links in current window / new tab
+- Supports inline links: `[text](./file.md)`, reference links: `[text][ref]`, and wiki links: `[[Internal Page]]`
+- **Wiki link resolution**: Configurable function to resolve wiki links to file paths
+
+#### Wiki Link Configuration
+```vim
+" Default: [[Internal Page]] → Internal Page.md
+
+" Custom resolver:
+function! MyWikiResolver(target)
+  return 'wiki/' . substitute(a:target, ' ', '_', 'g') . '.txt'
+endfunction
+let g:mdpp_wiki_resolver = function('MyWikiResolver')
+" [[Internal Page]] → wiki/Internal_Page.txt
+```
+
+#### Testing vim-open Integration
+```vim
+" Test wiki link navigation
+:edit test.md
+:normal! i[[Test Page]]
+:normal! ^f[gf
+" Should resolve to Test Page.md (or custom path if resolver configured)
+```
+
 ### Sample Commands for Common Operations
 
 #### Quick Plugin Test

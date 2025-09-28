@@ -95,13 +95,32 @@ When [vim-open](https://github.com/sophiehicks1/vim-open) is installed, **`gf`**
 Supported link types:
 - Inline links: `[text](./file.md)`, `[text](https://example.com)`, `[text](@username)`
 - Reference links: `[text][ref]` with `[ref]: ./file.md` definitions  
-- Wiki links: `[[Internal Page]]`, `[[docs/another-page]]`
+- Wiki links: `[[Internal Page]]`, `[[docs/another-page]]`, `[[Target|Display Text]]`
 
 Features:
 - Passes all link addresses to vim-open for processing (files, URLs, custom identifiers)
 - Works with vim-open's configurable "opener" system for handling different resource types
 - Supports file paths, web URLs, and custom identifiers like Slack usernames or Jira ticket IDs
+- **Wiki link resolution**: Configurable function to resolve wiki links to file paths
 - Only activates in markdown files
+
+#### Wiki Link Configuration
+
+Wiki links support configurable resolution through `g:mdpp_wiki_resolver`:
+
+```vim
+" Default behavior: adds .md extension
+" [[Internal Page]] → Internal Page.md
+
+" Custom resolver example:
+function! MyWikiResolver(target)
+  return 'wiki/' . substitute(a:target, ' ', '_', 'g') . '.txt'
+endfunction
+let g:mdpp_wiki_resolver = function('MyWikiResolver')
+" [[Internal Page]] → wiki/Internal_Page.txt
+```
+
+Both `[[target]]` and `[[target|display]]` formats extract the target portion for resolution.
 
 Examples of supported links:
 - `[File](./readme.md)` - Opens file in vim
