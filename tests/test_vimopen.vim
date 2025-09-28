@@ -151,7 +151,68 @@ function! s:test_wiki_link()
   
   call test#framework#assert_false(result == "gf", "Should not fall back to default gf")
   call test#framework#assert_equal(1, len(g:test_collected_resources), "Should collect wiki link")
-  call test#framework#assert_equal('Internal Page', g:test_collected_resources[0], "Should extract wiki page")
+  call test#framework#assert_equal('Internal Page.md', g:test_collected_resources[0], "Should extract wiki page with default resolver")
+endfunction
+
+" Test wiki link with path
+function! s:test_wiki_link_with_path()
+  call test#framework#write_info("Testing wiki link with path...")
+  
+  call s:setup_test_buffer()
+  
+  " Position cursor on line 24: [[docs/another-page]]
+  call cursor(24, 8)
+  
+  let result = gopher#go()
+  
+  call test#framework#assert_false(result == "gf", "Should not fall back to default gf")
+  call test#framework#assert_equal(1, len(g:test_collected_resources), "Should collect wiki link with path")
+  call test#framework#assert_equal('docs/another-page.md', g:test_collected_resources[0], "Should extract wiki page path with default resolver")
+endfunction
+
+" Test custom wiki resolver
+function! s:test_custom_wiki_resolver()
+  call test#framework#write_info("Testing custom wiki resolver...")
+  
+  call s:setup_test_buffer()
+  
+  " Set custom resolver
+  function! g:TestCustomResolver(target)
+    return 'wiki/' . substitute(a:target, ' ', '_', 'g') . '.txt'
+  endfunction
+  let g:Mdpp_wiki_resolver = function('g:TestCustomResolver')
+  
+  " Re-setup vim-open with custom resolver
+  call md#vimopen#setup()
+  
+  " Position cursor on line 23: [[Internal Page]]
+  call cursor(23, 8)
+  
+  let result = gopher#go()
+  
+  call test#framework#assert_false(result == "gf", "Should not fall back to default gf")
+  call test#framework#assert_equal(1, len(g:test_collected_resources), "Should collect wiki link")
+  call test#framework#assert_equal('wiki/Internal_Page.txt', g:test_collected_resources[0], "Should use custom resolver")
+  
+  " Clean up
+  unlet g:Mdpp_wiki_resolver
+  delfunction g:TestCustomResolver
+endfunction
+
+" Test wiki link with alias
+function! s:test_wiki_link_with_alias()
+  call test#framework#write_info("Testing wiki link with alias...")
+  
+  call s:setup_test_buffer()
+  
+  " Position cursor on line 25: [[Target Page|Display Title]]
+  call cursor(25, 8)
+  
+  let result = gopher#go()
+  
+  call test#framework#assert_false(result == "gf", "Should not fall back to default gf")
+  call test#framework#assert_equal(1, len(g:test_collected_resources), "Should collect wiki link with alias")
+  call test#framework#assert_equal('Target Page.md', g:test_collected_resources[0], "Should extract target, not display title")
 endfunction
 
 " Test non-link positions fallback correctly  
@@ -208,6 +269,9 @@ function! s:run_all_tests()
   call test#framework#run_test_function('test_jira_ticket', function('s:test_jira_ticket'))
   call test#framework#run_test_function('test_reference_link', function('s:test_reference_link'))
   call test#framework#run_test_function('test_wiki_link', function('s:test_wiki_link'))
+  call test#framework#run_test_function('test_wiki_link_with_path', function('s:test_wiki_link_with_path'))
+  call test#framework#run_test_function('test_wiki_link_with_alias', function('s:test_wiki_link_with_alias'))
+  call test#framework#run_test_function('test_custom_wiki_resolver', function('s:test_custom_wiki_resolver'))
   call test#framework#run_test_function('test_non_link_fallback', function('s:test_non_link_fallback'))
   call test#framework#run_test_function('test_feedkeys_gf_mapping', function('s:test_feedkeys_gf_mapping'))
 

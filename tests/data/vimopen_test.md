@@ -22,6 +22,7 @@ Reference style links:
 Wiki style links:
 [[Internal Page]]
 [[docs/another-page]]
+[[Target Page|Display Title]]
 
 [file-ref]: ./referenced-file.md
 [web-ref]: https://example.com/referenced-page
