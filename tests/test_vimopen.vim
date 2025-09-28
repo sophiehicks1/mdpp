@@ -26,15 +26,16 @@ function! s:setup_test_buffer()
   call test#framework#setup_buffer_from_file('vimopen_test.md')
   " Ensure correct filetype
   setlocal filetype=markdown
-  " Setup vim-open integration
-  call md#vimopen#setup()
   
   " Reset test state
   let g:test_collected_resources = []
   let g:test_opener_called = 0
   
-  " Add our test opener to vim-open
+  " Add our test opener to vim-open FIRST (before any defaults)
   call gopher#add_opener(function('s:test_resource_matcher'), function('s:test_resource_collector'))
+  
+  " Setup vim-open integration AFTER adding our test opener
+  call md#vimopen#setup()
 endfunction
 
 " Test file link extraction
