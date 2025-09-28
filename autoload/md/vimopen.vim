@@ -4,7 +4,7 @@
 
 " Setup vim-open integration if the plugin is available
 function! md#vimopen#setup()
-  if !exists('*gopher#add_finder')
+  if !exists('g:loaded_vim_open')
     return
   endif
   

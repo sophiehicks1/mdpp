@@ -27,15 +27,32 @@ function! s:setup_test_buffer()
   " Ensure correct filetype
   setlocal filetype=markdown
   
+  " Setup vim-open integration
+  call md#vimopen#setup()
+  
   " Reset test state
   let g:test_collected_resources = []
   let g:test_opener_called = 0
   
-  " Add our test opener to vim-open FIRST (before any defaults)
+  " Add our test opener to vim-open (will be checked first due to order)
   call gopher#add_opener(function('s:test_resource_matcher'), function('s:test_resource_collector'))
+endfunction
+
+" Test that vim-open detection works correctly
+function! s:test_vim_open_detection()
+  call test#framework#write_info("Testing vim-open detection...")
   
-  " Setup vim-open integration AFTER adding our test opener
-  call md#vimopen#setup()
+  " The test environment should have vim-open loaded
+  call test#framework#assert_true(exists('g:loaded_vim_open'), "Should detect vim-open via g:loaded_vim_open")
+  call test#framework#assert_equal(1, g:loaded_vim_open, "vim-open should be loaded")
+  
+  " Test that setup function works when vim-open is available
+  try
+    call md#vimopen#setup()
+    call test#framework#assert_true(1, "Setup should work when vim-open is available")
+  catch
+    call test#framework#assert_true(0, "Setup should not throw errors when vim-open is available: " . v:exception)
+  endtry
 endfunction
 
 " Test file link extraction
@@ -184,6 +201,7 @@ function! s:run_all_tests()
   call test#framework#write_info("============================================")
   call test#framework#write_info("")
 
+  call test#framework#run_test_function('test_vim_open_detection', function('s:test_vim_open_detection'))
   call test#framework#run_test_function('test_file_link', function('s:test_file_link'))
   call test#framework#run_test_function('test_web_url', function('s:test_web_url'))
   call test#framework#run_test_function('test_slack_username', function('s:test_slack_username'))
