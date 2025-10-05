@@ -23,7 +23,7 @@ endfunction
 " Default completion function - finds markdown files relative to current directory
 " Uses same semantics as the default wiki-link resolver
 function! s:defaultCompletion(text)
-  let pattern = './' . (empty(a:text) ? '*' : a:text . '*') . '.md'
+  let pattern = './' . (empty(a:text) ? '**/*' : a:text . '**/*') . '.md'
   
   " Use glob with list return if available, otherwise split string result
   if exists('*glob') && has('patch-7.4.279')
