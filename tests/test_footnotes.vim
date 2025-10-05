@@ -510,6 +510,34 @@ function! s:test_add_footnote_reference()
   call test#framework#assert_equal('Lorem ipsum dolor sit amet[^3]', result, "Should add reference at end")
 endfunction
 
+" Test adding footnote reference in middle of line (bug fix test)
+function! s:test_add_footnote_reference_middle_of_line()
+  call test#framework#write_info("Testing md#footnotes#addFootnoteReference in middle of line...")
+
+  call test#framework#setup_empty_buffer()
+
+  " Test case from bug report: cursor after "text" before "."
+  call setline(1, 'This is some text. My cursor is in the middle.')
+  " Cursor at column 18 (after 'text', before '.')
+  call md#footnotes#addFootnoteReference(1, 18, '1')
+  let result = getline(1)
+  call test#framework#assert_equal('This is some text.[^1] My cursor is in the middle.', result, "Should insert footnote at cursor position, not skip a character")
+
+  " Test case: cursor in middle after a word
+  call setline(1, 'First word second word third word')
+  " Cursor at column 11 (after 'word', before ' ')
+  call md#footnotes#addFootnoteReference(1, 11, '2')
+  let result = getline(1)
+  call test#framework#assert_equal('First word.[^2] second word third word', result, "Should insert at exact cursor position")
+
+  " Test case: cursor between words
+  call setline(1, 'Start middle end')
+  " Cursor at column 6 (after 'Start', before ' ')
+  call md#footnotes#addFootnoteReference(1, 6, '3')
+  let result = getline(1)
+  call test#framework#assert_equal('Start.[^3] middle end', result, "Should insert between words correctly")
+endfunction
+
 " FIXME make sure these tests are fixed
 " Test adding footnote definition
 function! s:test_add_footnote_definition()
@@ -562,6 +590,7 @@ function! s:run_all_tests()
   call test#framework#run_test_function('test_newline_handling', function('s:test_newline_handling'))
   call test#framework#run_test_function('test_find_next_available_id', function('s:test_find_next_available_id'))
   call test#framework#run_test_function('test_add_footnote_reference', function('s:test_add_footnote_reference'))
+  call test#framework#run_test_function('test_add_footnote_reference_middle_of_line', function('s:test_add_footnote_reference_middle_of_line'))
   call test#framework#run_test_function('test_add_footnote_definition', function('s:test_add_footnote_definition'))
 
   return test#framework#report_results('md#footnotes')
