@@ -528,9 +528,17 @@ function! md#footnotes#addFootnoteReference(line_num, col_num, footnote_id)
   
   " Insert the reference at the specified position
   " col('.') is 1-based, but string slicing is 0-based
-  " To insert at cursor position, we need everything before the cursor and everything from the cursor onwards
-  let before = line_content[:a:col_num - 1]
-  let after = line_content[a:col_num:]
+  " Special handling for insert mode: when using <C-o> in insert mode,
+  " col('.') points to the NEXT character, except at end of line where it equals len(line)
+  if a:col_num == len(line_content)
+    " At end of line - insert after all content
+    let before = line_content
+    let after = ''
+  else
+    " In middle of line - insert before the character at col_num
+    let before = line_content[:a:col_num - 2]
+    let after = line_content[a:col_num - 1:]
+  endif
   let new_line = before . reference . after
   
   call setline(a:line_num, new_line)

@@ -499,13 +499,13 @@ function! s:test_add_footnote_reference()
 
   " Test adding in middle of line
   call setline(1, 'Lorem ipsum dolor sit amet')
-  call md#footnotes#addFootnoteReference(1, 10, '2') " At column 10 (between 'u' and 'm' in 'ipsum')
+  call md#footnotes#addFootnoteReference(1, 10, '2') " At column 10 (before 'm' in 'ipsum')
   let result = getline(1)
-  call test#framework#assert_equal('Lorem ipsu[^2]m dolor sit amet', result, "Should add reference at column 10")
+  call test#framework#assert_equal('Lorem ips[^2]um dolor sit amet', result, "Should add reference before column 10")
 
   " Test adding at end of line
   call setline(1, 'Lorem ipsum dolor sit amet')
-  call md#footnotes#addFootnoteReference(1, 26, '3') " At column 26 (after last character)
+  call md#footnotes#addFootnoteReference(1, 26, '3') " At column 26 (at end, len=26)
   let result = getline(1)
   call test#framework#assert_equal('Lorem ipsum dolor sit amet[^3]', result, "Should add reference at end")
 endfunction
@@ -517,23 +517,23 @@ function! s:test_add_footnote_reference_middle_of_line()
   call test#framework#setup_empty_buffer()
 
   " Test case from bug report: cursor after "text" before "."
+  " In insert mode with <C-o>, col('.') points to the '.' (position 18)
   call setline(1, 'This is some text. My cursor is in the middle.')
-  " Cursor at column 18 (after 'text', before '.')
   call md#footnotes#addFootnoteReference(1, 18, '1')
   let result = getline(1)
-  call test#framework#assert_equal('This is some text.[^1] My cursor is in the middle.', result, "Should insert footnote at cursor position, not skip a character")
+  call test#framework#assert_equal('This is some text[^1]. My cursor is in the middle.', result, "Should insert before the period (bug fix)")
 
-  " Test case: cursor at column 11 (between space and 's' in 'second')
+  " Test case: cursor at column 11 (before 's' in 'second')
   call setline(1, 'First word second word third word')
   call md#footnotes#addFootnoteReference(1, 11, '2')
   let result = getline(1)
-  call test#framework#assert_equal('First word [^2]second word third word', result, "Should insert at column 11")
+  call test#framework#assert_equal('First word[^2] second word third word', result, "Should insert before column 11")
 
-  " Test case: cursor at column 6 (between space and 'm' in 'middle')
+  " Test case: cursor at column 6 (before 'm' in 'middle')
   call setline(1, 'Start middle end')
   call md#footnotes#addFootnoteReference(1, 6, '3')
   let result = getline(1)
-  call test#framework#assert_equal('Start [^3]middle end', result, "Should insert at column 6")
+  call test#framework#assert_equal('Start[^3] middle end', result, "Should insert before column 6")
 endfunction
 
 " FIXME make sure these tests are fixed
