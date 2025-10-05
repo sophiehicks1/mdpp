@@ -526,9 +526,11 @@ function! md#footnotes#addFootnoteReference(line_num, col_num, footnote_id)
   let line_content = getline(a:line_num)
   let reference = '[^' . a:footnote_id . ']'
   
-  " Append the reference at the specified position
-  let before = line_content[:a:col_num]
-  let after = line_content[a:col_num + 1:]
+  " Insert the reference at the specified position
+  " col('.') is 1-based, but string slicing is 0-based
+  " To insert at cursor position, we need everything before the cursor and everything from the cursor onwards
+  let before = line_content[:a:col_num - 1]
+  let after = line_content[a:col_num:]
   let new_line = before . reference . after
   
   call setline(a:line_num, new_line)
