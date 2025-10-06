@@ -29,6 +29,7 @@ function! s:run_tests()
   call test#framework#run_test_function('test_getLinkUrlRange', function('s:test_getLinkUrlRange'))
   call test#framework#run_test_function('test_getLinkFullRange', function('s:test_getLinkFullRange'))
   call test#framework#run_test_function('test_edge_cases', function('s:test_edge_cases'))
+  call test#framework#run_test_function('test_multiline_links', function('s:test_multiline_links'))
   
   return test#framework#report_results("md#links")
 endfunction
@@ -435,6 +436,121 @@ function! s:test_edge_cases()
   call test#framework#assert_equal(1, len(links), "Should handle special characters in URL")
   if len(links) > 0
     call test#framework#assert_equal('https://example.com/path?query=value&other=true#fragment', links[0].url, "Should preserve special characters in URL")
+  endif
+endfunction
+
+" Test multi-line link support
+function! s:test_multiline_links()
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing multi-line link support...")
+  
+  call test#framework#setup_buffer_from_file('multiline_links.md')
+  
+  " Test 1: Wiki link that wraps across lines (line 9-10)
+  let links = md#links#findWikiLinksInLine(9)
+  call test#framework#assert_equal(1, len(links), "Should find wiki link starting on line 9")
+  if len(links) > 0
+    call test#framework#assert_equal('wiki', links[0].type, "Should be wiki link type")
+    call test#framework#assert_equal(9, links[0].line_num, "Should report correct starting line")
+    " The text will be concatenated without newlines
+    call test#framework#assert_true(len(links[0].text) > 0, "Should have link text")
+  endif
+  
+  " Test 2: Same wiki link found from continuation line (line 10)
+  let links = md#links#findWikiLinksInLine(10)
+  call test#framework#assert_equal(1, len(links), "Should find wiki link from continuation line 10")
+  if len(links) > 0
+    call test#framework#assert_equal(9, links[0].line_num, "Should report original starting line")
+  endif
+  
+  " Test 3: Inline link with wrapped text (line 19-20)
+  let links = md#links#findInlineLinksInLine(19)
+  call test#framework#assert_equal(1, len(links), "Should find inline link with wrapped text on line 19")
+  if len(links) > 0
+    call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
+    call test#framework#assert_equal(19, links[0].line_num, "Should report correct starting line")
+    call test#framework#assert_equal('http://example.com', links[0].url, "Should extract URL correctly")
+  endif
+  
+  " Test 4: Inline link found from text continuation line
+  let links = md#links#findInlineLinksInLine(20)
+  call test#framework#assert_equal(1, len(links), "Should find inline link from text continuation line")
+  if len(links) > 0
+    call test#framework#assert_equal(19, links[0].line_num, "Should report original starting line")
+  endif
+  
+  " Test 5: Reference link with wrapped text (line 36-37)
+  let links = md#links#findReferenceLinksInLine(36)
+  call test#framework#assert_equal(1, len(links), "Should find reference link with wrapped text")
+  if len(links) > 0
+    call test#framework#assert_equal('reference', links[0].type, "Should be reference link type")
+    call test#framework#assert_equal('ref2', links[0].reference, "Should extract reference correctly")
+    call test#framework#assert_equal('http://example.com/multiline', links[0].url, "Should resolve reference URL")
+  endif
+  
+  " Test 6: Reference link found from continuation line
+  let links = md#links#findReferenceLinksInLine(37)
+  call test#framework#assert_equal(1, len(links), "Should find reference link from continuation line")
+  
+  " Test 7: Cursor in middle of wiki link text on first line
+  call cursor(9, 75)  " In the wrapped wiki link
+  let link = md#links#findLinkAtPos(getpos('.'))
+  call test#framework#assert_not_empty(link, "Should find link at cursor on first line of wrapped link")
+  if !empty(link)
+    call test#framework#assert_equal('wiki', link.type, "Should find wiki link type")
+  endif
+  
+  " Test 8: Cursor on continuation line of wiki link
+  call cursor(10, 5)  " In "with 5 words" part
+  let link = md#links#findLinkAtPos(getpos('.'))
+  call test#framework#assert_not_empty(link, "Should find link at cursor on continuation line")
+  if !empty(link)
+    call test#framework#assert_equal('wiki', link.type, "Should find wiki link type from continuation")
+  endif
+  
+  " Test 9: Cursor in middle of inline link text spanning lines
+  call cursor(19, 50)  " In wrapped inline link text
+  let link = md#links#findLinkAtPos(getpos('.'))
+  call test#framework#assert_not_empty(link, "Should find inline link at cursor")
+  if !empty(link)
+    call test#framework#assert_equal('inline', link.type, "Should find inline link type")
+  endif
+  
+  " Test 10: Cursor on inline link continuation line
+  call cursor(20, 10)  " In continuation of inline link text
+  let link = md#links#findLinkAtPos(getpos('.'))
+  call test#framework#assert_not_empty(link, "Should find inline link from text continuation line")
+  
+  " Test 11: Multiple wrapped links on adjacent lines (line 56-58)
+  let links = md#links#findInlineLinksInLine(56)
+  call test#framework#assert_equal(1, len(links), "Should find first wrapped link")
+  
+  let links = md#links#findInlineLinksInLine(57)
+  call test#framework#assert_equal(2, len(links), "Should find both links (end of first, start of second)")
+  
+  " Test 12: Ensure we don't pick up links from unrelated lines
+  " Line 7 has a simple wiki link
+  let links = md#links#findWikiLinksInLine(7)
+  call test#framework#assert_equal(1, len(links), "Should only find the single-line wiki link on line 7")
+  if len(links) > 0
+    call test#framework#assert_equal('simple wiki', links[0].text, "Should be the simple wiki link")
+  endif
+  
+  " Test 13: Text object selection for wrapped wiki link
+  call cursor(9, 70)
+  let link = md#links#findLinkAtPos(getpos('.'))
+  if !empty(link)
+    let range = md#links#getLinkTextRange(link)
+    call test#framework#assert_equal(4, len(range), "Should return valid range for wrapped link text")
+    call test#framework#assert_equal(link.line_num, range[0], "Range should start on correct line")
+  endif
+  
+  " Test 14: Full range selection for wrapped inline link
+  call cursor(19, 40)
+  let link = md#links#findLinkAtPos(getpos('.'))
+  if !empty(link)
+    let range = md#links#getLinkFullRange(link)
+    call test#framework#assert_equal(4, len(range), "Should return valid full range for wrapped link")
   endif
 endfunction
 
