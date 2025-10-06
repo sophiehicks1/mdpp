@@ -64,8 +64,27 @@ function! s:findInlineLinkAtPosition(line_num, col_num)
   " Check current line
   let links = md#links#findInlineLinksInLine(a:line_num)
   for link in links
-    if a:col_num >= link.start_col && a:col_num <= link.end_col
-      return link
+    " Check if position is within the link
+    if link.line_num == a:line_num
+      " Link starts on current line
+      if has_key(link, 'end_line')
+        " Multi-line link
+        if a:line_num == link.line_num && a:col_num >= link.start_col
+          " On starting line, after start
+          return link
+        elseif a:line_num == link.end_line && a:col_num <= link.end_col
+          " On ending line, before end
+          return link
+        elseif a:line_num > link.line_num && a:line_num < link.end_line
+          " On middle line
+          return link
+        endif
+      else
+        " Single-line link
+        if a:col_num >= link.start_col && a:col_num <= link.end_col
+          return link
+        endif
+      endif
     endif
   endfor
   
@@ -74,16 +93,13 @@ function! s:findInlineLinkAtPosition(line_num, col_num)
   if a:line_num > 1
     let prev_links = md#links#findInlineLinksInLine(a:line_num - 1)
     for link in prev_links
-      " Check if this link extends past its starting line
-      let link_text_len = len(link.text) + 2  " +2 for []
-      let link_url_len = len(link.url) + 2    " +2 for ()
-      let prev_line_len = len(s:getLineSafe(a:line_num - 1))
-      
-      " If link end column is beyond the previous line, it wraps to current line
-      if link.end_col > prev_line_len
-        " Calculate position on current line (continuation)
-        let continuation_end = link.end_col - prev_line_len
-        if a:col_num <= continuation_end
+      " Check if this link extends to current line
+      if has_key(link, 'end_line') && link.end_line >= a:line_num
+        if a:line_num == link.end_line && a:col_num <= link.end_col
+          " On ending line, before end
+          return link
+        elseif a:line_num > link.line_num && a:line_num < link.end_line
+          " On middle line
           return link
         endif
       endif
@@ -99,8 +115,27 @@ function! s:findWikiLinkAtPosition(line_num, col_num)
   " Check current line
   let links = md#links#findWikiLinksInLine(a:line_num)
   for link in links
-    if a:col_num >= link.start_col && a:col_num <= link.end_col
-      return link
+    " Check if position is within the link
+    if link.line_num == a:line_num
+      " Link starts on current line
+      if has_key(link, 'end_line')
+        " Multi-line link
+        if a:line_num == link.line_num && a:col_num >= link.start_col
+          " On starting line, after start
+          return link
+        elseif a:line_num == link.end_line && a:col_num <= link.end_col
+          " On ending line, before end
+          return link
+        elseif a:line_num > link.line_num && a:line_num < link.end_line
+          " On middle line
+          return link
+        endif
+      else
+        " Single-line link
+        if a:col_num >= link.start_col && a:col_num <= link.end_col
+          return link
+        endif
+      endif
     endif
   endfor
   
@@ -108,11 +143,13 @@ function! s:findWikiLinkAtPosition(line_num, col_num)
   if a:line_num > 1
     let prev_links = md#links#findWikiLinksInLine(a:line_num - 1)
     for link in prev_links
-      let prev_line_len = len(s:getLineSafe(a:line_num - 1))
-      " If link end column is beyond the previous line, it wraps to current line
-      if link.end_col > prev_line_len
-        let continuation_end = link.end_col - prev_line_len
-        if a:col_num <= continuation_end
+      " Check if this link extends to current line
+      if has_key(link, 'end_line') && link.end_line >= a:line_num
+        if a:line_num == link.end_line && a:col_num <= link.end_col
+          " On ending line, before end
+          return link
+        elseif a:line_num > link.line_num && a:line_num < link.end_line
+          " On middle line
           return link
         endif
       endif
@@ -128,8 +165,27 @@ function! s:findReferenceLinkAtPosition(line_num, col_num)
   " Check current line
   let links = md#links#findReferenceLinksInLine(a:line_num)
   for link in links
-    if a:col_num >= link.start_col && a:col_num <= link.end_col
-      return link
+    " Check if position is within the link
+    if link.line_num == a:line_num
+      " Link starts on current line
+      if has_key(link, 'end_line')
+        " Multi-line link
+        if a:line_num == link.line_num && a:col_num >= link.start_col
+          " On starting line, after start
+          return link
+        elseif a:line_num == link.end_line && a:col_num <= link.end_col
+          " On ending line, before end
+          return link
+        elseif a:line_num > link.line_num && a:line_num < link.end_line
+          " On middle line
+          return link
+        endif
+      else
+        " Single-line link
+        if a:col_num >= link.start_col && a:col_num <= link.end_col
+          return link
+        endif
+      endif
     endif
   endfor
   
@@ -137,11 +193,13 @@ function! s:findReferenceLinkAtPosition(line_num, col_num)
   if a:line_num > 1
     let prev_links = md#links#findReferenceLinksInLine(a:line_num - 1)
     for link in prev_links
-      let prev_line_len = len(s:getLineSafe(a:line_num - 1))
-      " If link end column is beyond the previous line, it wraps to current line
-      if link.end_col > prev_line_len
-        let continuation_end = link.end_col - prev_line_len
-        if a:col_num <= continuation_end
+      " Check if this link extends to current line
+      if has_key(link, 'end_line') && link.end_line >= a:line_num
+        if a:line_num == link.end_line && a:col_num <= link.end_col
+          " On ending line, before end
+          return link
+        elseif a:line_num > link.line_num && a:line_num < link.end_line
+          " On middle line
           return link
         endif
       endif
@@ -506,7 +564,10 @@ function! md#links#getLinkTextRange(link_info)
   if empty(a:link_info)
     return []
   endif
-  return [a:link_info.line_num, a:link_info.text_start_col, a:link_info.line_num, a:link_info.text_end_col]
+  " Use text_start_line and text_end_line if available (for multi-line links)
+  let start_line = has_key(a:link_info, 'text_start_line') ? a:link_info.text_start_line : a:link_info.line_num
+  let end_line = has_key(a:link_info, 'text_end_line') ? a:link_info.text_end_line : a:link_info.line_num
+  return [start_line, a:link_info.text_start_col, end_line, a:link_info.text_end_col]
 endfunction
 
 " Get position range for link URL selection
@@ -517,14 +578,19 @@ function! md#links#getLinkUrlRange(link_info)
   endif
   
   if a:link_info.type == 'inline'
-    return [a:link_info.line_num, a:link_info.url_start_col, a:link_info.line_num, a:link_info.url_end_col]
+    " Use url_start_line and url_end_line if available (for multi-line links)
+    let start_line = has_key(a:link_info, 'url_start_line') ? a:link_info.url_start_line : a:link_info.line_num
+    let end_line = has_key(a:link_info, 'url_end_line') ? a:link_info.url_end_line : a:link_info.line_num
+    return [start_line, a:link_info.url_start_col, end_line, a:link_info.url_end_col]
   elseif a:link_info.type == 'reference'
     " For reference links, find the definition line
     let def_range = s:findReferenceDefinitionRange(a:link_info.reference)
     return def_range
   elseif a:link_info.type == 'wiki'
     " For wiki links, return the target portion
-    return [a:link_info.line_num, a:link_info.target_start_col, a:link_info.line_num, a:link_info.target_end_col]
+    let start_line = has_key(a:link_info, 'target_start_line') ? a:link_info.target_start_line : a:link_info.line_num
+    let end_line = has_key(a:link_info, 'target_end_line') ? a:link_info.target_end_line : a:link_info.line_num
+    return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
   endif
   
   return []
@@ -536,7 +602,10 @@ function! md#links#getLinkFullRange(link_info)
   if empty(a:link_info)
     return []
   endif
-  return [a:link_info.line_num, a:link_info.full_start_col, a:link_info.line_num, a:link_info.full_end_col]
+  " Use full_start_line and full_end_line if available (for multi-line links)
+  let start_line = has_key(a:link_info, 'full_start_line') ? a:link_info.full_start_line : a:link_info.line_num
+  let end_line = has_key(a:link_info, 'full_end_line') ? a:link_info.full_end_line : a:link_info.line_num
+  return [start_line, a:link_info.full_start_col, end_line, a:link_info.full_end_col]
 endfunction
 
 " Find the range for a reference definition URL
@@ -666,48 +735,73 @@ function! s:linkTouchesTargetLine(link_start, link_end, lengths)
   return a:link_start <= target_end && a:link_end >= target_start
 endfunction
 
+" Helper function to convert a position in joined text to actual line/column
+" pos is 0-indexed position in joined text
+" line_num is the target line number
+" lengths is [prev_len, curr_len, next_len]
+" Returns: [line, col] where line is absolute and col is 1-indexed
+function! s:posToLineCol(pos, line_num, lengths)
+  let prev_len = a:lengths[0]
+  let curr_len = a:lengths[1]
+  
+  if a:pos < prev_len
+    " Position is on previous line
+    return [a:line_num - 1, a:pos + 1]
+  elseif a:pos < prev_len + curr_len
+    " Position is on current line
+    return [a:line_num, a:pos - prev_len + 1]
+  else
+    " Position is on next line
+    return [a:line_num + 1, a:pos - prev_len - curr_len + 1]
+  endif
+endfunction
+
 " Helper function to adjust link info from joined text back to original line coordinates
 " This handles multi-line links by determining the actual line where the link starts
 function! s:adjustLinkInfo(link_info, line_num, lengths)
   let prev_len = a:lengths[0]
   let curr_len = a:lengths[1]
   
-  " Determine which line the link actually starts on
-  let start_offset = a:link_info.start_col - 1  " Convert to 0-indexed
-  if start_offset < prev_len
-    " Link starts on previous line
-    let actual_line = a:line_num - 1
-    let col_offset = 0
-  elseif start_offset < prev_len + curr_len
-    " Link starts on current line
-    let actual_line = a:line_num
-    let col_offset = prev_len
-  else
-    " Link starts on next line
-    let actual_line = a:line_num + 1
-    let col_offset = prev_len + curr_len
-  endif
+  " Convert all positions from joined text to actual line/col
+  " Note: link_info columns are 1-indexed, so convert to 0-indexed first
+  let start_pos = s:posToLineCol(a:link_info.start_col - 1, a:line_num, a:lengths)
+  let end_pos = s:posToLineCol(a:link_info.end_col - 1, a:line_num, a:lengths)
+  let text_start_pos = s:posToLineCol(a:link_info.text_start_col - 1, a:line_num, a:lengths)
+  let text_end_pos = s:posToLineCol(a:link_info.text_end_col - 1, a:line_num, a:lengths)
   
-  " Adjust all column positions relative to the starting line
+  " Create adjusted link info with proper multi-line coordinates
   let adjusted = copy(a:link_info)
-  let adjusted.line_num = actual_line
-  let adjusted.start_col = adjusted.start_col - col_offset
-  let adjusted.end_col = adjusted.end_col - col_offset
-  let adjusted.text_start_col = adjusted.text_start_col - col_offset
-  let adjusted.text_end_col = adjusted.text_end_col - col_offset
-  let adjusted.full_start_col = adjusted.full_start_col - col_offset
-  let adjusted.full_end_col = adjusted.full_end_col - col_offset
+  let adjusted.line_num = start_pos[0]
+  let adjusted.start_col = start_pos[1]
+  let adjusted.end_col = end_pos[1]
+  let adjusted.end_line = end_pos[0]
+  let adjusted.text_start_col = text_start_pos[1]
+  let adjusted.text_end_col = text_end_pos[1]
+  let adjusted.text_start_line = text_start_pos[0]
+  let adjusted.text_end_line = text_end_pos[0]
+  let adjusted.full_start_col = start_pos[1]
+  let adjusted.full_end_col = end_pos[1]
+  let adjusted.full_start_line = start_pos[0]
+  let adjusted.full_end_line = end_pos[0]
   
   " For inline links, also adjust URL columns
   if has_key(adjusted, 'url_start_col')
-    let adjusted.url_start_col = adjusted.url_start_col - col_offset
-    let adjusted.url_end_col = adjusted.url_end_col - col_offset
+    let url_start_pos = s:posToLineCol(a:link_info.url_start_col - 1, a:line_num, a:lengths)
+    let url_end_pos = s:posToLineCol(a:link_info.url_end_col - 1, a:line_num, a:lengths)
+    let adjusted.url_start_col = url_start_pos[1]
+    let adjusted.url_end_col = url_end_pos[1]
+    let adjusted.url_start_line = url_start_pos[0]
+    let adjusted.url_end_line = url_end_pos[0]
   endif
   
   " For wiki links, also adjust target columns
   if has_key(adjusted, 'target_start_col')
-    let adjusted.target_start_col = adjusted.target_start_col - col_offset
-    let adjusted.target_end_col = adjusted.target_end_col - col_offset
+    let target_start_pos = s:posToLineCol(a:link_info.target_start_col - 1, a:line_num, a:lengths)
+    let target_end_pos = s:posToLineCol(a:link_info.target_end_col - 1, a:line_num, a:lengths)
+    let adjusted.target_start_col = target_start_pos[1]
+    let adjusted.target_end_col = target_end_pos[1]
+    let adjusted.target_start_line = target_start_pos[0]
+    let adjusted.target_end_line = target_end_pos[0]
   endif
   
   return adjusted
