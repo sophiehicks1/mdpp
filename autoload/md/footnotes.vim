@@ -527,15 +527,22 @@ function! md#footnotes#addFootnoteReference(line_num, col_num, footnote_id)
   let reference = '[^' . a:footnote_id . ']'
   
   " Insert the reference at the specified position
-  " col('.') is 1-based, but string slicing is 0-based
-  " Special handling for insert mode: when using <C-o> in insert mode,
-  " col('.') points to the NEXT character, except at end of line where it equals len(line)
-  if a:col_num == len(line_content)
-    " At end of line - insert after all content
+  " When called from insert mode with <C-\><C-o>, col('.') gives us the position
+  " where the next character would be inserted (can be past end of line)
+  " col('.') is 1-based, string slicing is 0-based
+  
+  if a:col_num > len(line_content)
+    " Past end of line - append to end
     let before = line_content
     let after = ''
+  elseif a:col_num == 1
+    " At beginning of line - insert before everything
+    let before = ''
+    let after = line_content
   else
-    " In middle of line - insert before the character at col_num
+    " Before a character - insert before it
+    " - before = everything up to but not including col_num (chars 0 to col_num-2)
+    " - after = everything from col_num onwards (chars col_num-1 to end)
     let before = line_content[:a:col_num - 2]
     let after = line_content[a:col_num - 1:]
   endif

@@ -40,7 +40,7 @@ nnoremap <buffer> <silent> <Plug>MarkdownRaiseSectionForward :<C-u>call md#updat
 
 nnoremap <buffer> <silent> <Plug>MarkdownShowFootnote :<C-u>call md#ux#showFootnoteInFloat()<CR>
 
-inoremap <buffer> <silent> <Plug>MarkdownAddFootnote <C-o>:call md#update#addFootnote()<CR>
+inoremap <buffer> <silent> <Plug>MarkdownAddFootnote <C-\><C-o>:call md#update#addFootnote()<CR>
 
 nnoremap <buffer> <silent> <Plug>MarkdownCheckCheckbox :<C-u>call md#update#checkCheckbox()<CR>
 nnoremap <buffer> <silent> <Plug>MarkdownUncheckCheckbox :<C-u>call md#update#uncheckCheckbox()<CR>

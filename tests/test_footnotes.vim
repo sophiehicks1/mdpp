@@ -505,7 +505,7 @@ function! s:test_add_footnote_reference()
 
   " Test adding at end of line
   call setline(1, 'Lorem ipsum dolor sit amet')
-  call md#footnotes#addFootnoteReference(1, 26, '3') " At column 26 (at end, len=26)
+  call md#footnotes#addFootnoteReference(1, 27, '3') " At column 27 (past end, len=26)
   let result = getline(1)
   call test#framework#assert_equal('Lorem ipsum dolor sit amet[^3]', result, "Should add reference at end")
 endfunction
