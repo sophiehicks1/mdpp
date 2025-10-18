@@ -30,6 +30,7 @@ function! s:run_tests()
   call test#framework#run_test_function('test_getLinkFullRange', function('s:test_getLinkFullRange'))
   call test#framework#run_test_function('test_edge_cases', function('s:test_edge_cases'))
   call test#framework#run_test_function('test_multiline_links', function('s:test_multiline_links'))
+  call test#framework#run_test_function('test_indented_wrapped_links', function('s:test_indented_wrapped_links'))
   
   return test#framework#report_results("md#links")
 endfunction
@@ -551,6 +552,118 @@ function! s:test_multiline_links()
   if !empty(link)
     let range = md#links#getLinkFullRange(link)
     call test#framework#assert_equal(4, len(range), "Should return valid full range for wrapped link")
+  endif
+endfunction
+
+" Test indented wrapped links
+function! s:test_indented_wrapped_links()
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing indented wrapped links...")
+  
+  call test#framework#setup_buffer_from_file('indented_wrapped_links.md')
+  
+  " Test 1: Wiki link in nested list item (line 8-9)
+  " Line 8: "  * This is a modestly long nested list item that ends with a [[relatively short"
+  " Line 9: "    link]]"
+  " The link text should be "relatively short\nlink" but when joined should become
+  " "relatively short link" (single space, not multiple spaces from indentation)
+  let links = md#links#findWikiLinksInLine(8)
+  call test#framework#assert_equal(1, len(links), "Should find wiki link on line 8")
+  if len(links) > 0
+    call test#framework#assert_equal('wiki', links[0].type, "Should be wiki link type")
+    " The link text should NOT include extra spaces from the indentation
+    call test#framework#assert_equal('relatively short link', links[0].text, 
+          \ "Link text should not include indentation spaces")
+    call test#framework#assert_equal('relatively short link', links[0].url, 
+          \ "Link URL should match text without indentation spaces")
+  endif
+  
+  " Test 2: Same link found from continuation line
+  let links = md#links#findWikiLinksInLine(9)
+  call test#framework#assert_equal(1, len(links), "Should find same link from continuation line")
+  if len(links) > 0
+    call test#framework#assert_equal('relatively short link', links[0].text, 
+          \ "Link text should be consistent when found from continuation line")
+  endif
+  
+  " Test 3: Inline link in nested list (line 10-11)
+  let links = md#links#findInlineLinksInLine(10)
+  call test#framework#assert_equal(1, len(links), "Should find inline link on line 10")
+  if len(links) > 0
+    call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
+    call test#framework#assert_equal('file link text that wraps', links[0].text,
+          \ "Inline link text should not include indentation")
+    call test#framework#assert_equal('./file.md', links[0].url,
+          \ "Inline link URL should be correct")
+  endif
+  
+  " Test 4: Deeply nested wiki link (line 16-17)
+  let links = md#links#findWikiLinksInLine(16)
+  call test#framework#assert_equal(1, len(links), "Should find deeply nested wiki link")
+  if len(links) > 0
+    call test#framework#assert_equal('deeply nested wrapped link', links[0].text,
+          \ "Deeply nested link text should not include indentation")
+  endif
+  
+  " Test 5: Deeply nested inline link (line 18-19)
+  let links = md#links#findInlineLinksInLine(18)
+  call test#framework#assert_equal(1, len(links), "Should find deeply nested inline link")
+  if len(links) > 0
+    call test#framework#assert_equal('inline link that spans lines', links[0].text,
+          \ "Deeply nested inline link text should not include indentation")
+  endif
+  
+  " Test 6: Wiki link in blockquote (line 23-24)
+  let links = md#links#findWikiLinksInLine(23)
+  call test#framework#assert_equal(1, len(links), "Should find wiki link in blockquote")
+  if len(links) > 0
+    call test#framework#assert_equal('wiki link that wraps', links[0].text,
+          \ "Blockquote wiki link should not include continuation markers")
+  endif
+  
+  " Test 7: Inline link in blockquote (line 26-27)
+  let links = md#links#findInlineLinksInLine(26)
+  call test#framework#assert_equal(1, len(links), "Should find inline link in blockquote")
+  if len(links) > 0
+    call test#framework#assert_equal('inline link that wraps', links[0].text,
+          \ "Blockquote inline link should not include continuation markers")
+  endif
+  
+  " Test 8: Reference link in list (line 36-37)
+  let links = md#links#findReferenceLinksInLine(36)
+  call test#framework#assert_equal(1, len(links), "Should find reference link in list")
+  if len(links) > 0
+    call test#framework#assert_equal('reference', links[0].type, "Should be reference link")
+    call test#framework#assert_equal('reference link text', links[0].text,
+          \ "Reference link text should not include indentation")
+  endif
+  
+  " Test 9: Reference link in nested list (line 38-39)
+  let links = md#links#findReferenceLinksInLine(38)
+  call test#framework#assert_equal(1, len(links), "Should find reference link in nested list")
+  if len(links) > 0
+    call test#framework#assert_equal('another ref link', links[0].text,
+          \ "Nested reference link text should not include indentation")
+  endif
+  
+  " Test 10: Test cursor position in middle of wrapped link (critical for vim-open)
+  " Position cursor in the middle of "relatively short" on line 8
+  call cursor(8, 75)
+  let link = md#links#findLinkAtPos(getpos('.'))
+  call test#framework#assert_not_empty(link, "Should find link at cursor position on first line")
+  if !empty(link)
+    call test#framework#assert_equal('relatively short link', link.text,
+          \ "Should extract clean link text when cursor on first line")
+  endif
+  
+  " Test 11: Test cursor position on continuation line with indentation
+  " Position cursor on "link" text on line 9
+  call cursor(9, 8)
+  let link = md#links#findLinkAtPos(getpos('.'))
+  call test#framework#assert_not_empty(link, "Should find link at cursor position on continuation line")
+  if !empty(link)
+    call test#framework#assert_equal('relatively short link', link.text,
+          \ "Should extract clean link text when cursor on continuation line")
   endif
 endfunction
 

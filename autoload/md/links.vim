@@ -697,27 +697,61 @@ function! s:getLineSafe(line_num)
 endfunction
 
 " Helper function to join three lines for multi-line link detection
-" Returns: [joined_text, [len(prev_line), len(curr_line), len(next_line)]]
+" Returns: [joined_text, lengths_dict]
+" Where lengths_dict contains:
+"   - original_lengths: [len(prev_line), len(curr_line), len(next_line)]
+"   - stripped_lengths: [len(prev_stripped), len(curr_line), len(next_stripped)]
+"   - leading_spaces: [prev_spaces, 0, next_spaces]
 function! s:joinThreeLines(line_num)
   let prev_line = s:getLineSafe(a:line_num - 1)
   let curr_line = s:getLineSafe(a:line_num)
   let next_line = s:getLineSafe(a:line_num + 1)
   
+  " Strip leading whitespace from both prev and next lines
+  " This handles indented continuation lines in lists, blockquotes, etc.
+  
+  " Handle previous line
+  let prev_leading = matchstr(prev_line, '^\s*')
+  let prev_spaces = len(prev_leading)
+  if prev_spaces > 0
+    " Strip leading whitespace from previous line completely
+    " We don't add a space here since prev_line comes before curr_line
+    let prev_stripped = prev_line[prev_spaces :]
+  else
+    let prev_stripped = prev_line
+  endif
+  
+  " Handle next line
+  let next_leading = matchstr(next_line, '^\s*')
+  let next_spaces = len(next_leading)
+  if next_spaces > 0
+    " Strip leading whitespace and add single space to simulate proper text wrapping
+    let next_stripped = ' ' . next_line[next_spaces :]
+  else
+    let next_stripped = next_line
+  endif
+  
   " Join lines without newlines (just concatenate)
   " This simulates what the link would look like if on a single line
-  let joined = prev_line . curr_line . next_line
-  let lengths = [len(prev_line), len(curr_line), len(next_line)]
+  let joined = prev_stripped . curr_line . next_stripped
+  
+  " Return both original and stripped lengths for position mapping
+  let lengths = {
+        \ 'original_lengths': [len(prev_line), len(curr_line), len(next_line)],
+        \ 'stripped_lengths': [len(prev_stripped), len(curr_line), len(next_stripped)],
+        \ 'leading_spaces': [prev_spaces, 0, next_spaces]
+        \ }
   
   return [joined, lengths]
 endfunction
 
 " Helper function to determine if a position in joined text belongs to the target line
 " pos is 0-indexed position in joined text
-" lengths is [prev_len, curr_len, next_len]
+" lengths is the dict returned by s:joinThreeLines
 " Returns: 1 if position is in current line, 0 otherwise
 function! s:isInTargetLine(pos, lengths)
-  let prev_len = a:lengths[0]
-  let curr_len = a:lengths[1]
+  let prev_len = a:lengths['stripped_lengths'][0]
+  let curr_len = a:lengths['stripped_lengths'][1]
   return a:pos >= prev_len && a:pos < prev_len + curr_len
 endfunction
 
@@ -725,8 +759,8 @@ endfunction
 " touches the target line
 " Returns: 1 if link touches target line, 0 otherwise
 function! s:linkTouchesTargetLine(link_start, link_end, lengths)
-  let prev_len = a:lengths[0]
-  let curr_len = a:lengths[1]
+  let prev_len = a:lengths['stripped_lengths'][0]
+  let curr_len = a:lengths['stripped_lengths'][1]
   let target_start = prev_len
   let target_end = prev_len + curr_len - 1
   
@@ -738,30 +772,45 @@ endfunction
 " Helper function to convert a position in joined text to actual line/column
 " pos is 0-indexed position in joined text
 " line_num is the target line number
-" lengths is [prev_len, curr_len, next_len]
+" lengths is the dict returned by s:joinThreeLines
 " Returns: [line, col] where line is absolute and col is 1-indexed
 function! s:posToLineCol(pos, line_num, lengths)
-  let prev_len = a:lengths[0]
-  let curr_len = a:lengths[1]
+  let prev_len = a:lengths['stripped_lengths'][0]
+  let curr_len = a:lengths['stripped_lengths'][1]
+  let prev_spaces = a:lengths['leading_spaces'][0]
+  let next_spaces = a:lengths['leading_spaces'][2]
   
   if a:pos < prev_len
     " Position is on previous line
-    return [a:line_num - 1, a:pos + 1]
+    " Add back the leading spaces that were stripped
+    return [a:line_num - 1, a:pos + prev_spaces + 1]
   elseif a:pos < prev_len + curr_len
     " Position is on current line
     return [a:line_num, a:pos - prev_len + 1]
   else
     " Position is on next line
-    return [a:line_num + 1, a:pos - prev_len - curr_len + 1]
+    " The stripped version has a single space at the start if there was leading whitespace
+    " We need to map back to the original line with its leading whitespace
+    let pos_in_next_stripped = a:pos - prev_len - curr_len
+    
+    " If we stripped leading spaces and added a single space,
+    " and position is at the start (the added space), map to first char after whitespace
+    if next_spaces > 0 && pos_in_next_stripped == 0
+      " Position is at the single space we added - map to first non-whitespace char
+      return [a:line_num + 1, next_spaces + 1]
+    elseif next_spaces > 0
+      " Position is after the added space - subtract 1 for the space and add back leading spaces
+      return [a:line_num + 1, pos_in_next_stripped - 1 + next_spaces + 1]
+    else
+      " No leading spaces were stripped
+      return [a:line_num + 1, pos_in_next_stripped + 1]
+    endif
   endif
 endfunction
 
 " Helper function to adjust link info from joined text back to original line coordinates
 " This handles multi-line links by determining the actual line where the link starts
 function! s:adjustLinkInfo(link_info, line_num, lengths)
-  let prev_len = a:lengths[0]
-  let curr_len = a:lengths[1]
-  
   " Convert all positions from joined text to actual line/col
   " Note: link_info columns are 1-indexed, so convert to 0-indexed first
   let start_pos = s:posToLineCol(a:link_info.start_col - 1, a:line_num, a:lengths)
