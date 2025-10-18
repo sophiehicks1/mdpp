@@ -23,15 +23,26 @@ endfunction
 " Default completion function - finds markdown files relative to current directory
 " Uses same semantics as the default wiki-link resolver
 function! s:defaultCompletion(text)
-  let pattern = './' . (empty(a:text) ? '**/*' : a:text . '**/*') . '.md'
-  
-  " Use glob with list return if available, otherwise split string result
-  if exists('*glob') && has('patch-7.4.279')
-    let files = glob(pattern, 0, 1)
+  " Build glob patterns based on prefix
+  if empty(a:text)
+    " No prefix, match all markdown files recursively
+    let patterns = ['./**/*.md']
   else
-    let files = split(glob(pattern), '\n')
+    " With prefix: find files in current dir and subdirs that match prefix
+    let patterns = ['./' . a:text . '*.md', './' . a:text . '*/**/*.md']
   endif
-  
+
+  " Collect files from all patterns
+  let files = []
+  for pattern in patterns
+    " Use glob with list return if available, otherwise split string result
+    if exists('*glob') && has('patch-7.4.279')
+      let files += glob(pattern, 0, 1)
+    else
+      let files += split(glob(pattern), '\n')
+    endif
+  endfor
+
   " Convert to relative paths and remove ./ prefix and .md suffix
   let completions = []
   for file in files
@@ -40,25 +51,6 @@ function! s:defaultCompletion(text)
       if relative_path =~ '\.md$'
         let completion = relative_path[:-4]  " Remove '.md' suffix
         call add(completions, completion)
-      endif
-    endif
-  endfor
-  
-  " Also look for directories that might contain markdown files
-  let dir_pattern = './' . (empty(a:text) ? '*' : a:text . '*')
-  
-  if exists('*glob') && has('patch-7.4.279')
-    let dirs = glob(dir_pattern, 0, 1)
-  else
-    let dirs = split(glob(dir_pattern), '\n')
-  endif
-  
-  for dir in dirs
-    if isdirectory(dir) && dir =~ '^\./'
-      let relative_path = dir[2:]  " Remove './' prefix
-      " Only add if it contains markdown files
-      if !empty(glob(dir . '/*.md'))
-        call add(completions, relative_path)
       endif
     endif
   endfor
