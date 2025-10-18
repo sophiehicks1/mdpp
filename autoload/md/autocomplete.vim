@@ -88,17 +88,22 @@ function! md#autocomplete#complete(findstart, base)
     " Find the start of the wikilink text
     let line = getline('.')
     let col = col('.') - 1  " Convert to 0-based
+    let line_len = len(line)
     
     " Look backwards for [[
     let i = col - 1
     while i >= 0
-      if i >= 0 && (i+1) < len(line) && line[i] == '[' && line[i + 1] == '['
-        " Return 1-based position after [[ for Vim
-        return i + 3
-      endif
-      " If we hit a ], stop looking (we're not in a wikilink)  
-      if i < len(line) && line[i] == ']'
-        break
+      " Check if we can safely access line[i] and line[i+1]
+      if i >= 0 && i < line_len && (i + 1) < line_len
+        " Use safer string comparison with strpart
+        if strpart(line, i, 2) ==# '[['
+          " Return 1-based position after [[ for Vim
+          return i + 3
+        endif
+        " If we hit a ], stop looking (we're not in a wikilink)
+        if strpart(line, i, 1) ==# ']'
+          break
+        endif
       endif
       let i -= 1
     endwhile
