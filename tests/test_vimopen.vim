@@ -200,6 +200,73 @@ function! s:test_feedkeys_gf_mapping()
   endtry
 endfunction
 
+" Test for Bug #48: multi-line link support breaks with indentation
+" This test follows the exact reproduction steps from the bug report
+function! s:test_bug_48_indented_wrapped_link()
+  call test#framework#write_info("Testing Bug #48: indented wrapped link...")
+
+  " Create a buffer with the exact content from the bug report
+  new
+  call setline(1, '- This is a root list item')
+  call setline(2, '  * This is a modestly long nested list item that ends with a [[relatively short')
+  call setline(3, '    link]]')
+  
+  " Save to a temporary file so vim-open can resolve relative paths
+  let temp_file = tempname() . '.md'
+  execute 'write ' . temp_file
+  setlocal filetype=markdown
+  
+  " Set up vim-open integration
+  call md#vimopen#setup()
+  
+  " Reset test state
+  let g:test_collected_resources = []
+  let g:test_opener_called = 0
+  
+  " Place cursor as specified in bug report: "at the end of the nested list item, 
+  " inside the [[relatively short link]] text"
+  " This means cursor should be inside the link, let's test line 3, column 8 (inside "link")
+  call cursor(3, 8)
+  
+  " Invoke vim-open using gopher#go() as specified
+  let result = gopher#go()
+  
+  " Check that the correct resource was collected
+  call test#framework#assert_equal(1, g:test_opener_called, "Should call opener for wrapped link")
+  call test#framework#assert_equal(1, len(g:test_collected_resources), "Should collect one resource")
+  
+  " The critical assertion: the link text should be "relatively short link" (single space)
+  " not "relatively short    link" (with extra indentation spaces)
+  let expected_resource = './relatively short link.md'
+  call test#framework#assert_equal(expected_resource, g:test_collected_resources[0], 
+        \ "Should extract link without indentation spaces (Bug #48)")
+  
+  " Clean up
+  bdelete!
+  call delete(temp_file)
+  
+  " Also test with cursor on line 2 (first line of the link)
+  new
+  call setline(1, '- This is a root list item')
+  call setline(2, '  * This is a modestly long nested list item that ends with a [[relatively short')
+  call setline(3, '    link]]')
+  execute 'write ' . temp_file
+  setlocal filetype=markdown
+  
+  let g:test_collected_resources = []
+  let g:test_opener_called = 0
+  
+  call cursor(2, 85)  " Inside "short" on line 2
+  let result = gopher#go()
+  
+  call test#framework#assert_equal(1, g:test_opener_called, "Should call opener from line 2")
+  call test#framework#assert_equal(expected_resource, g:test_collected_resources[0],
+        \ "Should extract link correctly from line 2 (Bug #48)")
+  
+  bdelete!
+  call delete(temp_file)
+endfunction
+
 " Run all tests
 function! s:run_all_tests()
   call test#framework#reset()
@@ -218,6 +285,8 @@ function! s:run_all_tests()
   call test#framework#run_test_function('test_wiki_link_defaults', function('s:test_wiki_link_defaults'))
   call test#framework#run_test_function('test_custom_wiki_link_resolver',
         \ function('s:test_custom_wiki_link_resolver'))
+  call test#framework#run_test_function('test_bug_48_indented_wrapped_link',
+        \ function('s:test_bug_48_indented_wrapped_link'))
 
   call test#framework#report_results('md#vimopen')
 endfunction
