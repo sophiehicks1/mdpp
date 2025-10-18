@@ -700,49 +700,72 @@ endfunction
 " Returns: [joined_text, lengths_dict]
 " Where lengths_dict contains:
 "   - original_lengths: [len(prev_line), len(curr_line), len(next_line)]
-"   - stripped_lengths: [len(prev_stripped), len(curr_line), len(next_stripped)]
-"   - leading_spaces: [prev_spaces, 0, next_spaces]
+"   - stripped_lengths: [len(prev_stripped), len(curr_line_stripped), len(next_stripped)]
+"   - leading_spaces: [prev_spaces, curr_spaces, next_spaces]
 function! s:joinThreeLines(line_num)
   let prev_line = s:getLineSafe(a:line_num - 1)
   let curr_line = s:getLineSafe(a:line_num)
   let next_line = s:getLineSafe(a:line_num + 1)
   
-  " Strip leading whitespace from both prev and next lines
-  " This handles indented continuation lines in lists, blockquotes, etc.
+  " Strip structural indentation and markers from all lines
+  " This handles list items, blockquotes, and other indented contexts
   
   " Handle previous line
-  let prev_leading = matchstr(prev_line, '^\s*')
-  let prev_spaces = len(prev_leading)
-  if prev_spaces > 0
-    " Strip leading whitespace from previous line completely
-    " We don't add a space here since prev_line comes before curr_line
-    let prev_stripped = prev_line[prev_spaces :]
-  else
-    let prev_stripped = prev_line
-  endif
+  let [prev_stripped, prev_spaces] = s:stripStructuralMarkers(prev_line)
+  
+  " Handle current line
+  let [curr_stripped, curr_spaces] = s:stripStructuralMarkers(curr_line)
   
   " Handle next line
-  let next_leading = matchstr(next_line, '^\s*')
-  let next_spaces = len(next_leading)
-  if next_spaces > 0
-    " Strip leading whitespace and add single space to simulate proper text wrapping
-    let next_stripped = ' ' . next_line[next_spaces :]
-  else
-    let next_stripped = next_line
-  endif
+  let [next_stripped, next_spaces] = s:stripStructuralMarkers(next_line)
   
   " Join lines without newlines (just concatenate)
-  " This simulates what the link would look like if on a single line
-  let joined = prev_stripped . curr_line . next_stripped
+  " Add spaces between lines to simulate proper text wrapping
+  let joined = prev_stripped . curr_stripped . next_stripped
   
   " Return both original and stripped lengths for position mapping
   let lengths = {
         \ 'original_lengths': [len(prev_line), len(curr_line), len(next_line)],
-        \ 'stripped_lengths': [len(prev_stripped), len(curr_line), len(next_stripped)],
-        \ 'leading_spaces': [prev_spaces, 0, next_spaces]
+        \ 'stripped_lengths': [len(prev_stripped), len(curr_stripped), len(next_stripped)],
+        \ 'leading_spaces': [prev_spaces, curr_spaces, next_spaces]
         \ }
   
   return [joined, lengths]
+endfunction
+
+" Helper function to strip structural markers from a line
+" Returns: [stripped_line, spaces_removed]
+function! s:stripStructuralMarkers(line)
+  if empty(a:line)
+    return ['', 0]
+  endif
+  
+  " Count leading whitespace
+  let leading = matchstr(a:line, '^\s*')
+  let spaces = len(leading)
+  let content = a:line[spaces :]
+  
+  " Check for and strip structural markers
+  " List markers: -, *, +, or numbered lists
+  " Blockquote markers: >
+  " But don't strip if the line starts with a list marker (it's a new item)
+  let stripped = content
+  let marker_len = 0
+  
+  " Strip blockquote markers (> ) recursively
+  while stripped =~# '^>\s\?'
+    let marker_match = matchstr(stripped, '^>\s\?')
+    let marker_len += len(marker_match)
+    let stripped = stripped[len(marker_match):]
+  endwhile
+  
+  " If this looks like a continuation line (starts with just whitespace after markers)
+  " or if we stripped blockquote markers, add a space at the start
+  if spaces > 0 || marker_len > 0
+    let stripped = ' ' . stripped
+  endif
+  
+  return [stripped, spaces + marker_len]
 endfunction
 
 " Helper function to determine if a position in joined text belongs to the target line
@@ -778,6 +801,7 @@ function! s:posToLineCol(pos, line_num, lengths)
   let prev_len = a:lengths['stripped_lengths'][0]
   let curr_len = a:lengths['stripped_lengths'][1]
   let prev_spaces = a:lengths['leading_spaces'][0]
+  let curr_spaces = a:lengths['leading_spaces'][1]
   let next_spaces = a:lengths['leading_spaces'][2]
   
   if a:pos < prev_len
@@ -786,15 +810,27 @@ function! s:posToLineCol(pos, line_num, lengths)
     return [a:line_num - 1, a:pos + prev_spaces + 1]
   elseif a:pos < prev_len + curr_len
     " Position is on current line
-    return [a:line_num, a:pos - prev_len + 1]
+    let pos_in_curr = a:pos - prev_len
+    
+    " If current line was stripped (has curr_spaces > 0 and was converted to space + content)
+    if curr_spaces > 0 && a:lengths['stripped_lengths'][1] != a:lengths['original_lengths'][1]
+      " Current line was stripped and has a leading space
+      if pos_in_curr == 0
+        " Position is at the added space - map to first char after original whitespace
+        return [a:line_num, curr_spaces + 1]
+      else
+        " Position is after the added space - subtract 1 and add back original spaces
+        return [a:line_num, pos_in_curr - 1 + curr_spaces + 1]
+      endif
+    else
+      " Current line was not stripped
+      return [a:line_num, pos_in_curr + 1]
+    endif
   else
     " Position is on next line
-    " The stripped version has a single space at the start if there was leading whitespace
-    " We need to map back to the original line with its leading whitespace
     let pos_in_next_stripped = a:pos - prev_len - curr_len
     
-    " If we stripped leading spaces and added a single space,
-    " and position is at the start (the added space), map to first char after whitespace
+    " If we stripped leading spaces and added a single space
     if next_spaces > 0 && pos_in_next_stripped == 0
       " Position is at the single space we added - map to first non-whitespace char
       return [a:line_num + 1, next_spaces + 1]

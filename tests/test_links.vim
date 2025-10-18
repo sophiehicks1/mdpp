@@ -597,40 +597,40 @@ function! s:test_indented_wrapped_links()
           \ "Inline link URL should be correct")
   endif
   
-  " Test 4: Deeply nested wiki link (line 16-17)
-  let links = md#links#findWikiLinksInLine(16)
+  " Test 4: Deeply nested wiki link (line 17-18)
+  let links = md#links#findWikiLinksInLine(17)
   call test#framework#assert_equal(1, len(links), "Should find deeply nested wiki link")
   if len(links) > 0
     call test#framework#assert_equal('deeply nested wrapped link', links[0].text,
           \ "Deeply nested link text should not include indentation")
   endif
   
-  " Test 5: Deeply nested inline link (line 18-19)
-  let links = md#links#findInlineLinksInLine(18)
+  " Test 5: Deeply nested inline link (line 19-20)
+  let links = md#links#findInlineLinksInLine(19)
   call test#framework#assert_equal(1, len(links), "Should find deeply nested inline link")
   if len(links) > 0
     call test#framework#assert_equal('inline link that spans lines', links[0].text,
           \ "Deeply nested inline link text should not include indentation")
   endif
   
-  " Test 6: Wiki link in blockquote (line 23-24)
-  let links = md#links#findWikiLinksInLine(23)
+  " Test 6: Wiki link in blockquote (line 24-25)
+  let links = md#links#findWikiLinksInLine(24)
   call test#framework#assert_equal(1, len(links), "Should find wiki link in blockquote")
   if len(links) > 0
     call test#framework#assert_equal('wiki link that wraps', links[0].text,
           \ "Blockquote wiki link should not include continuation markers")
   endif
   
-  " Test 7: Inline link in blockquote (line 26-27)
-  let links = md#links#findInlineLinksInLine(26)
+  " Test 7: Inline link in blockquote (line 27-28)
+  let links = md#links#findInlineLinksInLine(27)
   call test#framework#assert_equal(1, len(links), "Should find inline link in blockquote")
   if len(links) > 0
     call test#framework#assert_equal('inline link that wraps', links[0].text,
           \ "Blockquote inline link should not include continuation markers")
   endif
   
-  " Test 8: Reference link in list (line 36-37)
-  let links = md#links#findReferenceLinksInLine(36)
+  " Test 8: Reference link in list (line 40-41)
+  let links = md#links#findReferenceLinksInLine(40)
   call test#framework#assert_equal(1, len(links), "Should find reference link in list")
   if len(links) > 0
     call test#framework#assert_equal('reference', links[0].type, "Should be reference link")
@@ -638,8 +638,8 @@ function! s:test_indented_wrapped_links()
           \ "Reference link text should not include indentation")
   endif
   
-  " Test 9: Reference link in nested list (line 38-39)
-  let links = md#links#findReferenceLinksInLine(38)
+  " Test 9: Reference link in nested list (line 42-43)
+  let links = md#links#findReferenceLinksInLine(42)
   call test#framework#assert_equal(1, len(links), "Should find reference link in nested list")
   if len(links) > 0
     call test#framework#assert_equal('another ref link', links[0].text,
