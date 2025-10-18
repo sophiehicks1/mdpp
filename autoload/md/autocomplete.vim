@@ -37,9 +37,9 @@ function! s:defaultCompletion(text)
   for pattern in patterns
     " Use glob with list return if available, otherwise split string result
     if exists('*glob') && has('patch-7.4.279')
-      let files += glob(pattern, 0, 1)
+      call extend(files, glob(pattern, 0, 1))
     else
-      let files += split(glob(pattern), '\n')
+      call extend(files, split(glob(pattern), '\n'))
     endif
   endfor
   
