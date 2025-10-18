@@ -23,33 +23,41 @@ endfunction
 " Default completion function - finds markdown files relative to current directory
 " Uses same semantics as the default wiki-link resolver
 function! s:defaultCompletion(text)
-  " Build glob patterns based on prefix
+  " Collect files using globpath for better compatibility
+  let files = []
+  
   if empty(a:text)
-    " No prefix: find all markdown files recursively
-    let patterns = ['./**/*.md']
+    " No prefix: find all markdown files recursively using globpath
+    if has('patch-7.4.279')
+      let files = globpath('.', '**/*.md', 0, 1)
+    else
+      let files = split(globpath('.', '**/*.md'), '\n')
+    endif
   else
     " With prefix: find files in current dir and subdirs that match prefix
-    let patterns = ['./' . a:text . '*.md', './' . a:text . '*/**/*.md']
-  endif
-  
-  " Collect files from all patterns
-  let files = []
-  for pattern in patterns
-    " Use glob with list return if available, otherwise split string result
-    if exists('*glob') && has('patch-7.4.279')
-      call extend(files, glob(pattern, 0, 1))
+    " Use two separate patterns to avoid issues with ** wildcard
+    let pattern1 = a:text . '*.md'
+    let pattern2 = a:text . '*/**/*.md'
+    
+    if has('patch-7.4.279')
+      call extend(files, globpath('.', pattern1, 0, 1))
+      call extend(files, globpath('.', pattern2, 0, 1))
     else
-      call extend(files, split(glob(pattern), '\n'))
+      call extend(files, split(globpath('.', pattern1), '\n'))
+      call extend(files, split(globpath('.', pattern2), '\n'))
     endif
-  endfor
+  endif
   
   " Convert to relative paths and remove ./ prefix and .md suffix
   let completions = []
   for file in files
-    if file =~ '^\./'
-      let relative_path = file[2:]  " Remove './' prefix
-      if relative_path =~ '\.md$'
-        let completion = relative_path[:-4]  " Remove '.md' suffix
+    if file =~# '^\./'
+      " Use strpart for safer string manipulation - remove './' prefix (2 chars)
+      let relative_path = strpart(file, 2)
+      if relative_path =~# '\.md$'
+        " Remove '.md' suffix (3 characters from the end)
+        let path_len = len(relative_path)
+        let completion = strpart(relative_path, 0, path_len - 3)
         call add(completions, completion)
       endif
     endif
@@ -65,10 +73,12 @@ function! s:defaultCompletion(text)
   endif
   
   for dir in dirs
-    if isdirectory(dir) && dir =~ '^\./'
-      let relative_path = dir[2:]  " Remove './' prefix
-      " Only add if it contains markdown files
-      if !empty(glob(dir . '/*.md'))
+    if isdirectory(dir) && dir =~# '^\./'
+      " Use strpart for safer string manipulation
+      let relative_path = strpart(dir, 2)  " Remove './' prefix
+      " Only add if it contains markdown files - check safely
+      let dir_glob_result = glob(dir . '/*.md')
+      if !empty(dir_glob_result)
         call add(completions, relative_path)
       endif
     endif
