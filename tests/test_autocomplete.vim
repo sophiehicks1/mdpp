@@ -87,6 +87,9 @@ function! s:test_default_completion()
   let old_cwd = getcwd()
   execute 'cd ' . test_dir
   
+  " Enable autocomplete for this test
+  let g:loaded_vim_open = 1
+  
   try
     " Test completion with empty text
     let completions = md#autocomplete#complete(0, '')
@@ -104,6 +107,9 @@ function! s:test_default_completion()
     " Restore directory and cleanup
     execute 'cd ' . old_cwd
     call system('rm -rf ' . test_dir)
+    
+    " Clean up vim-open flag
+    unlet g:loaded_vim_open
   endtry
 endfunction
 
