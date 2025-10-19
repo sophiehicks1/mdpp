@@ -20,6 +20,7 @@ function! s:run_tests()
   call test#framework#write_info("Running tests for md#links module...")
   call test#framework#write_info("==================================")
   
+  call test#framework#run_test_function('test_twoWikiLinksOneLine', function('s:test_twoWikiLinksOneLine'))
   call test#framework#run_test_function('test_findInlineLinksInLine', function('s:test_findInlineLinksInLine'))
   call test#framework#run_test_function('test_findReferenceLinksInLine', function('s:test_findReferenceLinksInLine'))
   call test#framework#run_test_function('test_findLinkAtPos', function('s:test_findLinkAtPos'))
@@ -33,6 +34,33 @@ function! s:run_tests()
   call test#framework#run_test_function('test_indented_wrapped_links', function('s:test_indented_wrapped_links'))
   
   return test#framework#report_results("md#links")
+endfunction
+
+" Test multiple wikilinks on the same line
+function! s:test_twoWikiLinksOneLine()
+  call test#framework#write_info("")
+  call test#framework#write_info("Testing multiple wiki links on the same line...")
+
+  call test#framework#setup_buffer_from_file('wikilinks.md')
+
+  " Test 1: Fetch first link
+  let link = md#links#findLinkAtPos([0, 1, 18, 0])
+  if !empty(link)
+    call test#framework#assert_equal('wiki', link.type, "First link should be wiki type")
+    call test#framework#assert_equal('first link', link.text, "First link text should be 'first link'")
+  else
+    call test#framework#assert_fail("First link not found")
+  endif
+
+  " Test 2: Fetch second link
+  let link = md#links#findLinkAtPos([0, 1, 47, 0])
+  if !empty(link)
+    call test#framework#assert_equal('wiki', link.type, "Second link should be wiki type")
+    call test#framework#assert_equal('second link', link.text, "Second link text should be 'second link'")
+  else
+    call test#framework#assert_fail("Second link not found")
+  endif
+
 endfunction
 
 " Test md#links#findInlineLinksInLine function
