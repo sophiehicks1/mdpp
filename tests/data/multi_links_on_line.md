@@ -6,7 +6,7 @@ very long fourth link]]
 # inline links
 This is some filler text lorem ipsum blah blah blah blah blah [very very long first
 link](long url1) blah blah [second link](url2) and blah [third link](url3) blah [very
-long fourth link](url4)
+very long fourth link](url4)
 
 # reference links
 This is some filler text lorem ipsum blah blah blah blah blah [very very long first

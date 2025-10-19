@@ -44,40 +44,112 @@ function! s:test_multipleLinksOnLine()
 
   call test#framework#setup_buffer_from_file('multi_links_on_line.md')
 
-  " Test 1: Fetch first link
+  " Test 1: Fetch first wiki link
   let link = md#links#findLinkAtPos([0, 3, 1, 0])
   if !empty(link)
-    call test#framework#assert_equal('wiki', link.type, "First link should be wiki type")
-    call test#framework#assert_equal('very very long first link', link.text, "First link text should be 'very very long first link'")
+    call test#framework#assert_equal('wiki', link.type, "First wiki link should be wiki type")
+    call test#framework#assert_equal('very very long first link', link.text, "First wiki link text should be 'very very long first link'")
   else
-    call test#framework#assert_true(v:false, "First link not found")
+    call test#framework#assert_true(v:false, "First wiki link not found")
   endif
 
-  " Test 2: Fetch second link
+  " Test 2: Fetch second wiki link
   let link = md#links#findLinkAtPos([0, 3, 20, 0])
   if !empty(link)
-    call test#framework#assert_equal('wiki', link.type, "Second link should be wiki type")
-    call test#framework#assert_equal('second link', link.text, "Second link text should be 'second link'")
+    call test#framework#assert_equal('wiki', link.type, "Second wiki link should be wiki type")
+    call test#framework#assert_equal('second link', link.text, "Second wiki link text should be 'second link'")
   else
-    call test#framework#assert_true(v:false, "Second link not found")
+    call test#framework#assert_true(v:false, "Second wiki link not found")
   endif
 
-  " Test 3: Fetch third link
+  " Test 3: Fetch third wiki link
   let link = md#links#findLinkAtPos([0, 3, 50, 0])
   if !empty(link)
-    call test#framework#assert_equal('wiki', link.type, "Third link should be wiki type")
-    call test#framework#assert_equal('third link', link.text, "Third link text should be 'third link'")
+    call test#framework#assert_equal('wiki', link.type, "Third wiki link should be wiki type")
+    call test#framework#assert_equal('third link', link.text, "Third wiki link text should be 'third link'")
   else
-    call test#framework#assert_true(v:false, "Third link not found")
+    call test#framework#assert_true(v:false, "Third wiki link not found")
   endif
 
-  " Test 4: Fetch fourth link
+  " Test 4: Fetch fourth wiki link
   let link = md#links#findLinkAtPos([0, 3, 78, 0])
   if !empty(link)
-    call test#framework#assert_equal('wiki', link.type, "Fourth link should be wiki type")
-    call test#framework#assert_equal('very very long fourth link', link.text, "Fourth link text should be 'very very long fourth link'")
+    call test#framework#assert_equal('wiki', link.type, "Fourth wiki link should be wiki type")
+    call test#framework#assert_equal('very very long fourth link', link.text, "Fourth wiki link text should be 'very very long fourth link'")
   else
-    call test#framework#assert_true(v:false, "Fourth link not found")
+    call test#framework#assert_true(v:false, "Fourth wiki link not found")
+  endif
+
+  " Test 5: Fetch first inline link
+  let link = md#links#findLinkAtPos([0, 8, 1, 0])
+  if !empty(link)
+    call test#framework#assert_equal('inline', link.type, "First inline link should be inline type")
+    call test#framework#assert_equal('very very long first link', link.text, "First inline link text should be 'very very long first link'")
+  else
+    call test#framework#assert_true(v:false, "First inline link not found")
+  endif
+
+  " Test 6: Fetch second inline link
+  let link = md#links#findLinkAtPos([0, 8, 28, 0])
+  if !empty(link)
+    call test#framework#assert_equal('inline', link.type, "Second link should be inline type")
+    call test#framework#assert_equal('second link', link.text, "Second inline link text should be 'second link'")
+  else
+    call test#framework#assert_true(v:false, "Second inline link not found")
+  endif
+
+  " Test 7: Fetch third inline link
+  let link = md#links#findLinkAtPos([0, 8, 57, 0])
+  if !empty(link)
+    call test#framework#assert_equal('inline', link.type, "Third link should be inline type")
+    call test#framework#assert_equal('third link', link.text, "Third inline link text should be 'third link'")
+  else
+    call test#framework#assert_true(v:false, "Third inline link not found")
+  endif
+
+  " Test 8: Fetch fourth inline link
+  let link = md#links#findLinkAtPos([0, 8, 81, 0])
+  if !empty(link)
+    call test#framework#assert_equal('inline', link.type, "Fourth link should be inline type")
+    call test#framework#assert_equal('very very long fourth link', link.text, "Fourth inline link text should be 'very very long fourth link'")
+  else
+    call test#framework#assert_true(v:false, "Fourth inline link not found")
+  endif
+
+  " Test 9: Fetch first reference link
+  let link = md#links#findLinkAtPos([0, 13, 1, 0])
+  if !empty(link)
+    call test#framework#assert_equal('reference', link.type, "First reference link should be reference type")
+    call test#framework#assert_equal('very very long first link', link.text, "First reference link text should be 'very very long first link'")
+  else
+    call test#framework#assert_true(v:false, "First reference link not found")
+  endif
+
+  " Test 10: Fetch second reference link
+  let link = md#links#findLinkAtPos([0, 13, 20, 0])
+  if !empty(link)
+    call test#framework#assert_equal('reference', link.type, "Second link should be reference type")
+    call test#framework#assert_equal('second link', link.text, "Second reference link text should be 'second link'")
+  else
+    call test#framework#assert_true(v:false, "Second reference link not found")
+  endif
+
+  " Test 11: Fetch third reference link
+  let link = md#links#findLinkAtPos([0, 13, 51, 0])
+  if !empty(link)
+    call test#framework#assert_equal('reference', link.type, "Third link should be reference type")
+    call test#framework#assert_equal('third link', link.text, "Third reference link text should be 'third link'")
+  else
+    call test#framework#assert_true(v:false, "Third reference link not found")
+  endif
+
+  " Test 12: Fetch fourth reference link
+  let link = md#links#findLinkAtPos([0, 13, 77, 0])
+  if !empty(link)
+    call test#framework#assert_equal('reference', link.type, "Fourth link should be reference type")
+    call test#framework#assert_equal('very very long fourth link', link.text, "Fourth reference link text should be 'very very long fourth link'")
+  else
+    call test#framework#assert_true(v:false, "Fourth reference link not found")
   endif
 endfunction
 

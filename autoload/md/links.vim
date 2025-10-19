@@ -20,6 +20,7 @@ function! md#links#findLinkAtPos(pos)
     return ref_def_info
   endif
 
+  " FIXME can we collapse these a little? Seems redundant
   " Try to find a wiki link
   let wiki_link = s:findWikiLinkAtPosition(line_num, col_num)
   if !empty(wiki_link)
@@ -39,6 +40,15 @@ function! md#links#findLinkAtPos(pos)
   endif
 
   return {}
+endfunction
+
+" FIXME check whether this same logic can be used for other link types... it
+" probably can
+function! s:isMultiLine(link)
+  if has_key(a:link, 'end_line') && a:link.end_line > a:link.line_num
+    return v:true
+  endif
+  return v:false
 endfunction
 
 " Find inline link at the given position
@@ -67,7 +77,7 @@ function! s:findInlineLinkAtPosition(line_num, col_num)
     " Check if position is within the link
     if link.line_num == a:line_num
       " Link starts on current line
-      if has_key(link, 'end_line')
+      if s:isMultiLine(link)
         " Multi-line link
         if a:line_num == link.line_num && a:col_num >= link.start_col
           " On starting line, after start
@@ -109,43 +119,7 @@ function! s:findInlineLinkAtPosition(line_num, col_num)
   return {}
 endfunction
 
-" FIXME remove this from public API
-" FIXME check whether this same logic can be used for other link types... it
-" probably can
-function! md#links#isMultiLine(link)
-  if has_key(a:link, 'end_line') && a:link.end_line > a:link.line_num
-    return v:true
-  endif
-  return v:false
-endfunction
-
-" FIXME remove this from public API
-" FIXME check whether this same logic can be used for other link types... it
-" probably can
-function! md#links#positionIsInsideWikiLink(lnum, col, link)
-  if a:link.line_num == a:lnum
-    " Link starts on current line
-    if has_key(a:link, 'end_line') " Multi-line link
-echom "multiline"
-      if a:lnum == a:link.line_num && a:col >= a:link.start_col " On starting line, after start
-        return v:true
-      elseif a:lnum == a:link.end_line && a:col <= a:link.end_col " On ending line, before end
-        return v:true
-      elseif a:lnum > a:link.line_num && a:lnum < a:link.end_line " On middle line
-        return v:true
-      endif
-    else
-echom "single line"
-      " Single-line link
-      if a:col >= a:link.start_col && a:col <= a:link.end_col
-        return v:true
-      endif
-    endif
-  else
-    return v:false
-  endif
-endfunction
-
+" FIXME refactor this
 " Find wiki link at the given position
 " Returns link info dict or {} if none found
 function! s:findWikiLinkAtPosition(line_num, col_num)
@@ -155,7 +129,7 @@ function! s:findWikiLinkAtPosition(line_num, col_num)
     " Check if position is within the link
     if link.line_num == a:line_num
       " Link starts on current line
-      if has_key(link, 'end_line')
+      if s:isMultiLine(link)
         " Multi-line link
         if a:line_num == link.line_num && a:col_num >= link.start_col
           " On starting line, after start
@@ -205,7 +179,7 @@ function! s:findReferenceLinkAtPosition(line_num, col_num)
     " Check if position is within the link
     if link.line_num == a:line_num
       " Link starts on current line
-      if has_key(link, 'end_line')
+      if s:isMultiLine(link)
         " Multi-line link
         if a:line_num == link.line_num && a:col_num >= link.start_col
           " On starting line, after start
