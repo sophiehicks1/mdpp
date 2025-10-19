@@ -748,15 +748,6 @@ function! s:joinThreeLines(line_num)
   return [joined, lengths]
 endfunction
 
-" FIXME REMOVE THIS
-function! md#links#joinThreeLines(line_num)
-  return s:joinThreeLines(a:line_num)
-endfunction
-" FIXME REMOVE THIS
-function! md#links#stripStructuralMarkers(line)
-  return s:stripStructuralMarkers(a:line)
-endfunction
-
 " Helper function to strip structural markers from a line
 " Returns: [stripped_line, spaces_removed]
 function! s:stripStructuralMarkers(line)
@@ -786,7 +777,6 @@ function! s:stripStructuralMarkers(line)
   return [stripped, spaces + marker_len]
 endfunction
 
-" TODO uses s:joinThreeLines
 " Helper function to determine if a position in joined text belongs to the target line
 " pos is 0-indexed position in joined text
 " lengths is the dict returned by s:joinThreeLines
@@ -797,7 +787,6 @@ function! s:isInTargetLine(pos, lengths)
   return a:pos >= prev_len && a:pos < prev_len + curr_len
 endfunction
 
-" TODO uses s:joinThreeLines
 " Helper function to check if a link (defined by start and end positions in joined text)
 " touches the target line
 " lengths is the dict returned by s:joinThreeLines
@@ -813,7 +802,6 @@ function! s:linkTouchesTargetLine(link_start, link_end, lengths)
   return a:link_start <= target_end && a:link_end >= target_start
 endfunction
 
-" TODO Uses s:joinThreeLines
 " Helper function to convert a position in joined text to actual line/column
 " pos is 0-indexed position in joined text
 " line_num is the target line number
@@ -829,7 +817,6 @@ function! s:posToLineCol(pos, line_num, lengths)
   if a:pos < prev_len
     " Position is on previous line
     " Add back the leading spaces that were stripped
-    " TODO I think this is where the continuation line off-by-one bug is sneaking in
     return [a:line_num - 1, a:pos + prev_spaces + 1]
     " TODO vvv this can be simplified... the two branches are nearly identical
   elseif a:pos < prev_len + curr_len " Position is on current line
