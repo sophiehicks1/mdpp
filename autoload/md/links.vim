@@ -7,7 +7,7 @@
 function! md#links#findLinkAtPos(pos)
   let line_num = a:pos[1]
   let col_num = a:pos[2]
-  
+
   " First check if we're on a reference definition line
   let ref_def_info = s:findReferenceDefinitionAtPosition(line_num, col_num)
   if !empty(ref_def_info)
@@ -19,25 +19,25 @@ function! md#links#findLinkAtPos(pos)
     " If no referring link found, fall back to treating as regular reference definition
     return ref_def_info
   endif
-  
+
   " Try to find a wiki link
   let wiki_link = s:findWikiLinkAtPosition(line_num, col_num)
   if !empty(wiki_link)
     return wiki_link
   endif
-  
+
   " Try to find an inline link
   let inline_link = s:findInlineLinkAtPosition(line_num, col_num)
   if !empty(inline_link)
     return inline_link
   endif
-  
+
   " Try to find a reference link
   let reference_link = s:findReferenceLinkAtPosition(line_num, col_num)
   if !empty(reference_link)
     return reference_link
   endif
-  
+
   return {}
 endfunction
 
@@ -87,7 +87,7 @@ function! s:findInlineLinkAtPosition(line_num, col_num)
       endif
     endif
   endfor
-  
+
   " For multi-line links, also check if we're on a continuation line
   " Check if there's a link starting on the previous line that extends to this line
   if a:line_num > 1
@@ -105,8 +105,45 @@ function! s:findInlineLinkAtPosition(line_num, col_num)
       endif
     endfor
   endif
-  
+
   return {}
+endfunction
+
+" FIXME remove this from public API
+" FIXME check whether this same logic can be used for other link types... it
+" probably can
+function! md#links#isMultiLine(link)
+  if has_key(a:link, 'end_line') && a:link.end_line > a:link.line_num
+    return v:true
+  endif
+  return v:false
+endfunction
+
+" FIXME remove this from public API
+" FIXME check whether this same logic can be used for other link types... it
+" probably can
+function! md#links#positionIsInsideWikiLink(lnum, col, link)
+  if a:link.line_num == a:lnum
+    " Link starts on current line
+    if has_key(a:link, 'end_line') " Multi-line link
+echom "multiline"
+      if a:lnum == a:link.line_num && a:col >= a:link.start_col " On starting line, after start
+        return v:true
+      elseif a:lnum == a:link.end_line && a:col <= a:link.end_col " On ending line, before end
+        return v:true
+      elseif a:lnum > a:link.line_num && a:lnum < a:link.end_line " On middle line
+        return v:true
+      endif
+    else
+echom "single line"
+      " Single-line link
+      if a:col >= a:link.start_col && a:col <= a:link.end_col
+        return v:true
+      endif
+    endif
+  else
+    return v:false
+  endif
 endfunction
 
 " Find wiki link at the given position
@@ -138,7 +175,7 @@ function! s:findWikiLinkAtPosition(line_num, col_num)
       endif
     endif
   endfor
-  
+
   " For multi-line links, also check if we're on a continuation line
   if a:line_num > 1
     let prev_links = md#links#findWikiLinksInLine(a:line_num - 1)
@@ -155,7 +192,7 @@ function! s:findWikiLinkAtPosition(line_num, col_num)
       endif
     endfor
   endif
-  
+
   return {}
 endfunction
 
@@ -188,7 +225,7 @@ function! s:findReferenceLinkAtPosition(line_num, col_num)
       endif
     endif
   endfor
-  
+
   " For multi-line links, also check if we're on a continuation line
   if a:line_num > 1
     let prev_links = md#links#findReferenceLinksInLine(a:line_num - 1)
@@ -205,7 +242,7 @@ function! s:findReferenceLinkAtPosition(line_num, col_num)
       endif
     endfor
   endif
-  
+
   return {}
 endfunction
 
@@ -214,39 +251,39 @@ endfunction
 function! s:findInlineLinksInText(text, temp_line_num)
   let links = []
   let pos = 0
-  
+
   while 1
     " Find the next [ character
     let bracket_start = stridx(a:text, '[', pos)
     if bracket_start == -1
       break
     endif
-    
+
     " Find the matching ] character
     let bracket_end = s:findMatchingBracket(a:text, bracket_start)
     if bracket_end == -1
       let pos = bracket_start + 1
       continue
     endif
-    
+
     " Check if this is followed by a ( for inline link
     let paren_start = bracket_end + 1
     if paren_start >= len(a:text) || a:text[paren_start] != '('
       let pos = bracket_start + 1
       continue
     endif
-    
+
     " Find the matching ) character
     let paren_end = s:findMatchingParen(a:text, paren_start)
     if paren_end == -1
       let pos = bracket_start + 1
       continue
     endif
-    
+
     " Extract link components
     let text = a:text[bracket_start + 1 : bracket_end - 1]
     let url = a:text[paren_start + 1 : paren_end - 1]
-    
+
     let link_info = {
           \ 'type': 'inline',
           \ 'line_num': a:temp_line_num,
@@ -261,11 +298,11 @@ function! s:findInlineLinksInText(text, temp_line_num)
           \ 'full_start_col': bracket_start + 1,
           \ 'full_end_col': paren_end + 1
           \ }
-    
+
     call add(links, link_info)
     let pos = paren_end + 1
   endwhile
-  
+
   return links
 endfunction
 
@@ -275,10 +312,10 @@ endfunction
 function! md#links#findInlineLinksInLine(line_num)
   " Join current line with previous and next lines
   let [joined_text, lengths] = s:joinThreeLines(a:line_num)
-  
+
   " Find all links in the joined text
   let all_links = s:findInlineLinksInText(joined_text, a:line_num)
-  
+
   " Filter to only links that touch the target line
   let touching_links = []
   for link in all_links
@@ -289,7 +326,7 @@ function! md#links#findInlineLinksInLine(line_num)
       call add(touching_links, adjusted_link)
     endif
   endfor
-  
+
   return touching_links
 endfunction
 
@@ -298,21 +335,21 @@ endfunction
 function! s:findReferenceLinksInText(text, temp_line_num)
   let links = []
   let pos = 0
-  
+
   while 1
     " Find the next [ character
     let bracket_start = stridx(a:text, '[', pos)
     if bracket_start == -1
       break
     endif
-    
+
     " Find the matching ] character
     let bracket_end = s:findMatchingBracket(a:text, bracket_start)
     if bracket_end == -1
       let pos = bracket_start + 1
       continue
     endif
-    
+
     " Check if this is followed by another [ for reference link
     let ref_start = bracket_end + 1
     if ref_start >= len(a:text) || a:text[ref_start] != '['
@@ -320,26 +357,26 @@ function! s:findReferenceLinksInText(text, temp_line_num)
       let pos = bracket_start + 1
       continue
     endif
-    
+
     " Find the matching ] character for reference
     let ref_end = s:findMatchingBracket(a:text, ref_start)
     if ref_end == -1
       let pos = bracket_start + 1
       continue
     endif
-    
+
     " Extract link components
     let text = a:text[bracket_start + 1 : bracket_end - 1]
     let reference = a:text[ref_start + 1 : ref_end - 1]
-    
+
     " If reference is empty, use text as reference (implicit reference)
     if empty(reference)
       let reference = text
     endif
-    
+
     " Find the reference definition
     let ref_url = s:findReferenceDefinition(reference)
-    
+
     let link_info = {
           \ 'type': 'reference',
           \ 'line_num': a:temp_line_num,
@@ -353,11 +390,11 @@ function! s:findReferenceLinksInText(text, temp_line_num)
           \ 'full_start_col': bracket_start + 1,
           \ 'full_end_col': ref_end + 1
           \ }
-    
+
     call add(links, link_info)
     let pos = ref_end + 1
   endwhile
-  
+
   return links
 endfunction
 
@@ -367,10 +404,10 @@ endfunction
 function! md#links#findReferenceLinksInLine(line_num)
   " Join current line with previous and next lines
   let [joined_text, lengths] = s:joinThreeLines(a:line_num)
-  
+
   " Find all links in the joined text
   let all_links = s:findReferenceLinksInText(joined_text, a:line_num)
-  
+
   " Filter to only links that touch the target line
   let touching_links = []
   for link in all_links
@@ -381,7 +418,7 @@ function! md#links#findReferenceLinksInLine(line_num)
       call add(touching_links, adjusted_link)
     endif
   endfor
-  
+
   return touching_links
 endfunction
 
@@ -390,24 +427,24 @@ endfunction
 function! s:findWikiLinksInText(text, temp_line_num)
   let links = []
   let pos = 0
-  
+
   while 1
     " Find the next [[ sequence
     let wiki_start = stridx(a:text, '[[', pos)
     if wiki_start == -1
       break
     endif
-    
+
     " Find the matching ]] sequence
     let wiki_end = stridx(a:text, ']]', wiki_start + 2)
     if wiki_end == -1
       let pos = wiki_start + 2
       continue
     endif
-    
+
     " Extract the content between [[ and ]]
     let wiki_content = a:text[wiki_start + 2 : wiki_end - 1]
-    
+
     " Parse target and alias
     let pipe_pos = stridx(wiki_content, '|')
     if pipe_pos != -1
@@ -429,7 +466,7 @@ function! s:findWikiLinksInText(text, temp_line_num)
       let text_start_col = wiki_start + 3
       let text_end_col = wiki_end
     endif
-    
+
     let link_info = {
           \ 'type': 'wiki',
           \ 'line_num': a:temp_line_num,
@@ -446,11 +483,11 @@ function! s:findWikiLinksInText(text, temp_line_num)
           \ 'full_start_col': wiki_start + 1,
           \ 'full_end_col': wiki_end + 2
           \ }
-    
+
     call add(links, link_info)
     let pos = wiki_end + 2
   endwhile
-  
+
   return links
 endfunction
 
@@ -460,10 +497,10 @@ endfunction
 function! md#links#findWikiLinksInLine(line_num)
   " Join current line with previous and next lines
   let [joined_text, lengths] = s:joinThreeLines(a:line_num)
-  
+
   " Find all links in the joined text
   let all_links = s:findWikiLinksInText(joined_text, a:line_num)
-  
+
   " Filter to only links that touch the target line
   let touching_links = []
   for link in all_links
@@ -474,7 +511,7 @@ function! md#links#findWikiLinksInLine(line_num)
       call add(touching_links, adjusted_link)
     endif
   endfor
-  
+
   return touching_links
 endfunction
 
@@ -482,7 +519,7 @@ endfunction
 function! s:findMatchingBracket(text, start_pos)
   let bracket_count = 1
   let pos = a:start_pos + 1
-  
+
   while pos < len(a:text) && bracket_count > 0
     let char = a:text[pos]
     if char == '['
@@ -492,7 +529,7 @@ function! s:findMatchingBracket(text, start_pos)
     endif
     let pos += 1
   endwhile
-  
+
   if bracket_count == 0
     return pos - 1
   else
@@ -504,7 +541,7 @@ endfunction
 function! s:findMatchingParen(text, start_pos)
   let paren_count = 1
   let pos = a:start_pos + 1
-  
+
   while pos < len(a:text) && paren_count > 0
     let char = a:text[pos]
     if char == '('
@@ -514,7 +551,7 @@ function! s:findMatchingParen(text, start_pos)
     endif
     let pos += 1
   endwhile
-  
+
   if paren_count == 0
     return pos - 1
   else
@@ -527,7 +564,7 @@ endfunction
 function! s:findReferenceDefinition(reference)
   let line_num = 1
   let last_line = line('$')
-  
+
   while line_num <= last_line
     let line_content = getline(line_num)
     " Match reference definition: [ref]: url
@@ -538,7 +575,7 @@ function! s:findReferenceDefinition(reference)
     endif
     let line_num += 1
   endwhile
-  
+
   return ''
 endfunction
 
@@ -576,7 +613,7 @@ function! md#links#getLinkUrlRange(link_info)
   if empty(a:link_info)
     return []
   endif
-  
+
   if a:link_info.type == 'inline'
     " Use url_start_line and url_end_line if available (for multi-line links)
     let start_line = has_key(a:link_info, 'url_start_line') ? a:link_info.url_start_line : a:link_info.line_num
@@ -592,7 +629,7 @@ function! md#links#getLinkUrlRange(link_info)
     let end_line = has_key(a:link_info, 'target_end_line') ? a:link_info.target_end_line : a:link_info.line_num
     return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
   endif
-  
+
   return []
 endfunction
 
@@ -612,7 +649,7 @@ endfunction
 function! s:findReferenceDefinitionRange(reference)
   let line_num = 1
   let last_line = line('$')
-  
+
   while line_num <= last_line
     let line_content = getline(line_num)
     " Match reference definition: [ref]: url
@@ -632,7 +669,7 @@ function! s:findReferenceDefinitionRange(reference)
     endif
     let line_num += 1
   endwhile
-  
+
   return []
 endfunction
 
@@ -640,18 +677,18 @@ endfunction
 " Returns reference definition info dict or {} if none found
 function! s:findReferenceDefinitionAtPosition(line_num, col_num)
   let line_content = getline(a:line_num)
-  
+
   " Match reference definition: [ref]: url
   let pattern = '^\s*\[\([^\]]\+\)\]:\s*\(\S\+\)'
   let match = matchlist(line_content, pattern)
   if !empty(match)
     let reference = match[1]
     let url = match[2]
-    
+
     " Check if cursor is within this definition
     let def_start = match(line_content, pattern)
     let def_end = def_start + len(match[0]) - 1
-    
+
     if a:col_num >= def_start + 1 && a:col_num <= def_end + 1
       return {
             \ 'type': 'reference_definition',
@@ -663,7 +700,7 @@ function! s:findReferenceDefinitionAtPosition(line_num, col_num)
             \ }
     endif
   endif
-  
+
   return {}
 endfunction
 
@@ -672,19 +709,19 @@ endfunction
 function! s:findFirstReferringLink(reference)
   let line_num = 1
   let last_line = line('$')
-  
+
   while line_num <= last_line
     let links = md#links#findReferenceLinksInLine(line_num)
-    
+
     for link in links
       if link.reference ==# a:reference
         return link
       endif
     endfor
-    
+
     let line_num += 1
   endwhile
-  
+
   return {}
 endfunction
 
@@ -706,31 +743,44 @@ function! s:joinThreeLines(line_num)
   let prev_line = s:getLineSafe(a:line_num - 1)
   let curr_line = s:getLineSafe(a:line_num)
   let next_line = s:getLineSafe(a:line_num + 1)
-  
+
   " Strip structural indentation and markers from all lines
   " This handles list items, blockquotes, and other indented contexts
-  
+
   " Handle previous line
   let [prev_stripped, prev_spaces] = s:stripStructuralMarkers(prev_line)
-  
+
   " Handle current line
   let [curr_stripped, curr_spaces] = s:stripStructuralMarkers(curr_line)
-  
+
   " Handle next line
   let [next_stripped, next_spaces] = s:stripStructuralMarkers(next_line)
-  
+
+  " Add spaces to continuation lines to correctly model line wrapping in
+  " practice
+  let curr_stripped = ' ' . curr_stripped
+  let next_stripped = ' ' . next_stripped
+
   " Join lines without newlines (just concatenate)
-  " Add spaces between lines to simulate proper text wrapping
   let joined = prev_stripped . curr_stripped . next_stripped
-  
+
   " Return both original and stripped lengths for position mapping
   let lengths = {
         \ 'original_lengths': [len(prev_line), len(curr_line), len(next_line)],
         \ 'stripped_lengths': [len(prev_stripped), len(curr_stripped), len(next_stripped)],
         \ 'leading_spaces': [prev_spaces, curr_spaces, next_spaces]
         \ }
-  
+
   return [joined, lengths]
+endfunction
+
+" FIXME REMOVE THIS
+function! md#links#joinThreeLines(line_num)
+  return s:joinThreeLines(a:line_num)
+endfunction
+" FIXME REMOVE THIS
+function! md#links#stripStructuralMarkers(line)
+  return s:stripStructuralMarkers(a:line)
 endfunction
 
 " Helper function to strip structural markers from a line
@@ -739,35 +789,30 @@ function! s:stripStructuralMarkers(line)
   if empty(a:line)
     return ['', 0]
   endif
-  
+
   " Count leading whitespace
   let leading = matchstr(a:line, '^\s*')
   let spaces = len(leading)
   let content = a:line[spaces :]
-  
+
   " Check for and strip structural markers
   " List markers: -, *, +, or numbered lists
   " Blockquote markers: >
   " But don't strip if the line starts with a list marker (it's a new item)
   let stripped = content
   let marker_len = 0
-  
+
   " Strip blockquote markers (> ) recursively
   while stripped =~# '^>\s\?'
     let marker_match = matchstr(stripped, '^>\s\?')
     let marker_len += len(marker_match)
     let stripped = stripped[len(marker_match):]
   endwhile
-  
-  " If this looks like a continuation line (starts with just whitespace after markers)
-  " or if we stripped blockquote markers, add a space at the start
-  if spaces > 0 || marker_len > 0
-    let stripped = ' ' . stripped
-  endif
-  
+
   return [stripped, spaces + marker_len]
 endfunction
 
+" TODO uses s:joinThreeLines
 " Helper function to determine if a position in joined text belongs to the target line
 " pos is 0-indexed position in joined text
 " lengths is the dict returned by s:joinThreeLines
@@ -778,20 +823,23 @@ function! s:isInTargetLine(pos, lengths)
   return a:pos >= prev_len && a:pos < prev_len + curr_len
 endfunction
 
+" TODO uses s:joinThreeLines
 " Helper function to check if a link (defined by start and end positions in joined text)
 " touches the target line
+" lengths is the dict returned by s:joinThreeLines
 " Returns: 1 if link touches target line, 0 otherwise
 function! s:linkTouchesTargetLine(link_start, link_end, lengths)
   let prev_len = a:lengths['stripped_lengths'][0]
   let curr_len = a:lengths['stripped_lengths'][1]
   let target_start = prev_len
   let target_end = prev_len + curr_len - 1
-  
+
   " Link touches target line if:
   " - link starts before or in target line AND ends in or after target line
   return a:link_start <= target_end && a:link_end >= target_start
 endfunction
 
+" TODO Uses s:joinThreeLines
 " Helper function to convert a position in joined text to actual line/column
 " pos is 0-indexed position in joined text
 " line_num is the target line number
@@ -803,43 +851,34 @@ function! s:posToLineCol(pos, line_num, lengths)
   let prev_spaces = a:lengths['leading_spaces'][0]
   let curr_spaces = a:lengths['leading_spaces'][1]
   let next_spaces = a:lengths['leading_spaces'][2]
-  
+
   if a:pos < prev_len
     " Position is on previous line
     " Add back the leading spaces that were stripped
+    " TODO I think this is where the continuation line off-by-one bug is sneaking in
     return [a:line_num - 1, a:pos + prev_spaces + 1]
-  elseif a:pos < prev_len + curr_len
-    " Position is on current line
+    " TODO vvv this can be simplified... the two branches are nearly identical
+  elseif a:pos < prev_len + curr_len " Position is on current line
     let pos_in_curr = a:pos - prev_len
-    
-    " If current line was stripped (has curr_spaces > 0 and was converted to space + content)
-    if curr_spaces > 0 && a:lengths['stripped_lengths'][1] != a:lengths['original_lengths'][1]
-      " Current line was stripped and has a leading space
-      if pos_in_curr == 0
-        " Position is at the added space - map to first char after original whitespace
-        return [a:line_num, curr_spaces + 1]
-      else
-        " Position is after the added space - subtract 1 and add back original spaces
-        return [a:line_num, pos_in_curr - 1 + curr_spaces + 1]
-      endif
+
+    " Current line always has a leading space
+    if pos_in_curr == 0
+      " Position is at the added space - map to first char after original whitespace
+      return [a:line_num, curr_spaces + 1]
     else
-      " Current line was not stripped
-      return [a:line_num, pos_in_curr + 1]
+      " Position is after the added space - subtract 1 and add back original spaces
+      return [a:line_num, pos_in_curr - 1 + curr_spaces + 1]
     endif
-  else
-    " Position is on next line
+  else " Position is on next line
     let pos_in_next_stripped = a:pos - prev_len - curr_len
-    
+
     " If we stripped leading spaces and added a single space
-    if next_spaces > 0 && pos_in_next_stripped == 0
+    if pos_in_next_stripped == 0
       " Position is at the single space we added - map to first non-whitespace char
       return [a:line_num + 1, next_spaces + 1]
-    elseif next_spaces > 0
+    else
       " Position is after the added space - subtract 1 for the space and add back leading spaces
       return [a:line_num + 1, pos_in_next_stripped - 1 + next_spaces + 1]
-    else
-      " No leading spaces were stripped
-      return [a:line_num + 1, pos_in_next_stripped + 1]
     endif
   endif
 endfunction
@@ -853,7 +892,7 @@ function! s:adjustLinkInfo(link_info, line_num, lengths)
   let end_pos = s:posToLineCol(a:link_info.end_col - 1, a:line_num, a:lengths)
   let text_start_pos = s:posToLineCol(a:link_info.text_start_col - 1, a:line_num, a:lengths)
   let text_end_pos = s:posToLineCol(a:link_info.text_end_col - 1, a:line_num, a:lengths)
-  
+
   " Create adjusted link info with proper multi-line coordinates
   let adjusted = copy(a:link_info)
   let adjusted.line_num = start_pos[0]
@@ -868,7 +907,7 @@ function! s:adjustLinkInfo(link_info, line_num, lengths)
   let adjusted.full_end_col = end_pos[1]
   let adjusted.full_start_line = start_pos[0]
   let adjusted.full_end_line = end_pos[0]
-  
+
   " For inline links, also adjust URL columns
   if has_key(adjusted, 'url_start_col')
     let url_start_pos = s:posToLineCol(a:link_info.url_start_col - 1, a:line_num, a:lengths)
@@ -878,7 +917,7 @@ function! s:adjustLinkInfo(link_info, line_num, lengths)
     let adjusted.url_start_line = url_start_pos[0]
     let adjusted.url_end_line = url_end_pos[0]
   endif
-  
+
   " For wiki links, also adjust target columns
   if has_key(adjusted, 'target_start_col')
     let target_start_pos = s:posToLineCol(a:link_info.target_start_col - 1, a:line_num, a:lengths)
@@ -888,6 +927,6 @@ function! s:adjustLinkInfo(link_info, line_num, lengths)
     let adjusted.target_start_line = target_start_pos[0]
     let adjusted.target_end_line = target_end_pos[0]
   endif
-  
+
   return adjusted
 endfunction

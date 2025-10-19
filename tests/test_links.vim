@@ -20,7 +20,7 @@ function! s:run_tests()
   call test#framework#write_info("Running tests for md#links module...")
   call test#framework#write_info("==================================")
   
-  call test#framework#run_test_function('test_twoWikiLinksOneLine', function('s:test_twoWikiLinksOneLine'))
+  call test#framework#run_test_function('test_multipleLinksOnLine', function('s:test_multipleLinksOnLine'))
   call test#framework#run_test_function('test_findInlineLinksInLine', function('s:test_findInlineLinksInLine'))
   call test#framework#run_test_function('test_findReferenceLinksInLine', function('s:test_findReferenceLinksInLine'))
   call test#framework#run_test_function('test_findLinkAtPos', function('s:test_findLinkAtPos'))
@@ -36,31 +36,49 @@ function! s:run_tests()
   return test#framework#report_results("md#links")
 endfunction
 
-" Test multiple wikilinks on the same line
-function! s:test_twoWikiLinksOneLine()
+" TODO: add more tests for other kinds of links
+" Test multiple links on the same line
+function! s:test_multipleLinksOnLine()
   call test#framework#write_info("")
   call test#framework#write_info("Testing multiple wiki links on the same line...")
 
-  call test#framework#setup_buffer_from_file('wikilinks.md')
+  call test#framework#setup_buffer_from_file('multi_links_on_line.md')
 
   " Test 1: Fetch first link
-  let link = md#links#findLinkAtPos([0, 1, 18, 0])
+  let link = md#links#findLinkAtPos([0, 3, 1, 0])
   if !empty(link)
     call test#framework#assert_equal('wiki', link.type, "First link should be wiki type")
-    call test#framework#assert_equal('first link', link.text, "First link text should be 'first link'")
+    call test#framework#assert_equal('very very long first link', link.text, "First link text should be 'very very long first link'")
   else
-    call test#framework#assert_fail("First link not found")
+    call test#framework#assert_true(v:false, "First link not found")
   endif
 
   " Test 2: Fetch second link
-  let link = md#links#findLinkAtPos([0, 1, 47, 0])
+  let link = md#links#findLinkAtPos([0, 3, 20, 0])
   if !empty(link)
     call test#framework#assert_equal('wiki', link.type, "Second link should be wiki type")
     call test#framework#assert_equal('second link', link.text, "Second link text should be 'second link'")
   else
-    call test#framework#assert_fail("Second link not found")
+    call test#framework#assert_true(v:false, "Second link not found")
   endif
 
+  " Test 3: Fetch third link
+  let link = md#links#findLinkAtPos([0, 3, 50, 0])
+  if !empty(link)
+    call test#framework#assert_equal('wiki', link.type, "Third link should be wiki type")
+    call test#framework#assert_equal('third link', link.text, "Third link text should be 'third link'")
+  else
+    call test#framework#assert_true(v:false, "Third link not found")
+  endif
+
+  " Test 4: Fetch fourth link
+  let link = md#links#findLinkAtPos([0, 3, 78, 0])
+  if !empty(link)
+    call test#framework#assert_equal('wiki', link.type, "Fourth link should be wiki type")
+    call test#framework#assert_equal('very very long fourth link', link.text, "Fourth link text should be 'very very long fourth link'")
+  else
+    call test#framework#assert_true(v:false, "Fourth link not found")
+  endif
 endfunction
 
 " Test md#links#findInlineLinksInLine function
@@ -483,6 +501,8 @@ function! s:test_multiline_links()
     call test#framework#assert_equal(9, links[0].line_num, "Should report correct starting line")
     " The text will be concatenated without newlines
     call test#framework#assert_true(len(links[0].text) > 0, "Should have link text")
+    " The text should be correct
+    call test#framework#assert_equal('modest link with 5 words', links[0].text, "Should have correct link text")
   endif
   
   " Test 2: Same wiki link found from continuation line (line 10)
@@ -490,6 +510,10 @@ function! s:test_multiline_links()
   call test#framework#assert_equal(1, len(links), "Should find wiki link from continuation line 10")
   if len(links) > 0
     call test#framework#assert_equal(9, links[0].line_num, "Should report original starting line")
+    " The text will be concatenated without newlines
+    call test#framework#assert_true(len(links[0].text) > 0, "Should have link text")
+    " The text should be correct
+    call test#framework#assert_equal('modest link with 5 words', links[0].text, "Should have correct link text")
   endif
   
   " Test 3: Inline link with wrapped text (line 19-20)
@@ -499,6 +523,10 @@ function! s:test_multiline_links()
     call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
     call test#framework#assert_equal(19, links[0].line_num, "Should report correct starting line")
     call test#framework#assert_equal('http://example.com', links[0].url, "Should extract URL correctly")
+    " The text will be concatenated without newlines
+    call test#framework#assert_true(len(links[0].text) > 0, "Should have link text")
+    " The text should be correct
+    call test#framework#assert_equal('this is a link that spans multiple lines', links[0].text, "Should have correct link text")
   endif
   
   " Test 4: Inline link found from text continuation line
@@ -506,6 +534,10 @@ function! s:test_multiline_links()
   call test#framework#assert_equal(1, len(links), "Should find inline link from text continuation line")
   if len(links) > 0
     call test#framework#assert_equal(19, links[0].line_num, "Should report original starting line")
+    " The text will be concatenated without newlines
+    call test#framework#assert_true(len(links[0].text) > 0, "Should have link text")
+    " The text should be correct
+    call test#framework#assert_equal('this is a link that spans multiple lines', links[0].text, "Should have correct link text")
   endif
   
   " Test 5: Reference link with wrapped text (line 36-37)
@@ -515,11 +547,21 @@ function! s:test_multiline_links()
     call test#framework#assert_equal('reference', links[0].type, "Should be reference link type")
     call test#framework#assert_equal('ref2', links[0].reference, "Should extract reference correctly")
     call test#framework#assert_equal('http://example.com/multiline', links[0].url, "Should resolve reference URL")
+    " The text will be concatenated without newlines
+    call test#framework#assert_true(len(links[0].text) > 0, "Should have link text")
+    " The text should be correct
+    call test#framework#assert_equal('this reference text spans multiple lines', links[0].text, "Should have correct link text")
   endif
   
   " Test 6: Reference link found from continuation line
   let links = md#links#findReferenceLinksInLine(37)
   call test#framework#assert_equal(1, len(links), "Should find reference link from continuation line")
+  if len(links) > 0
+    " The text will be concatenated without newlines
+    call test#framework#assert_true(len(links[0].text) > 0, "Should have link text")
+    " The text should be correct
+    call test#framework#assert_equal('this reference text spans multiple lines', links[0].text, "Should have correct link text")
+  endif
   
   " Test 7: Cursor in middle of wiki link text on first line
   call cursor(9, 75)  " In the wrapped wiki link
@@ -583,6 +625,27 @@ function! s:test_multiline_links()
   endif
 endfunction
 
+function! s:assert_link_position(link, key, expected, descriptor)
+  call test#framework#assert_true(has_key(a:link, a:key), a:descriptor . " should have '" . a:key . "'")
+  if has_key(a:link, a:key)
+    let actual = a:link[a:key]
+    call test#framework#assert_equal(a:expected, actual, a:descriptor . " " . a:key 
+          \ . " should be " . string(a:expected) . ", but was " . string(actual))
+  endif
+endfunction
+
+" This is just for use in test_indented_wrapped_links
+" start_pos is [line, col] for start of full link
+" end_pos is [line, col] for end of full link
+" desc is the descriptive name which will show up in assertion failure
+" messages
+function! s:assert_fulllink_positions(link, start_pos, end_pos, desc)
+  call s:assert_link_position(a:link, 'full_start_line', a:start_pos[0], a:desc)
+  call s:assert_link_position(a:link, 'full_start_col', a:start_pos[1], a:desc)
+  call s:assert_link_position(a:link, 'full_end_line', a:end_pos[0], a:desc)
+  call s:assert_link_position(a:link, 'full_end_col', a:end_pos[1], a:desc)
+endfunction
+
 " Test indented wrapped links
 function! s:test_indented_wrapped_links()
   call test#framework#write_info("")
@@ -604,6 +667,7 @@ function! s:test_indented_wrapped_links()
           \ "Link text should not include indentation spaces")
     call test#framework#assert_equal('relatively short link', links[0].url, 
           \ "Link URL should match text without indentation spaces")
+    call s:assert_fulllink_positions(links[0], [8, 63], [9, 10], 'First')
   endif
   
   " Test 2: Same link found from continuation line
@@ -612,6 +676,7 @@ function! s:test_indented_wrapped_links()
   if len(links) > 0
     call test#framework#assert_equal('relatively short link', links[0].text, 
           \ "Link text should be consistent when found from continuation line")
+    call s:assert_fulllink_positions(links[0], [8, 63], [9, 10], 'First (from second line)')
   endif
   
   " Test 3: Inline link in nested list (line 10-11)
@@ -623,6 +688,19 @@ function! s:test_indented_wrapped_links()
           \ "Inline link text should not include indentation")
     call test#framework#assert_equal('./file.md', links[0].url,
           \ "Inline link URL should be correct")
+    call s:assert_fulllink_positions(links[0], [10, 40], [11, 21], 'Second')
+  endif
+
+  " Test 3b: same link from continuation line
+  let links = md#links#findInlineLinksInLine(11)
+  call test#framework#assert_equal(1, len(links), "Should find inline link on line 11")
+  if len(links) > 0
+    call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
+    call test#framework#assert_equal('file link text that wraps', links[0].text,
+          \ "Inline link text should not include indentation")
+    call test#framework#assert_equal('./file.md', links[0].url,
+          \ "Inline link URL should be correct")
+    call s:assert_fulllink_positions(links[0], [10, 40], [11, 21], 'Second (from second line)')
   endif
   
   " Test 4: Deeply nested wiki link (line 17-18)
@@ -631,6 +709,7 @@ function! s:test_indented_wrapped_links()
   if len(links) > 0
     call test#framework#assert_equal('deeply nested wrapped link', links[0].text,
           \ "Deeply nested link text should not include indentation")
+    call s:assert_fulllink_positions(links[0], [17, 22], [18, 20], 'Third')
   endif
   
   " Test 5: Deeply nested inline link (line 19-20)
@@ -639,6 +718,7 @@ function! s:test_indented_wrapped_links()
   if len(links) > 0
     call test#framework#assert_equal('inline link that spans lines', links[0].text,
           \ "Deeply nested inline link text should not include indentation")
+    call s:assert_fulllink_positions(links[0], [19, 30], [20, 38], 'Fourth')
   endif
   
   " Test 6: Wiki link in blockquote (line 24-25)
@@ -647,6 +727,7 @@ function! s:test_indented_wrapped_links()
   if len(links) > 0
     call test#framework#assert_equal('wiki link that wraps', links[0].text,
           \ "Blockquote wiki link should not include continuation markers")
+    call s:assert_fulllink_positions(links[0], [24, 26], [25, 14], 'Fifth')
   endif
   
   " Test 7: Inline link in blockquote (line 27-28)
@@ -655,6 +736,7 @@ function! s:test_indented_wrapped_links()
   if len(links) > 0
     call test#framework#assert_equal('inline link that wraps', links[0].text,
           \ "Blockquote inline link should not include continuation markers")
+    call s:assert_fulllink_positions(links[0], [27, 25], [28, 31], 'Sixth')
   endif
   
   " Test 8: Reference link in list (line 40-41)
@@ -664,6 +746,7 @@ function! s:test_indented_wrapped_links()
     call test#framework#assert_equal('reference', links[0].type, "Should be reference link")
     call test#framework#assert_equal('reference link text', links[0].text,
           \ "Reference link text should not include indentation")
+    call s:assert_fulllink_positions(links[0], [40, 13], [41, 13], 'Seventh')
   endif
   
   " Test 9: Reference link in nested list (line 42-43)
@@ -672,6 +755,7 @@ function! s:test_indented_wrapped_links()
   if len(links) > 0
     call test#framework#assert_equal('another ref link', links[0].text,
           \ "Nested reference link text should not include indentation")
+    call s:assert_fulllink_positions(links[0], [42, 17], [43, 15], 'Seventh')
   endif
   
   " Test 10: Test cursor position in middle of wrapped link (critical for vim-open)
@@ -692,6 +776,60 @@ function! s:test_indented_wrapped_links()
   if !empty(link)
     call test#framework#assert_equal('relatively short link', link.text,
           \ "Should extract clean link text when cursor on continuation line")
+  endif
+
+  " Test 12: Non indented wiki link (lines 50-51)
+  let links = md#links#findWikiLinksInLine(50)
+  call test#framework#assert_equal(1, len(links), "Should find wiki link on line 50")
+  if len(links) > 0
+    let link = links[0]
+    call test#framework#assert_equal('spans two lines', link.text, "Should correctly concatenate wiki link text across lines")
+    call s:assert_fulllink_positions(link, [50, 75], [51, 11], 'Eighth')
+  endif
+
+  " Test 12b: Same link from next line
+  let links = md#links#findWikiLinksInLine(51)
+  call test#framework#assert_equal(1, len(links), "Should find wiki link on line 51")
+  if len(links) > 0
+    let link = links[0]
+    call test#framework#assert_equal('spans two lines', link.text, "Should correctly concatenate wiki link text across lines from second line")
+    call s:assert_fulllink_positions(link, [50, 75], [51, 11], 'Eighth (from second line)')
+  endif
+
+  " Test 13: Non indented inline link (lines 53-54)
+  let links = md#links#findInlineLinksInLine(53)
+  call test#framework#assert_equal(1, len(links), "Should find inline link on line 53")
+  if len(links) > 0
+    let link = links[0]
+    call test#framework#assert_equal('an inline link', link.text, "Should correctly concatenate inline link text across lines")
+    call s:assert_fulllink_positions(link, [53, 77], [54, 32], 'Ninth')
+  endif
+
+  " Test 13b: Same link from next line
+  let links = md#links#findInlineLinksInLine(54)
+  call test#framework#assert_equal(1, len(links), "Should find inline link on line 54")
+  if len(links) > 0
+    let link = links[0]
+    call test#framework#assert_equal('an inline link', link.text, "Should correctly concatenate inline link text across lines from second line")
+    call s:assert_fulllink_positions(link, [53, 77], [54, 32], 'Ninth (from second line)')
+  endif
+
+  " Test 14: Non indented inline link (lines 56-57)
+  let links = md#links#findReferenceLinksInLine(56)
+  call test#framework#assert_equal(1, len(links), "Should find reference link on line 56")
+  if len(links) > 0
+    let link = links[0]
+    call test#framework#assert_equal('a reference link', link.text, "Should correctly concatenate reference link text across lines")
+    call s:assert_fulllink_positions(link, [56, 75], [57, 21], 'Tenth')
+  endif
+
+  " Test 14b: Same link from next line
+  let links = md#links#findReferenceLinksInLine(57)
+  call test#framework#assert_equal(1, len(links), "Should find reference link on line 57")
+  if len(links) > 0
+    let link = links[0]
+    call test#framework#assert_equal('a reference link', link.text, "Should correctly concatenate reference link text across lines from second line")
+    call s:assert_fulllink_positions(link, [56, 75], [57, 21], 'Tenth (from second line)')
   endif
 endfunction
 

@@ -44,3 +44,16 @@ This tests links that wrap across lines with indentation.
 
 [ref1]: ./referenced.md
 [ref2]: http://example.com
+
+## No indentation
+
+This is some regular text, without indentation that ends with a link that [[spans
+two lines]]
+
+This is another chunk of regular text without indentation, but this one has [an
+inline link](./inline-target.md)
+
+Finally, we have one more chunk of non-indented text with a link. This is [a
+reference link][ref3]
+
+[ref3]: https://blah.com
