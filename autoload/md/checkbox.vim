@@ -207,8 +207,8 @@ function! md#checkbox#checkCheckbox(line_num)
     return
   endif
   
-  " Replace the checkbox state with checked 'x'
-  let newPrefix = substitute(parsed.prefix, '\[[xX ]\]', '[x]', '')
+  " Replace the checkbox state with checked 'X'
+  let newPrefix = substitute(parsed.prefix, '\[[xX ]\]', '[X]', '')
   let newLine = newPrefix . parsed.content
   
   " Update the line in the buffer

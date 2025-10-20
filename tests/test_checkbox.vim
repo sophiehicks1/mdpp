@@ -64,20 +64,20 @@ function! s:test_checkCheckbox()
   call cursor(5, 1)  " On "- [ ] Basic unchecked item"
   call md#checkbox#checkCheckbox(line('.'))
   let line = getline(5)
-  call test#framework#assert_true(line =~ '^\s*-\s*\[x\]', "Should check unchecked checkbox")
+  call test#framework#assert_true(line =~ '^\s*-\s*\[X\]', "Should check unchecked checkbox")
   
   " Test 2: Check already checked checkbox (should remain checked)
   call cursor(6, 1)  " On already checked item
   let originalLine = getline(6)
   call md#checkbox#checkCheckbox(line('.'))
   let newLine = getline(6)
-  call test#framework#assert_equal(substitute(originalLine, '\[[xX]\]', '[x]', ''), newLine, "Should normalize checked checkbox to [x]")
+  call test#framework#assert_equal(substitute(originalLine, '\[[xX]\]', '[X]', ''), newLine, "Should normalize checked checkbox to [X]")
   
   " Test 3: Check multi-line checkbox from continuation line
   call cursor(13, 10)  " On continuation line
   call md#checkbox#checkCheckbox(line('.'))
   let line = getline(12)  " Check the checkbox line itself
-  call test#framework#assert_true(line =~ '^\s*-\s*\[x\]', "Should check multi-line checkbox from continuation line")
+  call test#framework#assert_true(line =~ '^\s*-\s*\[X\]', "Should check multi-line checkbox from continuation line")
   
   " Test 4: Attempt to check non-checkbox should do nothing
   call cursor(9, 1)  " On regular list item
@@ -91,7 +91,7 @@ function! s:test_checkCheckbox()
   call cursor(5, 15)  " Middle of checkbox content
   call md#checkbox#checkCheckbox(line('.'))
   let line = getline(5)
-  call test#framework#assert_true(line =~ '^\s*-\s*\[x\]', "Should check checkbox from any cursor position within item")
+  call test#framework#assert_true(line =~ '^\s*-\s*\[X\]', "Should check checkbox from any cursor position within item")
 endfunction
 
 " TODO make sure this actually makes sense
@@ -144,13 +144,13 @@ function! s:test_edge_cases()
   call cursor(21, 1)  " On nested unchecked item
   call md#checkbox#checkCheckbox(line('.'))
   let line = getline(21)
-  call test#framework#assert_true(line =~ '^\s*-\s*\[x\]', "Should handle nested checkboxes")
+  call test#framework#assert_true(line =~ '^\s*-\s*\[X\]', "Should handle nested checkboxes")
   
-  " Test 2: Capital X checkbox normalization
-  call cursor(7, 1)  " On "[X]" checkbox
+  " Test 2: Lowercase X checkbox normalization
+  call cursor(7, 1)  " On "[x]" checkbox
   call md#checkbox#checkCheckbox(line('.'))
   let line = getline(7)
-  call test#framework#assert_true(line =~ '^\s*-\s*\[x\]', "Should normalize [X] to [x]")
+  call test#framework#assert_true(line =~ '^\s*-\s*\[X\]', "Should normalize [x] to [X]")
   
   " Test 3: Empty buffer
   call test#framework#setup_buffer_from_string("")
