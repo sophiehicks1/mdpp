@@ -21,34 +21,22 @@ function! s:getCompletionFunction()
 endfunction
 
 " Default completion function - finds markdown files relative to current directory
-" Uses same semantics as the default wiki-link resolver
+" Uses matching semantics to the default wiki-link resolver
 function! s:defaultCompletion(text)
-  " Build glob patterns based on prefix
-  if empty(a:text)
-    " No prefix, match all markdown files recursively
-    let patterns = ['./**/*.md']
+  if exists('*glob') && has('patch-7.4.279')
+    let files = glob('./**/*.md', 0, 1)
   else
-    " With prefix: find files in current dir and subdirs that match prefix
-    let patterns = ['./' . a:text . '*.md', './' . a:text . '*/**/*.md']
+    let files = split(glob('./**/*.md'), '\n')
   endif
-
-  " Collect files from all patterns
-  let files = []
-  for pattern in patterns
-    " Use glob with list return if available, otherwise split string result
-    if exists('*glob') && has('patch-7.4.279')
-      let files += glob(pattern, 0, 1)
-    else
-      let files += split(glob(pattern), '\n')
-    endif
-  endfor
+  let files = filter(files, 'isdirectory(v:val) == 0')
+  let files = [a:text] + files
 
   " Convert to relative paths and remove ./ prefix and .md suffix
   let completions = []
   for file in files
     if file =~ '^\./'
       let relative_path = file[2:]  " Remove './' prefix
-      if relative_path =~ '\.md$'
+      if relative_path =~ '\.\w\+$'
         let completion = relative_path[:-4]  " Remove '.md' suffix
         call add(completions, completion)
       endif
