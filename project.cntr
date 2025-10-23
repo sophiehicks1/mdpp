@@ -22,4 +22,4 @@ sed -e 's/.\/autoload\/md\///'
 sed -e 's/.vim//'
 add-headers module,line,call
 columns call,module,line
-sort
+sort-by -c line -d asc

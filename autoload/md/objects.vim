@@ -129,23 +129,16 @@ endfunction
 function! md#objects#aroundLinkUrl()
   let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
-    if link_info.type == 'inline'
-      let range = md#links#getLinkUrlRange(link_info)
-      if !empty(range)
+    let range = md#links#getLinkUrlRange(link_info)
+    if !empty(range)
+      if link_info.type == 'inline'
         " Extend range to include the parentheses
         return s:charRange([range[0], range[1] - 1], [range[2], range[3] + 1])
-      endif
-    elseif link_info.type == 'reference'
-      " For reference links, include the entire definition line
-      let range = md#links#getLinkUrlRange(link_info)
-      if !empty(range)
-        " For reference definitions, select the entire line
+      elseif link_info.type == 'reference'
+        " For reference links, include the entire definition line
         return ['V', s:startOfLine(range[0]), s:startOfLine(range[2])]
-      endif
-    elseif link_info.type == 'wiki'
-      " For wiki links, around the target means just the target since there are no dedicated brackets around it
-      let range = md#links#getLinkUrlRange(link_info)
-      if !empty(range)
+      elseif link_info.type == 'wiki'
+        " For wiki links, around the target means just the target since there are no dedicated brackets around it
         return s:charRange([range[0], range[1]], [range[2], range[3]])
       endif
     endif

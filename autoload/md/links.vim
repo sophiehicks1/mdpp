@@ -1,3 +1,7 @@
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Functions for parsing and handling markdown links
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
 " s:find___LinksInText {{{
 
 " Helper function to find wiki links in a text string
@@ -174,7 +178,7 @@ function! s:findReferenceLinksInText(text, temp_line_num)
     endif
 
     " Find the reference definition
-    let ref_url = s:findReferenceDefinition(reference)
+    let ref_info = s:findReferenceDefinitionInfo(reference)
 
     let link_info = {
           \ 'type': 'reference',
@@ -185,10 +189,19 @@ function! s:findReferenceLinksInText(text, temp_line_num)
           \ 'text_start_col': bracket_start + 2,
           \ 'text_end_col': bracket_end,
           \ 'reference': reference,
-          \ 'url': ref_url,
           \ 'full_start_col': bracket_start + 1,
           \ 'full_end_col': ref_end + 1
           \ }
+
+    if !empty(ref_info)
+      let link_info.url = ref_info.url
+      let link_info.url_start_line = ref_info.line_num
+      let link_info.url_start_col = ref_info.url_start_col
+      let link_info.url_end_col = ref_info.url_end_col
+      let link_info.url_end_line = ref_info.line_num
+    else
+      let link_info.url = ''
+    endif
 
     call add(links, link_info)
     let pos = ref_end + 1
@@ -198,10 +211,6 @@ function! s:findReferenceLinksInText(text, temp_line_num)
 endfunction
 
 " }}}
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Functions for parsing and handling markdown links
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " md#links#findLinkAtPos(pos) {{{
 
@@ -291,7 +300,6 @@ function s:genericFindLinksInLine(find_in_text_fn, line_num)
 
   " Find all links in the joined text
   let all_links = a:find_in_text_fn(joined_text, a:line_num)
-
   " Filter to only links that touch the target line
   let touching_links = []
   for link in all_links
@@ -425,8 +433,6 @@ function! md#links#getLinkTextRange(link_info)
 endfunction
 
 " TODO make this generic
-" - FIXME lookup reference definition stuff while parsing the original link
-"   and store it in the link object
 " - FIXME standardize the link object, so that all link objects use the same
 "   fields for the same semantic purpose
 " Get position range for link URL selection
@@ -448,8 +454,11 @@ function! md#links#getLinkUrlRange(link_info)
     return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
   elseif a:link_info.type == 'reference'
     " For reference links, find the definition line
-    let def_range = s:findReferenceDefinitionRange(a:link_info.reference)
-    return def_range
+    if has_key(a:link_info, 'url_start_line')
+      let start_line = a:link_info.url_start_line
+      let end_line = a:link_info.url_end_line
+      return [start_line, a:link_info.url_start_col, end_line, a:link_info.url_end_col]
+    endif
   endif
 
   return []
@@ -471,93 +480,67 @@ endfunction
 
 " Reference definition stuff {{{
 
-" Find reference definition for a given reference label
-" Returns the URL or empty string if not found
-function! s:findReferenceDefinition(reference)
-  let line_num = 1
-  let last_line = line('$')
-
-  while line_num <= last_line
-    let line_content = getline(line_num)
-    " Match reference definition: [ref]: url
-    let pattern = '^\s*\[' . escape(a:reference, '[]') . '\]:\s*\(\S\+\)'
-    let match = matchlist(line_content, pattern)
-    if !empty(match)
-      return match[1]
-    endif
-    let line_num += 1
-  endwhile
-
-  return ''
-endfunction
-
 " make a regex pattern to find a reference definition line. Reference should
 " either be a reference id (e.g. 'foo' to find the reference definition for
 " `[this link][foo]`) or an empty string to find any/all reference definitions)
+"
+" In both cases, the reference ID will be captured in the first group, and the
+" url will be captured in the second.
 function! s:makeReferencePattern(reference)
   let reference = escape(a:reference, '[]')
   if empty(reference)
-    let reference = '\([^\]]\+\)'
+    let reference = '[^\]]\+'
   endif
-  return '^\s*\[' . reference . '\]:\s*\(\S\+\)'
+  return '^\s*\[\(' . reference . '\)\]:\s*\(\S\+\)'
 endfunction
 
-" Find the range for a reference definition URL
-function! s:findReferenceDefinitionRange(reference)
-  let line_num = 1
-  let last_line = line('$')
-
-  while line_num <= last_line
-    let line_content = getline(line_num)
-    " Match reference definition: [ref]: url
-    let pattern = s:makeReferencePattern(a:reference)
-    let match_start = match(line_content, pattern)
-    if match_start != -1
-      " Find the URL part
-      let url_pattern = '^\s*\[' . escape(a:reference, '[]') . '\]:\s*'
-      let url_start = match(line_content, url_pattern) + len(matchstr(line_content, url_pattern))
-      let url_end = match(line_content, '\s', url_start)
-      if url_end == -1
-        let url_end = len(line_content)
-      else
-        let url_end = url_end - 1
-      endif
-      return [line_num, url_start + 1, line_num, url_end + 1]
-    endif
-    let line_num += 1
-  endwhile
-
-  return []
-endfunction
-
-" Find reference definition at the given position
+" Extract reference definition info from a specific line number
 " Returns reference definition info dict or {} if none found
-function! s:findReferenceDefinitionAtPosition(line_num, col_num)
+"
+" The 'reference' argument is the reference ID to look for, or empty string
+" to match any reference definition on that line.
+function! s:extractReferenceFromLine(line_num, reference)
+  let pattern = s:makeReferencePattern(a:reference)
   let line_content = getline(a:line_num)
-
-  " Match reference definition: [ref]: url
-  let pattern = s:makeReferencePattern('')
   let match = matchlist(line_content, pattern)
   if !empty(match)
     let reference = match[1]
     let url = match[2]
 
-    " Check if cursor is within this definition
-    let def_start = match(line_content, pattern)
-    let def_end = def_start + len(match[0]) - 1
-
-    if a:col_num >= def_start + 1 && a:col_num <= def_end + 1
-      return {
-            \ 'type': 'reference_definition',
-            \ 'line_num': a:line_num,
-            \ 'reference': reference,
-            \ 'url': url,
-            \ 'start_col': def_start + 1,
-            \ 'end_col': def_end + 1
-            \ }
-    endif
+    let url_end = len(match[0])
+    let url_start = url_end - len(url) + 1
+    return {
+          \ 'type': 'reference_definition',
+          \ 'line_num': a:line_num,
+          \ 'reference': reference,
+          \ 'url': url,
+          \ 'url_start_col': url_start,
+          \ 'url_end_col': url_end
+          \ }
   endif
+  return {}
+endfunction
 
+function! s:findReferenceDefinitionInfo(reference)
+  let line_num = 1
+  let last_line = line('$')
+  while line_num <= last_line
+    let reference_info = s:extractReferenceFromLine(line_num, a:reference)
+    if !empty(reference_info)
+      return reference_info
+    endif
+    let line_num += 1
+  endwhile
+  return {}
+endfunction
+
+" Find reference definition at the given position
+" Returns reference definition info dict or {} if none found
+function! s:findReferenceDefinitionAtPosition(line_num, col_num)
+  let reference_info = s:extractReferenceFromLine(a:line_num, '')
+  if !empty(reference_info) && a:col_num <= reference_info.url_end_col
+    return reference_info
+  endif
   return {}
 endfunction
 
@@ -749,7 +732,7 @@ function! s:adjustLinkInfo(link_info, line_num, lengths)
   let adjusted.full_end_line = end_pos[0]
 
   " For inline links, also adjust URL columns
-  if has_key(adjusted, 'url_start_col')
+  if adjusted.type ==# 'inline'
     let url_start_pos = s:posToLineCol(a:link_info.url_start_col - 1, a:line_num, a:lengths)
     let url_end_pos = s:posToLineCol(a:link_info.url_end_col - 1, a:line_num, a:lengths)
     let adjusted.url_start_col = url_start_pos[1]
@@ -759,7 +742,7 @@ function! s:adjustLinkInfo(link_info, line_num, lengths)
   endif
 
   " For wiki links, also adjust target columns
-  if has_key(adjusted, 'target_start_col')
+  if adjusted.type ==# 'wiki'
     let target_start_pos = s:posToLineCol(a:link_info.target_start_col - 1, a:line_num, a:lengths)
     let target_end_pos = s:posToLineCol(a:link_info.target_end_col - 1, a:line_num, a:lengths)
     let adjusted.target_start_col = target_start_pos[1]
