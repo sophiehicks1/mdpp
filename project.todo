@@ -1,0 +1,85 @@
+How md#links works
+- seems like all the work is being done by `s:findXXXLinksInText(...)`
+  functions, which scan a line of text (made by concatentating prev, curr, next
+  lines) for characters to find XXX type links.
+- Pretty much everything else seems to be generic (although there's a TON of
+  code that's copy/pasted around).
+- The public API is:
+  * md#links#findLinkAtPos
+  * md#links#getLinkFullRange
+  * md#links#getLinkTextRange
+  * md#links#getLinkUrl
+  * md#links#getLinkUrlRange
+- md#links#getXXX are only used to access link object internals. The hard stuff
+  is all in findLinkAtPos, which uses s:find___AtPosition functions to
+- uses s:findReferenceLinkAtPosition to check if we're on a reference
+  definition line, and then walks forward through the file looking for a
+  matching link using md#links#findReferenceLinksInLine
+- Uses s:find___LinkAtPosition functions to find other kinds of links
+  * These all use md#links#find___LinksInLine functions, and scan through the
+    returned links using s:posInsideLink
+- md#links#find___LinksInLine functions all concat three lines, feed that to a
+  matching find___LinksInText function and then adjust the result back to a
+  single line
+- find___LinksInText functions do all the real work. Pretty much everything else
+  is just copy pasta to avoid actually structuring the code
+
+How Reference definitions work:
+There are two entry points into this code
+- findReferenceDefinitionRange is called from getLinkUrlRange, which is called
+  from the link url text text object, and it does its own (fully self contained)
+  linewise scanning from top to bottom, just to look for the precise info that
+  object needs
+- findReferenceDefinitionAtPosition and findFirstReferringLink are both called
+  from md#links#findLinkAtPos
+
+Goal
+- Build a dom like model that scans the file top to bottom and collects all the
+  links
+- Create an entry point that lets you pass in a file provider that either querys
+  the current buffer, or a file on disk
+- Use this in two places
+  a. In a buildLinksDom call that's used for every link operation
+  b. In a link scanning job populates a SQlite db which workflow.vim runs on
+    save, and in a periodic scan
+
+Open Questions
+- do I want to move all the link handling out of mdpp and into workflow.vim
+  * would make md a privileged type (which is okay, but a change)
+    + make md the default extension
+    + create the ability to extend link handling by configuring new filetypes...
+      Something like registering an autoload prefix for the findLinksOnLine
+      function
+    + Then all the rest of the code could be generic
+- If I'm doing that, it makes sense to move all the heading stuff too... that
+  requires more thought though... how do I make the heading stuff filetype
+  generic? It's almost certainly possible, but will take thought
+  * This would relegate mdpp to being just markdown footnotes code and checkbox
+    code
+  * The checkbox code is of questionable value... kill it... replace with
+    bullets.vim
+  * The footnotes code is useful and there's a lot of it... deserves independent
+    thought
+
+UNKNOWN
+- How do reference definitions work? If I'm going to just go line by line and
+  build a dom, 90% of what I need is already there in find___LinksInText. I can
+  just go line by line, join each line n w/ n+1 and use the line adjustment
+  stuff (with slight tweaks) to build up a link index
+  * Reference definitions _should_ be able to work the same way, but as it
+    stands they seem to work differently. There's no linewise code I can use to
+    handle them unchanged
+
+Next steps
+[ ] ! Figure out how all the reference definition stuff works (see UNKNOWN)
+[ ] ! Standardize the link objects, so none of the getters need to be aware of link type
+  * make reference objects store everything up front
+  * validate that nothing accesses any fields directly (including tests)
+  * standardize all the fields, based on how they're used
+  * DOCUMENT the internals of the link object.
+  * make all the getters 100% generic
+[ ] remove as much copy pasta as possible, until only find___LinksInText are
+    different
+[ ] Start migrating links into a linewise link scanner in workflow.vim, writing
+    new tests in the new test framework (also use the buffer provider stuff)
+  

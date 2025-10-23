@@ -1,0 +1,25 @@
+cd ~/src/vimprojects/cntr.vim
+
+=vim-implementation-files
+find . -name '*.vim'
+grep -v test
+
+=links-public-api
+cat %vim-implementation-files
+grep -v links.vim
+xargs cat
+grep -oP 'md#links#\w+'
+sort
+uniq
+
+=links-call-sites.csv
+cat %vim-implementation-files
+grep -v links.vim
+xargs grep -on -f %links-public-api 
+tr ':' ','
+sed -e 's/md#links#/s:/'
+sed -e 's/.\/autoload\/md\///'
+sed -e 's/.vim//'
+add-headers module,line,call
+columns call,module,line
+sort
