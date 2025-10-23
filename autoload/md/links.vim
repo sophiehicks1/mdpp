@@ -1,400 +1,4 @@
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Functions for parsing and handling markdown links
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-" Find the link that contains the given position
-" Returns a dictionary with link information or {} if no link found
-function! md#links#findLinkAtPos(pos)
-  let line_num = a:pos[1]
-  let col_num = a:pos[2]
-
-  " First check if we're on a reference definition line
-  let ref_def_info = s:findReferenceDefinitionAtPosition(line_num, col_num)
-  if !empty(ref_def_info)
-    " Find the first link that references this definition
-    let referring_link = s:findFirstReferringLink(ref_def_info.reference)
-    if !empty(referring_link)
-      return referring_link
-    endif
-    " If no referring link found, fall back to treating as regular reference definition
-    return ref_def_info
-  endif
-
-  " FIXME can we collapse these a little? Seems redundant
-  " Try to find a wiki link
-  let wiki_link = s:findWikiLinkAtPosition(line_num, col_num)
-  if !empty(wiki_link)
-    return wiki_link
-  endif
-
-  " Try to find an inline link
-  let inline_link = s:findInlineLinkAtPosition(line_num, col_num)
-  if !empty(inline_link)
-    return inline_link
-  endif
-
-  " Try to find a reference link
-  let reference_link = s:findReferenceLinkAtPosition(line_num, col_num)
-  if !empty(reference_link)
-    return reference_link
-  endif
-
-  return {}
-endfunction
-
-" FIXME check whether this same logic can be used for other link types... it
-" probably can
-function! s:isMultiLine(link)
-  if has_key(a:link, 'end_line') && a:link.end_line > a:link.line_num
-    return v:true
-  endif
-  return v:false
-endfunction
-
-" Find inline link at the given position
-" Returns link info dict or {} if none found
-"
-" Link info dictionary structure:
-" {
-"   'type': 'inline' | 'reference' | 'wiki' | 'reference_definition',
-"   'line_num': line number where link starts,
-"   'start_col': start column of the link (1-indexed),
-"   'end_col': end column of the link (1-indexed),
-"   'text': the link text (content between [...]),
-"   'text_start_col': start column of link text,
-"   'text_end_col': end column of link text,
-"   'url': the URL (for inline) or resolved URL (for reference),
-"   'url_start_col': start column of URL (inline only),
-"   'url_end_col': end column of URL (inline only),
-"   'reference': reference label (reference links only),
-"   'full_start_col': start column of entire link,
-"   'full_end_col': end column of entire link
-" }
-function! s:findInlineLinkAtPosition(line_num, col_num)
-  " Check current line
-  let links = md#links#findInlineLinksInLine(a:line_num)
-  for link in links
-    " Check if position is within the link
-    if link.line_num == a:line_num
-      " Link starts on current line
-      if s:isMultiLine(link)
-        " Multi-line link
-        if a:line_num == link.line_num && a:col_num >= link.start_col
-          " On starting line, after start
-          return link
-        elseif a:line_num == link.end_line && a:col_num <= link.end_col
-          " On ending line, before end
-          return link
-        elseif a:line_num > link.line_num && a:line_num < link.end_line
-          " On middle line
-          return link
-        endif
-      else
-        " Single-line link
-        if a:col_num >= link.start_col && a:col_num <= link.end_col
-          return link
-        endif
-      endif
-    endif
-  endfor
-
-  " For multi-line links, also check if we're on a continuation line
-  " Check if there's a link starting on the previous line that extends to this line
-  if a:line_num > 1
-    let prev_links = md#links#findInlineLinksInLine(a:line_num - 1)
-    for link in prev_links
-      " Check if this link extends to current line
-      if has_key(link, 'end_line') && link.end_line >= a:line_num
-        if a:line_num == link.end_line && a:col_num <= link.end_col
-          " On ending line, before end
-          return link
-        elseif a:line_num > link.line_num && a:line_num < link.end_line
-          " On middle line
-          return link
-        endif
-      endif
-    endfor
-  endif
-
-  return {}
-endfunction
-
-" FIXME refactor this
-" Find wiki link at the given position
-" Returns link info dict or {} if none found
-function! s:findWikiLinkAtPosition(line_num, col_num)
-  " Check current line
-  let links = md#links#findWikiLinksInLine(a:line_num)
-  for link in links
-    " Check if position is within the link
-    if link.line_num == a:line_num
-      " Link starts on current line
-      if s:isMultiLine(link)
-        " Multi-line link
-        if a:line_num == link.line_num && a:col_num >= link.start_col
-          " On starting line, after start
-          return link
-        elseif a:line_num == link.end_line && a:col_num <= link.end_col
-          " On ending line, before end
-          return link
-        elseif a:line_num > link.line_num && a:line_num < link.end_line
-          " On middle line
-          return link
-        endif
-      else
-        " Single-line link
-        if a:col_num >= link.start_col && a:col_num <= link.end_col
-          return link
-        endif
-      endif
-    endif
-  endfor
-
-  " For multi-line links, also check if we're on a continuation line
-  if a:line_num > 1
-    let prev_links = md#links#findWikiLinksInLine(a:line_num - 1)
-    for link in prev_links
-      " Check if this link extends to current line
-      if has_key(link, 'end_line') && link.end_line >= a:line_num
-        if a:line_num == link.end_line && a:col_num <= link.end_col
-          " On ending line, before end
-          return link
-        elseif a:line_num > link.line_num && a:line_num < link.end_line
-          " On middle line
-          return link
-        endif
-      endif
-    endfor
-  endif
-
-  return {}
-endfunction
-
-" Find reference link at the given position
-" Returns link info dict or {} if none found
-function! s:findReferenceLinkAtPosition(line_num, col_num)
-  " Check current line
-  let links = md#links#findReferenceLinksInLine(a:line_num)
-  for link in links
-    " Check if position is within the link
-    if link.line_num == a:line_num
-      " Link starts on current line
-      if s:isMultiLine(link)
-        " Multi-line link
-        if a:line_num == link.line_num && a:col_num >= link.start_col
-          " On starting line, after start
-          return link
-        elseif a:line_num == link.end_line && a:col_num <= link.end_col
-          " On ending line, before end
-          return link
-        elseif a:line_num > link.line_num && a:line_num < link.end_line
-          " On middle line
-          return link
-        endif
-      else
-        " Single-line link
-        if a:col_num >= link.start_col && a:col_num <= link.end_col
-          return link
-        endif
-      endif
-    endif
-  endfor
-
-  " For multi-line links, also check if we're on a continuation line
-  if a:line_num > 1
-    let prev_links = md#links#findReferenceLinksInLine(a:line_num - 1)
-    for link in prev_links
-      " Check if this link extends to current line
-      if has_key(link, 'end_line') && link.end_line >= a:line_num
-        if a:line_num == link.end_line && a:col_num <= link.end_col
-          " On ending line, before end
-          return link
-        elseif a:line_num > link.line_num && a:line_num < link.end_line
-          " On middle line
-          return link
-        endif
-      endif
-    endfor
-  endif
-
-  return {}
-endfunction
-
-" Helper function to find inline links in a text string
-" Returns list of link info dictionaries (with temporary line_num)
-function! s:findInlineLinksInText(text, temp_line_num)
-  let links = []
-  let pos = 0
-
-  while 1
-    " Find the next [ character
-    let bracket_start = stridx(a:text, '[', pos)
-    if bracket_start == -1
-      break
-    endif
-
-    " Find the matching ] character
-    let bracket_end = s:findMatchingBracket(a:text, bracket_start)
-    if bracket_end == -1
-      let pos = bracket_start + 1
-      continue
-    endif
-
-    " Check if this is followed by a ( for inline link
-    let paren_start = bracket_end + 1
-    if paren_start >= len(a:text) || a:text[paren_start] != '('
-      let pos = bracket_start + 1
-      continue
-    endif
-
-    " Find the matching ) character
-    let paren_end = s:findMatchingParen(a:text, paren_start)
-    if paren_end == -1
-      let pos = bracket_start + 1
-      continue
-    endif
-
-    " Extract link components
-    let text = a:text[bracket_start + 1 : bracket_end - 1]
-    let url = a:text[paren_start + 1 : paren_end - 1]
-
-    let link_info = {
-          \ 'type': 'inline',
-          \ 'line_num': a:temp_line_num,
-          \ 'start_col': bracket_start + 1,
-          \ 'end_col': paren_end + 1,
-          \ 'text': text,
-          \ 'text_start_col': bracket_start + 2,
-          \ 'text_end_col': bracket_end,
-          \ 'url': url,
-          \ 'url_start_col': paren_start + 2,
-          \ 'url_end_col': paren_end,
-          \ 'full_start_col': bracket_start + 1,
-          \ 'full_end_col': paren_end + 1
-          \ }
-
-    call add(links, link_info)
-    let pos = paren_end + 1
-  endwhile
-
-  return links
-endfunction
-
-" Find all inline links in a line - PUBLIC for testing
-" Returns list of link info dictionaries
-" This now supports multi-line links (links that span to adjacent lines)
-function! md#links#findInlineLinksInLine(line_num)
-  " Join current line with previous and next lines
-  let [joined_text, lengths] = s:joinThreeLines(a:line_num)
-
-  " Find all links in the joined text
-  let all_links = s:findInlineLinksInText(joined_text, a:line_num)
-
-  " Filter to only links that touch the target line
-  let touching_links = []
-  for link in all_links
-    " Check if link touches target line (using 0-indexed positions)
-    if s:linkTouchesTargetLine(link.start_col - 1, link.end_col - 1, lengths)
-      " Adjust link info to correct line numbers and columns
-      let adjusted_link = s:adjustLinkInfo(link, a:line_num, lengths)
-      call add(touching_links, adjusted_link)
-    endif
-  endfor
-
-  return touching_links
-endfunction
-
-" Helper function to find reference links in a text string
-" Returns list of link info dictionaries (with temporary line_num)
-function! s:findReferenceLinksInText(text, temp_line_num)
-  let links = []
-  let pos = 0
-
-  while 1
-    " Find the next [ character
-    let bracket_start = stridx(a:text, '[', pos)
-    if bracket_start == -1
-      break
-    endif
-
-    " Find the matching ] character
-    let bracket_end = s:findMatchingBracket(a:text, bracket_start)
-    if bracket_end == -1
-      let pos = bracket_start + 1
-      continue
-    endif
-
-    " Check if this is followed by another [ for reference link
-    let ref_start = bracket_end + 1
-    if ref_start >= len(a:text) || a:text[ref_start] != '['
-      " Check for implicit reference (just [text][])
-      let pos = bracket_start + 1
-      continue
-    endif
-
-    " Find the matching ] character for reference
-    let ref_end = s:findMatchingBracket(a:text, ref_start)
-    if ref_end == -1
-      let pos = bracket_start + 1
-      continue
-    endif
-
-    " Extract link components
-    let text = a:text[bracket_start + 1 : bracket_end - 1]
-    let reference = a:text[ref_start + 1 : ref_end - 1]
-
-    " If reference is empty, use text as reference (implicit reference)
-    if empty(reference)
-      let reference = text
-    endif
-
-    " Find the reference definition
-    let ref_url = s:findReferenceDefinition(reference)
-
-    let link_info = {
-          \ 'type': 'reference',
-          \ 'line_num': a:temp_line_num,
-          \ 'start_col': bracket_start + 1,
-          \ 'end_col': ref_end + 1,
-          \ 'text': text,
-          \ 'text_start_col': bracket_start + 2,
-          \ 'text_end_col': bracket_end,
-          \ 'reference': reference,
-          \ 'url': ref_url,
-          \ 'full_start_col': bracket_start + 1,
-          \ 'full_end_col': ref_end + 1
-          \ }
-
-    call add(links, link_info)
-    let pos = ref_end + 1
-  endwhile
-
-  return links
-endfunction
-
-" Find all reference links in a line - PUBLIC for testing
-" Returns list of link info dictionaries
-" This now supports multi-line links (links that span to adjacent lines)
-function! md#links#findReferenceLinksInLine(line_num)
-  " Join current line with previous and next lines
-  let [joined_text, lengths] = s:joinThreeLines(a:line_num)
-
-  " Find all links in the joined text
-  let all_links = s:findReferenceLinksInText(joined_text, a:line_num)
-
-  " Filter to only links that touch the target line
-  let touching_links = []
-  for link in all_links
-    " Check if link touches target line (using 0-indexed positions)
-    if s:linkTouchesTargetLine(link.start_col - 1, link.end_col - 1, lengths)
-      " Adjust link info to correct line numbers and columns
-      let adjusted_link = s:adjustLinkInfo(link, a:line_num, lengths)
-      call add(touching_links, adjusted_link)
-    endif
-  endfor
-
-  return touching_links
-endfunction
+" s:find___LinksInText {{{
 
 " Helper function to find wiki links in a text string
 " Returns list of link info dictionaries (with temporary line_num)
@@ -465,15 +69,228 @@ function! s:findWikiLinksInText(text, temp_line_num)
   return links
 endfunction
 
-" Find all wiki links in a line - PUBLIC for testing
+" Helper function to find inline links in a text string
+" Returns list of link info dictionaries (with temporary line_num)
+function! s:findInlineLinksInText(text, temp_line_num)
+  let links = []
+  let pos = 0
+
+  while 1
+    " Find the next [ character
+    let bracket_start = stridx(a:text, '[', pos)
+    if bracket_start == -1
+      break
+    endif
+
+    " Find the matching ] character
+    let bracket_end = s:findMatchingBracket(a:text, bracket_start)
+    if bracket_end == -1
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Check if this is followed by a ( for inline link
+    let paren_start = bracket_end + 1
+    if paren_start >= len(a:text) || a:text[paren_start] != '('
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Find the matching ) character
+    let paren_end = s:findMatchingParen(a:text, paren_start)
+    if paren_end == -1
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Extract link components
+    let text = a:text[bracket_start + 1 : bracket_end - 1]
+    let url = a:text[paren_start + 1 : paren_end - 1]
+
+    let link_info = {
+          \ 'type': 'inline',
+          \ 'line_num': a:temp_line_num,
+          \ 'start_col': bracket_start + 1,
+          \ 'end_col': paren_end + 1,
+          \ 'text': text,
+          \ 'text_start_col': bracket_start + 2,
+          \ 'text_end_col': bracket_end,
+          \ 'url': url,
+          \ 'url_start_col': paren_start + 2,
+          \ 'url_end_col': paren_end,
+          \ 'full_start_col': bracket_start + 1,
+          \ 'full_end_col': paren_end + 1
+          \ }
+
+    call add(links, link_info)
+    let pos = paren_end + 1
+  endwhile
+
+  return links
+endfunction
+
+" Helper function to find reference links in a text string
+" Returns list of link info dictionaries (with temporary line_num)
+function! s:findReferenceLinksInText(text, temp_line_num)
+  let links = []
+  let pos = 0
+
+  while 1
+    " Find the next [ character
+    let bracket_start = stridx(a:text, '[', pos)
+    if bracket_start == -1
+      break
+    endif
+
+    " Find the matching ] character
+    let bracket_end = s:findMatchingBracket(a:text, bracket_start)
+    if bracket_end == -1
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Check if this is followed by another [ for reference link
+    let ref_start = bracket_end + 1
+    if ref_start >= len(a:text) || a:text[ref_start] != '['
+      " Check for implicit reference (just [text][])
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Find the matching ] character for reference
+    let ref_end = s:findMatchingBracket(a:text, ref_start)
+    if ref_end == -1
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Extract link components
+    let text = a:text[bracket_start + 1 : bracket_end - 1]
+    let reference = a:text[ref_start + 1 : ref_end - 1]
+
+    " If reference is empty, use text as reference (implicit reference)
+    if empty(reference)
+      let reference = text
+    endif
+
+    " Find the reference definition
+    let ref_url = s:findReferenceDefinition(reference)
+
+    let link_info = {
+          \ 'type': 'reference',
+          \ 'line_num': a:temp_line_num,
+          \ 'start_col': bracket_start + 1,
+          \ 'end_col': ref_end + 1,
+          \ 'text': text,
+          \ 'text_start_col': bracket_start + 2,
+          \ 'text_end_col': bracket_end,
+          \ 'reference': reference,
+          \ 'url': ref_url,
+          \ 'full_start_col': bracket_start + 1,
+          \ 'full_end_col': ref_end + 1
+          \ }
+
+    call add(links, link_info)
+    let pos = ref_end + 1
+  endwhile
+
+  return links
+endfunction
+
+" }}}
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Functions for parsing and handling markdown links
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" md#links#findLinkAtPos(pos) {{{
+
+" Find the link that contains the given position
+" Returns a dictionary with link information or {} if no link found
+function! md#links#findLinkAtPos(pos)
+  let line_num = a:pos[1]
+  let col_num = a:pos[2]
+
+  " First check if we're on a reference definition line
+  let ref_def_info = s:findReferenceDefinitionAtPosition(line_num, col_num)
+  if !empty(ref_def_info)
+    " Find the first link that references this definition
+    let referring_link = s:findFirstReferringLink(ref_def_info.reference)
+    if !empty(referring_link)
+      return referring_link
+    endif
+    " If no referring link found, fall back to treating as regular reference definition
+    return ref_def_info
+  endif
+
+  " Try to find a wiki link
+  let wiki_link = s:findWikiLinkAtPosition(line_num, col_num)
+  if !empty(wiki_link)
+    return wiki_link
+  endif
+
+  " Try to find an inline link
+  let inline_link = s:findInlineLinkAtPosition(line_num, col_num)
+  if !empty(inline_link)
+    return inline_link
+  endif
+
+  " Try to find a reference link
+  let reference_link = s:findReferenceLinkAtPosition(line_num, col_num)
+  if !empty(reference_link)
+    return reference_link
+  endif
+
+  return {}
+endfunction
+
+" }}}
+
+" find___LinkAtPosition {{{
+
+function! s:findInlineLinkAtPosition(line_num, col_num)
+  for link in md#links#findInlineLinksInLine(a:line_num)
+    if s:posInsideLink(a:line_num, a:col_num, link)
+      return link
+    endif
+  endfor
+  return {}
+endfunction
+
+" Find wiki link at the given position
+" Returns link info dict or {} if none found
+function! s:findWikiLinkAtPosition(line_num, col_num)
+  for link in md#links#findWikiLinksInLine(a:line_num)
+    if s:posInsideLink(a:line_num, a:col_num, link)
+      return link
+    endif
+  endfor
+  return {}
+endfunction
+
+" Find reference link at the given position
+" Returns link info dict or {} if none found
+function! s:findReferenceLinkAtPosition(line_num, col_num)
+  for link in md#links#findReferenceLinksInLine(a:line_num)
+    if s:posInsideLink(a:line_num, a:col_num, link)
+      return link
+    endif
+  endfor
+  return {}
+endfunction
+
+" }}}
+
+" md#links#find___LinksInLine {{{
+
 " Returns list of link info dictionaries
 " This now supports multi-line links (links that span to adjacent lines)
-function! md#links#findWikiLinksInLine(line_num)
+function s:genericFindLinksInLine(find_in_text_fn, line_num)
   " Join current line with previous and next lines
   let [joined_text, lengths] = s:joinThreeLines(a:line_num)
 
   " Find all links in the joined text
-  let all_links = s:findWikiLinksInText(joined_text, a:line_num)
+  let all_links = a:find_in_text_fn(joined_text, a:line_num)
 
   " Filter to only links that touch the target line
   let touching_links = []
@@ -488,6 +305,25 @@ function! md#links#findWikiLinksInLine(line_num)
 
   return touching_links
 endfunction
+
+" Find all inline links in a line - PUBLIC for testing
+function! md#links#findInlineLinksInLine(line_num)
+  return s:genericFindLinksInLine(function('<SID>findInlineLinksInText'), a:line_num)
+endfunction
+
+" Find all reference links in a line - PUBLIC for testing
+function! md#links#findReferenceLinksInLine(line_num)
+  return s:genericFindLinksInLine(function('<SID>findReferenceLinksInText'), a:line_num)
+endfunction
+
+" Find all wiki links in a line - PUBLIC for testing
+function! md#links#findWikiLinksInLine(line_num)
+  return s:genericFindLinksInLine(function('<SID>findWikiLinksInText'), a:line_num)
+endfunction
+
+" }}}
+
+" Pure text/vim stuff {{{
 
 " Find matching bracket, handling nested brackets
 function! s:findMatchingBracket(text, start_pos)
@@ -533,24 +369,31 @@ function! s:findMatchingParen(text, start_pos)
   endif
 endfunction
 
-" Find reference definition for a given reference label
-" Returns the URL or empty string if not found
-function! s:findReferenceDefinition(reference)
-  let line_num = 1
-  let last_line = line('$')
+" Helper function to get line content safely (returns empty string for invalid line numbers)
+function! s:getLineSafe(line_num)
+  if a:line_num < 1 || a:line_num > line('$')
+    return ''
+  endif
+  return getline(a:line_num)
+endfunction
 
-  while line_num <= last_line
-    let line_content = getline(line_num)
-    " Match reference definition: [ref]: url
-    let pattern = '^\s*\[' . escape(a:reference, '[]') . '\]:\s*\(\S\+\)'
-    let match = matchlist(line_content, pattern)
-    if !empty(match)
-      return match[1]
-    endif
-    let line_num += 1
-  endwhile
+" }}}
 
-  return ''
+" Link dict helpers / getters / queries {{{
+
+function! s:posInsideLink(line_num, col_num, link)
+  let link_start_before_pos = a:link.line_num < a:line_num
+        \ || a:link.line_num == a:line_num && a:link.start_col <= a:col_num
+  let link_end_after_pos = a:link.full_end_line > a:line_num
+        \ || a:link.full_end_line == a:line_num && a:link.end_col >= a:col_num
+  return link_start_before_pos && link_end_after_pos
+endfunction
+
+function! s:isMultiLine(link)
+  if has_key(a:link, 'end_line') && a:link.end_line > a:link.line_num
+    return v:true
+  endif
+  return v:false
 endfunction
 
 " Get the text content of a link (what's between the [])
@@ -581,6 +424,11 @@ function! md#links#getLinkTextRange(link_info)
   return [start_line, a:link_info.text_start_col, end_line, a:link_info.text_end_col]
 endfunction
 
+" TODO make this generic
+" - FIXME lookup reference definition stuff while parsing the original link
+"   and store it in the link object
+" - FIXME standardize the link object, so that all link objects use the same
+"   fields for the same semantic purpose
 " Get position range for link URL selection
 " Returns [start_line, start_col, end_line, end_col] or [] if no link
 function! md#links#getLinkUrlRange(link_info)
@@ -593,15 +441,15 @@ function! md#links#getLinkUrlRange(link_info)
     let start_line = has_key(a:link_info, 'url_start_line') ? a:link_info.url_start_line : a:link_info.line_num
     let end_line = has_key(a:link_info, 'url_end_line') ? a:link_info.url_end_line : a:link_info.line_num
     return [start_line, a:link_info.url_start_col, end_line, a:link_info.url_end_col]
-  elseif a:link_info.type == 'reference'
-    " For reference links, find the definition line
-    let def_range = s:findReferenceDefinitionRange(a:link_info.reference)
-    return def_range
   elseif a:link_info.type == 'wiki'
     " For wiki links, return the target portion
     let start_line = has_key(a:link_info, 'target_start_line') ? a:link_info.target_start_line : a:link_info.line_num
     let end_line = has_key(a:link_info, 'target_end_line') ? a:link_info.target_end_line : a:link_info.line_num
     return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
+  elseif a:link_info.type == 'reference'
+    " For reference links, find the definition line
+    let def_range = s:findReferenceDefinitionRange(a:link_info.reference)
+    return def_range
   endif
 
   return []
@@ -619,6 +467,41 @@ function! md#links#getLinkFullRange(link_info)
   return [start_line, a:link_info.full_start_col, end_line, a:link_info.full_end_col]
 endfunction
 
+" }}}
+
+" Reference definition stuff {{{
+
+" Find reference definition for a given reference label
+" Returns the URL or empty string if not found
+function! s:findReferenceDefinition(reference)
+  let line_num = 1
+  let last_line = line('$')
+
+  while line_num <= last_line
+    let line_content = getline(line_num)
+    " Match reference definition: [ref]: url
+    let pattern = '^\s*\[' . escape(a:reference, '[]') . '\]:\s*\(\S\+\)'
+    let match = matchlist(line_content, pattern)
+    if !empty(match)
+      return match[1]
+    endif
+    let line_num += 1
+  endwhile
+
+  return ''
+endfunction
+
+" make a regex pattern to find a reference definition line. Reference should
+" either be a reference id (e.g. 'foo' to find the reference definition for
+" `[this link][foo]`) or an empty string to find any/all reference definitions)
+function! s:makeReferencePattern(reference)
+  let reference = escape(a:reference, '[]')
+  if empty(reference)
+    let reference = '\([^\]]\+\)'
+  endif
+  return '^\s*\[' . reference . '\]:\s*\(\S\+\)'
+endfunction
+
 " Find the range for a reference definition URL
 function! s:findReferenceDefinitionRange(reference)
   let line_num = 1
@@ -627,7 +510,7 @@ function! s:findReferenceDefinitionRange(reference)
   while line_num <= last_line
     let line_content = getline(line_num)
     " Match reference definition: [ref]: url
-    let pattern = '^\s*\[' . escape(a:reference, '[]') . '\]:\s*\(\S\+\)'
+    let pattern = s:makeReferencePattern(a:reference)
     let match_start = match(line_content, pattern)
     if match_start != -1
       " Find the URL part
@@ -653,7 +536,7 @@ function! s:findReferenceDefinitionAtPosition(line_num, col_num)
   let line_content = getline(a:line_num)
 
   " Match reference definition: [ref]: url
-  let pattern = '^\s*\[\([^\]]\+\)\]:\s*\(\S\+\)'
+  let pattern = s:makeReferencePattern('')
   let match = matchlist(line_content, pattern)
   if !empty(match)
     let reference = match[1]
@@ -699,13 +582,9 @@ function! s:findFirstReferringLink(reference)
   return {}
 endfunction
 
-" Helper function to get line content safely (returns empty string for invalid line numbers)
-function! s:getLineSafe(line_num)
-  if a:line_num < 1 || a:line_num > line('$')
-    return ''
-  endif
-  return getline(a:line_num)
-endfunction
+" }}}
+
+" Line joining && and adjusting {{{
 
 " Helper function to join three lines for multi-line link detection
 " Returns: [joined_text, lengths_dict]
@@ -891,3 +770,5 @@ function! s:adjustLinkInfo(link_info, line_num, lengths)
 
   return adjusted
 endfunction
+
+" }}}

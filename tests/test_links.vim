@@ -36,7 +36,6 @@ function! s:run_tests()
   return test#framework#report_results("md#links")
 endfunction
 
-" TODO: add more tests for other kinds of links
 " Test multiple links on the same line
 function! s:test_multipleLinksOnLine()
   call test#framework#write_info("")
