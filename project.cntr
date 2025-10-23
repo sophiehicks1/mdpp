@@ -1,8 +1,15 @@
 cd ~/src/vimprojects/cntr.vim
 
-=vim-implementation-files
+=vim-all-files
 find . -name '*.vim'
+
+=vim-implementation-files
+cat %vim-all-files
 grep -v test
+
+=vim-implementation-code
+cat %vim-implementation-files
+xargs cat
 
 =links-public-api
 cat %vim-implementation-files
@@ -23,3 +30,9 @@ sed -e 's/.vim//'
 add-headers module,line,call
 columns call,module,line
 sort-by -c line -d asc
+
+=url-word-count
+cat %vim-all-files
+grep -v test_vimopen
+grep -v test_autocomplete
+xargs grep -oni url

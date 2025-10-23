@@ -113,11 +113,11 @@ function! md#objects#aroundLinkText()
   return 0
 endfunction
 
-" Returns a vim-textobj-user style range for the URL inside a markdown link
-function! md#objects#insideLinkUrl()
+" Returns a vim-textobj-user style range for the target inside a markdown link
+function! md#objects#insideLinkTarget()
   let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
-    let range = md#links#getLinkUrlRange(link_info)
+    let range = md#links#getLinkTargetRange(link_info)
     if !empty(range)
       return s:charRange([range[0], range[1]], [range[2], range[3]])
     endif
@@ -125,11 +125,11 @@ function! md#objects#insideLinkUrl()
   return 0
 endfunction
 
-" Returns a vim-textobj-user style range around the URL of a markdown link (including parens/definition)
-function! md#objects#aroundLinkUrl()
+" Returns a vim-textobj-user style range around the target of a markdown link (including parens/definition)
+function! md#objects#aroundLinkTarget()
   let link_info = md#links#findLinkAtPos(getpos('.'))
   if !empty(link_info)
-    let range = md#links#getLinkUrlRange(link_info)
+    let range = md#links#getLinkTargetRange(link_info)
     if !empty(range)
       if link_info.type == 'inline'
         " Extend range to include the parentheses

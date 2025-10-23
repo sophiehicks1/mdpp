@@ -1,14 +1,3 @@
-" Test suite for md#links module functions
-" Tests the following functions:
-" - md#links#findLinkAtPos
-" - md#links#findInlineLinksInLine
-" - md#links#findReferenceLinksInLine
-" - md#links#getLinkText
-" - md#links#getLinkUrl
-" - md#links#getLinkTextRange
-" - md#links#getLinkUrlRange
-" - md#links#getLinkFullRange
-
 " Helper function to setup main test buffer (comprehensive test case)
 function! s:setup_test_buffer()
   call test#framework#setup_buffer_from_file('comprehensive_links.md')
@@ -25,9 +14,9 @@ function! s:run_tests()
   call test#framework#run_test_function('test_findReferenceLinksInLine', function('s:test_findReferenceLinksInLine'))
   call test#framework#run_test_function('test_findLinkAtPos', function('s:test_findLinkAtPos'))
   call test#framework#run_test_function('test_getLinkText', function('s:test_getLinkText'))
-  call test#framework#run_test_function('test_getLinkUrl', function('s:test_getLinkUrl'))
+  call test#framework#run_test_function('test_getLinkTarget', function('s:test_getLinkTarget'))
   call test#framework#run_test_function('test_getLinkTextRange', function('s:test_getLinkTextRange'))
-  call test#framework#run_test_function('test_getLinkUrlRange', function('s:test_getLinkUrlRange'))
+  call test#framework#run_test_function('test_getLinkTargetRange', function('s:test_getLinkTargetRange'))
   call test#framework#run_test_function('test_getLinkFullRange', function('s:test_getLinkFullRange'))
   call test#framework#run_test_function('test_edge_cases', function('s:test_edge_cases'))
   call test#framework#run_test_function('test_multiline_links', function('s:test_multiline_links'))
@@ -165,7 +154,7 @@ function! s:test_findInlineLinksInLine()
   if len(links) > 0
     call test#framework#assert_equal('inline', links[0].type, "Link should be inline type")
     call test#framework#assert_equal('Google', links[0].text, "Link text should be 'Google'")
-    call test#framework#assert_equal('https://google.com', links[0].url, "Link URL should be correct")
+    call test#framework#assert_equal('https://google.com', links[0].target, "Link target should be correct")
   endif
   
   " Test 2: Multiple links on same line (line 11)
@@ -173,9 +162,9 @@ function! s:test_findInlineLinksInLine()
   call test#framework#assert_equal(2, len(links), "Should find two inline links on line 11")
   if len(links) >= 2
     call test#framework#assert_equal('First', links[0].text, "First link text should be 'First'")
-    call test#framework#assert_equal('https://first.com', links[0].url, "First link URL should be correct")
+    call test#framework#assert_equal('https://first.com', links[0].target, "First link target should be correct")
     call test#framework#assert_equal('Second', links[1].text, "Second link text should be 'Second'")
-    call test#framework#assert_equal('https://second.com', links[1].url, "Second link URL should be correct")
+    call test#framework#assert_equal('https://second.com', links[1].target, "Second link target should be correct")
   endif
   
   " Test 3: Line with no inline links (reference link line)
@@ -190,11 +179,11 @@ function! s:test_findInlineLinksInLine()
     call test#framework#assert_equal('Link with [[double]] nested brackets', links[0].text, "Should preserve nested brackets in text")
   endif
   
-  " Test 5: Line with nested parentheses in URL
+  " Test 5: Line with nested parentheses in target
   let links = md#links#findInlineLinksInLine(6)
-  call test#framework#assert_equal(1, len(links), "Should handle nested parentheses in URL")
+  call test#framework#assert_equal(1, len(links), "Should handle nested parentheses in target")
   if len(links) > 0
-    call test#framework#assert_equal('https://example.com/path(with)nested(parens)', links[0].url, "Should preserve nested parentheses in URL")
+    call test#framework#assert_equal('https://example.com/path(with)nested(parens)', links[0].target, "Should preserve nested parentheses in target")
   endif
 endfunction
 
@@ -241,7 +230,7 @@ function! s:test_findReferenceLinksInLine()
   if len(links) > 0
     call test#framework#assert_equal('Undefined Link', links[0].text, "Should get text correctly for undefined reference")
     call test#framework#assert_equal('nonexistent', links[0].reference, "Should get reference correctly")
-    call test#framework#assert_equal('', links[0].url, "URL should be empty for undefined reference")
+    call test#framework#assert_equal('', links[0].target, "target should be empty for undefined reference")
   endif
 endfunction
 
@@ -257,13 +246,13 @@ function! s:test_findLinkAtPos()
   let link = md#links#findLinkAtPos(getpos('.'))
   call test#framework#assert_equal('inline', link.type, "Should find inline link when cursor is on text")
   call test#framework#assert_equal('Google', link.text, "Should return correct link text")
-  call test#framework#assert_equal('https://google.com', link.url, "Should return correct URL")
+  call test#framework#assert_equal('https://google.com', link.target, "Should return correct target")
   
-  " Test 2: Cursor on inline link URL (line 7, column 35)
-  call cursor(7, 35)  " Inside URL part
+  " Test 2: Cursor on inline link target (line 7, column 35)
+  call cursor(7, 35)  " Inside target part
   let link = md#links#findLinkAtPos(getpos('.'))
-  call test#framework#assert_equal('inline', link.type, "Should find inline link when cursor is on URL")
-  call test#framework#assert_equal('Google', link.text, "Should return correct link text when cursor on URL")
+  call test#framework#assert_equal('inline', link.type, "Should find inline link when cursor is on target")
+  call test#framework#assert_equal('Google', link.text, "Should return correct link text when cursor on target")
   
   " Test 3: Cursor on reference link text (line 15, column 24)
   call cursor(15, 24)  " Inside "Google" of reference link
@@ -273,7 +262,7 @@ function! s:test_findLinkAtPos()
   call test#framework#assert_equal('google', link.reference, "Should return correct reference")
   
   " Test 4: Cursor on reference definition (line 23, column 10)
-  call cursor(23, 10)  " Inside reference definition URL
+  call cursor(23, 10)  " Inside reference definition target
   let link = md#links#findLinkAtPos(getpos('.'))
   call test#framework#assert_not_empty(link, "Should find reference link when cursor is on definition")
   if !empty(link)
@@ -344,42 +333,42 @@ function! s:test_getLinkText()
   endif
 endfunction
 
-" Test md#links#getLinkUrl function
-function! s:test_getLinkUrl()
+" Test md#links#getLinkTarget function
+function! s:test_getLinkTarget()
   call test#framework#write_info("")
-  call test#framework#write_info("Testing md#links#getLinkUrl...")
+  call test#framework#write_info("Testing md#links#getLinkTarget...")
   
   call s:setup_test_buffer()
   
-  " Test 1: Get URL from inline link
+  " Test 1: Get target from inline link
   call cursor(7, 24)
   let link = md#links#findLinkAtPos(getpos('.'))
   call test#framework#assert_not_empty(link, "Should find link at cursor position")
   if !empty(link)
-    let url = md#links#getLinkUrl(link)
-    call test#framework#assert_equal('https://google.com', url, "Should return correct URL for inline link")
+    let target = md#links#getLinkTarget(link)
+    call test#framework#assert_equal('https://google.com', target, "Should return correct target for inline link")
   endif
   
-  " Test 2: Get URL from reference link (resolved)
+  " Test 2: Get target from reference link (resolved)
   call cursor(15, 24)
   let link = md#links#findLinkAtPos(getpos('.'))
   call test#framework#assert_not_empty(link, "Should find reference link at cursor position")
   if !empty(link)
-    let url = md#links#getLinkUrl(link)
-    call test#framework#assert_equal('https://google.com', url, "Should return resolved URL for reference link")
+    let target = md#links#getLinkTarget(link)
+    call test#framework#assert_equal('https://google.com', target, "Should return resolved target for reference link")
   endif
   
   " Test 3: Empty link info
-  let url = md#links#getLinkUrl({})
-  call test#framework#assert_equal('', url, "Should return empty string for empty link info")
+  let target = md#links#getLinkTarget({})
+  call test#framework#assert_equal('', target, "Should return empty string for empty link info")
   
   " Test 4: Reference link with no definition
   call test#framework#setup_buffer_from_file('links_edge_cases.md')
   let links = md#links#findReferenceLinksInLine(31)
   call test#framework#assert_equal(1, len(links), "Should find reference link even if undefined")
   if len(links) > 0
-    let url = md#links#getLinkUrl(links[0])
-    call test#framework#assert_equal('', url, "Should return empty string for undefined reference")
+    let target = md#links#getLinkTarget(links[0])
+    call test#framework#assert_equal('', target, "Should return empty string for undefined reference")
   endif
 endfunction
 
@@ -420,45 +409,45 @@ function! s:test_getLinkTextRange()
   call test#framework#assert_equal([], range, "Should return empty array for empty link info")
 endfunction
 
-" Test md#links#getLinkUrlRange function
-function! s:test_getLinkUrlRange()
+" Test md#links#getLinkTargetRange function
+function! s:test_getLinkTargetRange()
   call test#framework#write_info("")
-  call test#framework#write_info("Testing md#links#getLinkUrlRange...")
+  call test#framework#write_info("Testing md#links#getLinkTargetRange...")
   
   call s:setup_test_buffer()
   
-  " Test 1: Get URL range for inline link
+  " Test 1: Get target range for inline link
   call cursor(7, 24)
   let link = md#links#findLinkAtPos(getpos('.'))
   call test#framework#assert_not_empty(link, "Should find link at cursor position")
   if !empty(link)
-    let range = md#links#getLinkUrlRange(link)
+    let range = md#links#getLinkTargetRange(link)
     call test#framework#assert_equal(4, len(range), "Should return 4-element range array for inline link")
-    " Verify the range captures the URL correctly
-    let url_in_range = getline(range[0])[range[1]-1:range[3]-1]
-    call test#framework#assert_equal('https://google.com', url_in_range, "Range should capture the link URL")
+    " Verify the range captures the target correctly
+    let target_in_range = getline(range[0])[range[1]-1:range[3]-1]
+    call test#framework#assert_equal('https://google.com', target_in_range, "Range should capture the link target")
   endif
   
-  " Test 2: Get URL range for reference link (should point to definition)
+  " Test 2: Get target range for reference link (should point to definition)
   call cursor(15, 24)
   let link = md#links#findLinkAtPos(getpos('.'))
   call test#framework#assert_not_empty(link, "Should find reference link at cursor position")
   if !empty(link)
-    let range = md#links#getLinkUrlRange(link)
+    let range = md#links#getLinkTargetRange(link)
     call test#framework#assert_equal(4, len(range), "Should return 4-element range array for reference link")
     " The range should point to the definition line
     call test#framework#assert_equal(23, range[0], "Should point to definition line for reference link")
   endif
   
   " Test 3: Empty link info
-  let range = md#links#getLinkUrlRange({})
+  let range = md#links#getLinkTargetRange({})
   call test#framework#assert_equal([], range, "Should return empty array for empty link info")
   
   " Test 4: Reference link with no definition
   call test#framework#setup_buffer_from_file('links_edge_cases.md')
   call cursor(31, 5)  " Undefined reference
   let link = md#links#findLinkAtPos(getpos('.'))
-  let range = md#links#getLinkUrlRange(link)
+  let range = md#links#getLinkTargetRange(link)
   call test#framework#assert_equal([], range, "Should return empty array for undefined reference")
 endfunction
 
@@ -551,9 +540,9 @@ function! s:test_edge_cases()
   
   " Test 7: Links with query parameters and fragments
   let links = md#links#findInlineLinksInLine(24)
-  call test#framework#assert_equal(1, len(links), "Should handle special characters in URL")
+  call test#framework#assert_equal(1, len(links), "Should handle special characters in target")
   if len(links) > 0
-    call test#framework#assert_equal('https://example.com/path?query=value&other=true#fragment', links[0].url, "Should preserve special characters in URL")
+    call test#framework#assert_equal('https://example.com/path?query=value&other=true#fragment', links[0].target, "Should preserve special characters in target")
   endif
 endfunction
 
@@ -593,7 +582,7 @@ function! s:test_multiline_links()
   if len(links) > 0
     call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
     call test#framework#assert_equal(19, links[0].line_num, "Should report correct starting line")
-    call test#framework#assert_equal('http://example.com', links[0].url, "Should extract URL correctly")
+    call test#framework#assert_equal('http://example.com', links[0].target, "Should extract target correctly")
     " The text will be concatenated without newlines
     call test#framework#assert_true(len(links[0].text) > 0, "Should have link text")
     " The text should be correct
@@ -617,7 +606,7 @@ function! s:test_multiline_links()
   if len(links) > 0
     call test#framework#assert_equal('reference', links[0].type, "Should be reference link type")
     call test#framework#assert_equal('ref2', links[0].reference, "Should extract reference correctly")
-    call test#framework#assert_equal('http://example.com/multiline', links[0].url, "Should resolve reference URL")
+    call test#framework#assert_equal('http://example.com/multiline', links[0].target, "Should resolve reference target")
     " The text will be concatenated without newlines
     call test#framework#assert_true(len(links[0].text) > 0, "Should have link text")
     " The text should be correct
@@ -736,8 +725,8 @@ function! s:test_indented_wrapped_links()
     " The link text should NOT include extra spaces from the indentation
     call test#framework#assert_equal('relatively short link', links[0].text, 
           \ "Link text should not include indentation spaces")
-    call test#framework#assert_equal('relatively short link', links[0].url, 
-          \ "Link URL should match text without indentation spaces")
+    call test#framework#assert_equal('relatively short link', links[0].target, 
+          \ "Link target should match text without indentation spaces")
     call s:assert_fulllink_positions(links[0], [8, 63], [9, 10], 'First')
   endif
   
@@ -757,8 +746,8 @@ function! s:test_indented_wrapped_links()
     call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
     call test#framework#assert_equal('file link text that wraps', links[0].text,
           \ "Inline link text should not include indentation")
-    call test#framework#assert_equal('./file.md', links[0].url,
-          \ "Inline link URL should be correct")
+    call test#framework#assert_equal('./file.md', links[0].target,
+          \ "Inline link target should be correct")
     call s:assert_fulllink_positions(links[0], [10, 40], [11, 21], 'Second')
   endif
 
@@ -769,8 +758,8 @@ function! s:test_indented_wrapped_links()
     call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
     call test#framework#assert_equal('file link text that wraps', links[0].text,
           \ "Inline link text should not include indentation")
-    call test#framework#assert_equal('./file.md', links[0].url,
-          \ "Inline link URL should be correct")
+    call test#framework#assert_equal('./file.md', links[0].target,
+          \ "Inline link target should be correct")
     call s:assert_fulllink_positions(links[0], [10, 40], [11, 21], 'Second (from second line)')
   endif
   

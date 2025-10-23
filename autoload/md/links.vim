@@ -61,7 +61,6 @@ function! s:findWikiLinksInText(text, temp_line_num)
           \ 'target_start_col': target_start_col,
           \ 'target_end_col': target_end_col,
           \ 'alias': alias,
-          \ 'url': target,
           \ 'full_start_col': wiki_start + 1,
           \ 'full_end_col': wiki_end + 2
           \ }
@@ -109,7 +108,7 @@ function! s:findInlineLinksInText(text, temp_line_num)
 
     " Extract link components
     let text = a:text[bracket_start + 1 : bracket_end - 1]
-    let url = a:text[paren_start + 1 : paren_end - 1]
+    let target = a:text[paren_start + 1 : paren_end - 1]
 
     let link_info = {
           \ 'type': 'inline',
@@ -119,9 +118,9 @@ function! s:findInlineLinksInText(text, temp_line_num)
           \ 'text': text,
           \ 'text_start_col': bracket_start + 2,
           \ 'text_end_col': bracket_end,
-          \ 'url': url,
-          \ 'url_start_col': paren_start + 2,
-          \ 'url_end_col': paren_end,
+          \ 'target': target,
+          \ 'target_start_col': paren_start + 2,
+          \ 'target_end_col': paren_end,
           \ 'full_start_col': bracket_start + 1,
           \ 'full_end_col': paren_end + 1
           \ }
@@ -194,13 +193,14 @@ function! s:findReferenceLinksInText(text, temp_line_num)
           \ }
 
     if !empty(ref_info)
-      let link_info.url = ref_info.url
-      let link_info.url_start_line = ref_info.line_num
-      let link_info.url_start_col = ref_info.url_start_col
-      let link_info.url_end_col = ref_info.url_end_col
-      let link_info.url_end_line = ref_info.line_num
+      let link_info.target = ref_info.target
+      let link_info.target_start_line = ref_info.line_num
+      let link_info.target_start_col = ref_info.target_start_col
+      let link_info.target_end_col = ref_info.target_end_col
+      let link_info.target_end_line = ref_info.line_num
     else
-      let link_info.url = ''
+      " FIXME this is causing target_start_line et al to be optional
+      let link_info.target = ''
     endif
 
     call add(links, link_info)
@@ -412,12 +412,12 @@ function! md#links#getLinkText(link_info)
   return a:link_info.text
 endfunction
 
-" Get the URL of a link
-function! md#links#getLinkUrl(link_info)
+" Get the target of a link
+function! md#links#getLinkTarget(link_info)
   if empty(a:link_info)
     return ''
   endif
-  return a:link_info.url
+  return a:link_info.target
 endfunction
 
 " Get position range for link text selection
@@ -435,18 +435,18 @@ endfunction
 " TODO make this generic
 " - FIXME standardize the link object, so that all link objects use the same
 "   fields for the same semantic purpose
-" Get position range for link URL selection
+" Get position range for link target selection
 " Returns [start_line, start_col, end_line, end_col] or [] if no link
-function! md#links#getLinkUrlRange(link_info)
+function! md#links#getLinkTargetRange(link_info)
   if empty(a:link_info)
     return []
   endif
 
   if a:link_info.type == 'inline'
-    " Use url_start_line and url_end_line if available (for multi-line links)
-    let start_line = has_key(a:link_info, 'url_start_line') ? a:link_info.url_start_line : a:link_info.line_num
-    let end_line = has_key(a:link_info, 'url_end_line') ? a:link_info.url_end_line : a:link_info.line_num
-    return [start_line, a:link_info.url_start_col, end_line, a:link_info.url_end_col]
+    " Use target_start_line and target_end_line if available (for multi-line links)
+    let start_line = has_key(a:link_info, 'target_start_line') ? a:link_info.target_start_line : a:link_info.line_num
+    let end_line = has_key(a:link_info, 'target_end_line') ? a:link_info.target_end_line : a:link_info.line_num
+    return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
   elseif a:link_info.type == 'wiki'
     " For wiki links, return the target portion
     let start_line = has_key(a:link_info, 'target_start_line') ? a:link_info.target_start_line : a:link_info.line_num
@@ -454,10 +454,10 @@ function! md#links#getLinkUrlRange(link_info)
     return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
   elseif a:link_info.type == 'reference'
     " For reference links, find the definition line
-    if has_key(a:link_info, 'url_start_line')
-      let start_line = a:link_info.url_start_line
-      let end_line = a:link_info.url_end_line
-      return [start_line, a:link_info.url_start_col, end_line, a:link_info.url_end_col]
+    if has_key(a:link_info, 'target_start_line')
+      let start_line = a:link_info.target_start_line
+      let end_line = a:link_info.target_end_line
+      return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
     endif
   endif
 
@@ -485,7 +485,7 @@ endfunction
 " `[this link][foo]`) or an empty string to find any/all reference definitions)
 "
 " In both cases, the reference ID will be captured in the first group, and the
-" url will be captured in the second.
+" target will be captured in the second.
 function! s:makeReferencePattern(reference)
   let reference = escape(a:reference, '[]')
   if empty(reference)
@@ -505,17 +505,17 @@ function! s:extractReferenceFromLine(line_num, reference)
   let match = matchlist(line_content, pattern)
   if !empty(match)
     let reference = match[1]
-    let url = match[2]
+    let target = match[2]
 
-    let url_end = len(match[0])
-    let url_start = url_end - len(url) + 1
+    let target_end = len(match[0])
+    let target_start = target_end - len(target) + 1
     return {
           \ 'type': 'reference_definition',
           \ 'line_num': a:line_num,
           \ 'reference': reference,
-          \ 'url': url,
-          \ 'url_start_col': url_start,
-          \ 'url_end_col': url_end
+          \ 'target': target,
+          \ 'target_start_col': target_start,
+          \ 'target_end_col': target_end
           \ }
   endif
   return {}
@@ -538,7 +538,7 @@ endfunction
 " Returns reference definition info dict or {} if none found
 function! s:findReferenceDefinitionAtPosition(line_num, col_num)
   let reference_info = s:extractReferenceFromLine(a:line_num, '')
-  if !empty(reference_info) && a:col_num <= reference_info.url_end_col
+  if !empty(reference_info) && a:col_num <= reference_info.target_end_col
     return reference_info
   endif
   return {}
@@ -731,14 +731,14 @@ function! s:adjustLinkInfo(link_info, line_num, lengths)
   let adjusted.full_start_line = start_pos[0]
   let adjusted.full_end_line = end_pos[0]
 
-  " For inline links, also adjust URL columns
+  " For inline links, also adjust target columns
   if adjusted.type ==# 'inline'
-    let url_start_pos = s:posToLineCol(a:link_info.url_start_col - 1, a:line_num, a:lengths)
-    let url_end_pos = s:posToLineCol(a:link_info.url_end_col - 1, a:line_num, a:lengths)
-    let adjusted.url_start_col = url_start_pos[1]
-    let adjusted.url_end_col = url_end_pos[1]
-    let adjusted.url_start_line = url_start_pos[0]
-    let adjusted.url_end_line = url_end_pos[0]
+    let target_start_pos = s:posToLineCol(a:link_info.target_start_col - 1, a:line_num, a:lengths)
+    let target_end_pos = s:posToLineCol(a:link_info.target_end_col - 1, a:line_num, a:lengths)
+    let adjusted.target_start_col = target_start_pos[1]
+    let adjusted.target_end_col = target_end_pos[1]
+    let adjusted.target_start_line = target_start_pos[0]
+    let adjusted.target_end_line = target_end_pos[0]
   endif
 
   " For wiki links, also adjust target columns

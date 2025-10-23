@@ -26,10 +26,10 @@ else
         \   'select-i-function': 'md#objects#insideLinkText',
         \   'select-i': [],
         \ },
-        \ 'link-url': {
-        \   'select-a-function': 'md#objects#aroundLinkUrl',
+        \ 'link-target': {
+        \   'select-a-function': 'md#objects#aroundLinkTarget',
         \   'select-a': [],
-        \   'select-i-function': 'md#objects#insideLinkUrl',
+        \   'select-i-function': 'md#objects#insideLinkTarget',
         \   'select-i': [],
         \ },
         \ 'link': {
@@ -83,7 +83,7 @@ else
           \       'select-a': '<buffer> al',
           \       'select-i': '<buffer> il',
           \   },
-          \   'link-url': {
+          \   'link-target': {
           \       'select-a': '<buffer> au',
           \       'select-i': '<buffer> iu',
           \   },

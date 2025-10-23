@@ -42,11 +42,11 @@ function! s:is_link_with_type(context, link_type)
     return 0
   endif
   
-  " Get the URL from the link
-  let url = md#links#getLinkUrl(link_info)
+  " Get the target from the link
+  let target = md#links#getLinkTarget(link_info)
   
-  " Return true if we have any non-empty URL/address
-  return !empty(url)
+  " Return true if we have any non-empty target/address
+  return !empty(target)
 endfunction
 
 " Extract the link address from a link
@@ -56,7 +56,7 @@ function! s:extract_address_text(context)
   if empty(link_info)
     return ''
   endif
-  return md#links#getLinkUrl(link_info)
+  return md#links#getLinkTarget(link_info)
 endfunction
 
 " We pass markdown links directly to vim-open as raw text

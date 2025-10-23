@@ -73,7 +73,7 @@ function! s:test_file_link()
   call test#framework#assert_equal('./example.md', g:test_collected_resources[0], "Should extract file path")
 endfunction
 
-" Test web URL extraction
+" Test web target extraction
 function! s:test_web_url()
   call test#framework#write_info("Testing web URL extraction...")
 
