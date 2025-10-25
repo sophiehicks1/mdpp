@@ -1,6 +1,6 @@
 Goal
-- Build a dom like model that scans the file top to bottom and collects all the
-  links
+- Build a dom like model that scans the file top to bottom and
+  collects all the links
 - Create an entry point that lets you pass in a file provider that either querys
   the current buffer, or a file on disk
 - Use this in two places
@@ -26,62 +26,9 @@ Open Questions
   * The footnotes code is useful and there's a lot of it... deserves independent
     thought
 
-Standardizing link fields
-what is actually used in the public api
-- type
-- text
-- url
-- text_start_line (optional? in getLinkTextRange it falls back to line_num)
-- text_end_line (optional? in getLinkTextRange it falls back to line_num)
-- line_num
-- text_start_col
-- text_end_col
-- url/target_start_line (optional? in getLinkUrlRange it falls back to line_num)
-- url/target_end_line (optional? in getLinkUrlRange it falls back to line_num)
-- url/target_start_col
-- url/target_end_col
-- full_start_line (optional? in getLinkFullRange it falls back to line_num)
-- full_end_line (optional? in getLinkFullRange it falls back to line_num)
-- full_start_col
-- full_end_col
-
-what is used in testing
-- reference
-- type
-- url
-- text
-- line_num
-- full_start_line
-- full_end_line
-- full_start_col
-- full_end_col
-
-All links are created by s:adjustLinkInfo, and nothing changes them. This does two non-standardized things
-- splits the code into inline and wiki, where the two branches are identical except for the url/target name difference
-- allow the equivalent url positions for reference links to go through unmodified
-  * This is correct, but it means their optionality is implicitly and silently propagated
-  * They are the only fields that _are_ occasionally missing
-It also lets more non-position fields pass through untouched (implicitly and silently propagating their "optionality")
-- type
-- text
-- url
-- reference
-
-[ ] make the changes
-[ ] fix tests
 
 Next steps
-[X] ! Figure out how all the reference definition stuff works (see UNKNOWN)
-[X] ! fetch all the reference link stuff in the first call to findLinkAtPos, and kill unnecessary second calls
-[X] ! review how to handle the first call to findReferenceDefinitionAtPosition
-[ ] ! Standardize the link objects, so none of the getters need to be aware of link type
-  * make reference objects store everything up front
-  * validate that nothing accesses any fields directly (including tests)
-  * standardize all the fields, based on how they're used
-  * DOCUMENT the internals of the link object.
-  * make all the getters 100% generic
-[ ] remove as much copy pasta as possible, until only find___LinksInText are
-    different
+[ ] migrate logic for inside / around into original link parsing
 [ ] add field to detect when a link is in a block quote or `backticks`
 [ ] Start migrating links into a linewise link scanner in workflow.vim, writing
     new tests in the new test framework (also use the buffer provider stuff)

@@ -2,6 +2,33 @@
 " Functions for parsing and handling markdown links
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+" Markdown link info structure:
+" {
+"   'type': 'wiki' | 'inline' | 'reference' | 'reference_definition',
+"   'line_num': <line number where link starts>,
+"   'end_line': <line number where link ends>,
+"   'start_col': <1-indexed column where link starts>,
+"   'end_col': <1-indexed column where link ends>,
+"   'text': <display text of the link>,
+"   'text_start_line': <line number where link text starts>,
+"   'text_end_line': <line number where link text ends>,
+"   'text_start_col': <1-indexed column where link text starts>,
+"   'text_end_col': <1-indexed column where link text ends>,
+"   'target': <target of the link>,
+"   'target_start_line': <line number where link target starts>,
+"   'target_end_line': <line number where link target ends>,
+"   'target_start_col': <1-indexed column where link target starts>,
+"   'target_end_col': <1-indexed column where link target ends>,
+"   'full_start_line': <line number where full link starts>,
+"   'full_end_line': <line number where full link ends>,
+"   'full_start_col': <1-indexed column where full link starts>,
+"   'full_end_col': <1-indexed column where full link ends>
+" }
+"
+" All these fields are always present, although reference-style links may have
+" target set to empty string or target-related lines/cols set to -1 if no
+" reference definition is found.
+
 " s:find___LinksInText {{{
 
 " Helper function to find wiki links in a text string
@@ -32,8 +59,7 @@ function! s:findWikiLinksInText(text, temp_line_num)
     if pipe_pos != -1
       " Has alias: [[Target|Alias]]
       let target = wiki_content[0 : pipe_pos - 1]
-      let alias = wiki_content[pipe_pos + 1 : -1]
-      let display_text = alias
+      let display_text = wiki_content[pipe_pos + 1 : -1]
       let target_start_col = wiki_start + 3
       let target_end_col = wiki_start + 2 + pipe_pos
       let text_start_col = wiki_start + 3 + pipe_pos + 1
@@ -41,7 +67,6 @@ function! s:findWikiLinksInText(text, temp_line_num)
     else
       " No alias: [[Target]]
       let target = wiki_content
-      let alias = ''
       let display_text = target
       let target_start_col = wiki_start + 3
       let target_end_col = wiki_end
@@ -60,7 +85,6 @@ function! s:findWikiLinksInText(text, temp_line_num)
           \ 'target': target,
           \ 'target_start_col': target_start_col,
           \ 'target_end_col': target_end_col,
-          \ 'alias': alias,
           \ 'full_start_col': wiki_start + 1,
           \ 'full_end_col': wiki_end + 2
           \ }
@@ -181,27 +205,21 @@ function! s:findReferenceLinksInText(text, temp_line_num)
 
     let link_info = {
           \ 'type': 'reference',
+          \ 'text': text,
+          \ 'reference': reference,
+          \ 'target': get(ref_info, 'target', ''),
           \ 'line_num': a:temp_line_num,
           \ 'start_col': bracket_start + 1,
           \ 'end_col': ref_end + 1,
-          \ 'text': text,
           \ 'text_start_col': bracket_start + 2,
           \ 'text_end_col': bracket_end,
-          \ 'reference': reference,
           \ 'full_start_col': bracket_start + 1,
-          \ 'full_end_col': ref_end + 1
+          \ 'full_end_col': ref_end + 1,
+          \ 'target_start_line': get(ref_info, 'line_num', -1),
+          \ 'target_end_line': get(ref_info, 'line_num', -1),
+          \ 'target_start_col': get(ref_info, 'target_start_col', -1),
+          \ 'target_end_col': get(ref_info, 'target_end_col', -1),
           \ }
-
-    if !empty(ref_info)
-      let link_info.target = ref_info.target
-      let link_info.target_start_line = ref_info.line_num
-      let link_info.target_start_col = ref_info.target_start_col
-      let link_info.target_end_col = ref_info.target_end_col
-      let link_info.target_end_line = ref_info.line_num
-    else
-      " FIXME this is causing target_start_line et al to be optional
-      let link_info.target = ''
-    endif
 
     call add(links, link_info)
     let pos = ref_end + 1
@@ -398,7 +416,7 @@ function! s:posInsideLink(line_num, col_num, link)
 endfunction
 
 function! s:isMultiLine(link)
-  if has_key(a:link, 'end_line') && a:link.end_line > a:link.line_num
+  if !empty(a:link) && a:link.end_line > a:link.line_num
     return v:true
   endif
   return v:false
@@ -426,42 +444,22 @@ function! md#links#getLinkTextRange(link_info)
   if empty(a:link_info)
     return []
   endif
-  " Use text_start_line and text_end_line if available (for multi-line links)
-  let start_line = has_key(a:link_info, 'text_start_line') ? a:link_info.text_start_line : a:link_info.line_num
-  let end_line = has_key(a:link_info, 'text_end_line') ? a:link_info.text_end_line : a:link_info.line_num
-  return [start_line, a:link_info.text_start_col, end_line, a:link_info.text_end_col]
+  return [
+        \ a:link_info.text_start_line, a:link_info.text_start_col,
+        \ a:link_info.text_end_line, a:link_info.text_end_col
+        \ ]
 endfunction
 
-" TODO make this generic
-" - FIXME standardize the link object, so that all link objects use the same
-"   fields for the same semantic purpose
 " Get position range for link target selection
 " Returns [start_line, start_col, end_line, end_col] or [] if no link
 function! md#links#getLinkTargetRange(link_info)
-  if empty(a:link_info)
+  if empty(a:link_info) || a:link_info.target_start_line == -1 || a:link_info.target_end_line == -1
     return []
   endif
 
-  if a:link_info.type == 'inline'
-    " Use target_start_line and target_end_line if available (for multi-line links)
-    let start_line = has_key(a:link_info, 'target_start_line') ? a:link_info.target_start_line : a:link_info.line_num
-    let end_line = has_key(a:link_info, 'target_end_line') ? a:link_info.target_end_line : a:link_info.line_num
-    return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
-  elseif a:link_info.type == 'wiki'
-    " For wiki links, return the target portion
-    let start_line = has_key(a:link_info, 'target_start_line') ? a:link_info.target_start_line : a:link_info.line_num
-    let end_line = has_key(a:link_info, 'target_end_line') ? a:link_info.target_end_line : a:link_info.line_num
-    return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
-  elseif a:link_info.type == 'reference'
-    " For reference links, find the definition line
-    if has_key(a:link_info, 'target_start_line')
-      let start_line = a:link_info.target_start_line
-      let end_line = a:link_info.target_end_line
-      return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
-    endif
-  endif
-
-  return []
+  let start_line = a:link_info.target_start_line
+  let end_line = a:link_info.target_end_line
+  return [start_line, a:link_info.target_start_col, end_line, a:link_info.target_end_col]
 endfunction
 
 " Get position range for entire link selection
@@ -470,10 +468,10 @@ function! md#links#getLinkFullRange(link_info)
   if empty(a:link_info)
     return []
   endif
-  " Use full_start_line and full_end_line if available (for multi-line links)
-  let start_line = has_key(a:link_info, 'full_start_line') ? a:link_info.full_start_line : a:link_info.line_num
-  let end_line = has_key(a:link_info, 'full_end_line') ? a:link_info.full_end_line : a:link_info.line_num
-  return [start_line, a:link_info.full_start_col, end_line, a:link_info.full_end_col]
+  return [
+        \ a:link_info.full_start_line, a:link_info.full_start_col,
+        \ a:link_info.full_end_line, a:link_info.full_end_col
+        \ ]
 endfunction
 
 " }}}
@@ -582,23 +580,13 @@ function! s:joinThreeLines(line_num)
 
   " Strip structural indentation and markers from all lines
   " This handles list items, blockquotes, and other indented contexts
-
-  " Handle previous line
   let [prev_stripped, prev_spaces] = s:stripStructuralMarkers(prev_line)
-
-  " Handle current line
   let [curr_stripped, curr_spaces] = s:stripStructuralMarkers(curr_line)
-
-  " Handle next line
   let [next_stripped, next_spaces] = s:stripStructuralMarkers(next_line)
 
-  " Add spaces to continuation lines to correctly model line wrapping in
-  " practice
+  " Add spaces to continuation lines to correctly model line wrapping in practice
   let curr_stripped = ' ' . curr_stripped
   let next_stripped = ' ' . next_stripped
-
-  " Join lines without newlines (just concatenate)
-  let joined = prev_stripped . curr_stripped . next_stripped
 
   " Return both original and stripped lengths for position mapping
   let lengths = {
@@ -607,7 +595,7 @@ function! s:joinThreeLines(line_num)
         \ 'leading_spaces': [prev_spaces, curr_spaces, next_spaces]
         \ }
 
-  return [joined, lengths]
+  return [prev_stripped . curr_stripped . next_stripped, lengths]
 endfunction
 
 " Helper function to strip structural markers from a line
@@ -617,16 +605,12 @@ function! s:stripStructuralMarkers(line)
     return ['', 0]
   endif
 
-  " Count leading whitespace
-  let leading = matchstr(a:line, '^\s*')
-  let spaces = len(leading)
-  let content = a:line[spaces :]
-
   " Check for and strip structural markers
   " List markers: -, *, +, or numbered lists
   " Blockquote markers: >
   " But don't strip if the line starts with a list marker (it's a new item)
-  let stripped = content
+  let num_spaces = len(matchstr(a:line, '^\s*'))
+  let stripped = a:line[num_spaces :]
   let marker_len = 0
 
   " Strip blockquote markers (> ) recursively
@@ -636,7 +620,7 @@ function! s:stripStructuralMarkers(line)
     let stripped = stripped[len(marker_match):]
   endwhile
 
-  return [stripped, spaces + marker_len]
+  return [stripped, num_spaces + marker_len]
 endfunction
 
 " Helper function to determine if a position in joined text belongs to the target line
@@ -676,11 +660,12 @@ function! s:posToLineCol(pos, line_num, lengths)
   let curr_spaces = a:lengths['leading_spaces'][1]
   let next_spaces = a:lengths['leading_spaces'][2]
 
+  " FIXME this can be simplified, but we're not going to need this in the
+  " new world anyway.
   if a:pos < prev_len
     " Position is on previous line
     " Add back the leading spaces that were stripped
     return [a:line_num - 1, a:pos + prev_spaces + 1]
-    " TODO vvv this can be simplified... the two branches are nearly identical
   elseif a:pos < prev_len + curr_len " Position is on current line
     let pos_in_curr = a:pos - prev_len
 
@@ -731,18 +716,8 @@ function! s:adjustLinkInfo(link_info, line_num, lengths)
   let adjusted.full_start_line = start_pos[0]
   let adjusted.full_end_line = end_pos[0]
 
-  " For inline links, also adjust target columns
-  if adjusted.type ==# 'inline'
-    let target_start_pos = s:posToLineCol(a:link_info.target_start_col - 1, a:line_num, a:lengths)
-    let target_end_pos = s:posToLineCol(a:link_info.target_end_col - 1, a:line_num, a:lengths)
-    let adjusted.target_start_col = target_start_pos[1]
-    let adjusted.target_end_col = target_end_pos[1]
-    let adjusted.target_start_line = target_start_pos[0]
-    let adjusted.target_end_line = target_end_pos[0]
-  endif
-
-  " For wiki links, also adjust target columns
-  if adjusted.type ==# 'wiki'
+  if adjusted.type !=# 'reference'
+    " skip reference links because their targets live in the reference definition and were never line-joined
     let target_start_pos = s:posToLineCol(a:link_info.target_start_col - 1, a:line_num, a:lengths)
     let target_end_pos = s:posToLineCol(a:link_info.target_end_col - 1, a:line_num, a:lengths)
     let adjusted.target_start_col = target_start_pos[1]
