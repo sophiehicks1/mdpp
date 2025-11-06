@@ -2,6 +2,20 @@
 " vim-open integration for markdown links
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+function! s:get_markdown_link_extractor()
+  if exists('g:Mdpp_vimopen_markdown_extractor') && type(g:Mdpp_vimopen_markdown_extractor) == type(function('tr'))
+    return g:Mdpp_vimopen_markdown_extractor
+  endif
+  return function('s:extract_markdown_link')
+endfunction
+
+function! s:get_wiki_link_extractor()
+  if exists('g:Mdpp_vimopen_wikilink_extractor') && type(g:Mdpp_vimopen_wikilink_extractor) == type(function('tr'))
+    return g:Mdpp_vimopen_wikilink_extractor
+  endif
+  return function('s:extract_wiki_link')
+endfunction
+
 " Setup vim-open integration if the plugin is available
 function! md#vimopen#setup()
   if !exists('g:loaded_vim_open')
@@ -13,8 +27,8 @@ function! md#vimopen#setup()
   endif
   
   " Add markdown link finder to vim-open
-  call gopher#add_finder(function('s:is_markdown_link'), function('s:extract_markdown_link'))
-  call gopher#add_finder(function('s:is_wiki_link'), function('s:extract_wiki_link'))
+  call gopher#add_finder(function('s:is_markdown_link'), s:get_markdown_link_extractor())
+  call gopher#add_finder(function('s:is_wiki_link'), s:get_wiki_link_extractor())
 endfunction
 
 function! s:is_wiki_link(context)

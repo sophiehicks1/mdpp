@@ -1,8 +1,9 @@
 wikilink handling with (optional) explicit root
 [X] autocomplete uses root
 [X] vim-open integration is optional
-[ ] vim-open integration gives option to set own extractor (needed so people can use semantics other than optional root)
+[X] vim-open integration gives option to set own extractor (needed so people can use semantics other than optional root)
 [ ] vim-open integration uses configured root
+[ ] update readme with new globals
 
 
 Goal
