@@ -20,25 +20,38 @@ function! s:getCompletionFunction()
   return function('s:defaultCompletion')
 endfunction
 
+" Get the root directory for wikilink resolution
+function! s:getWikilinkRoot()
+  if exists('g:mdpp_wikilink_root') && type(g:mdpp_wikilink_root) == type('')
+    return g:mdpp_wikilink_root
+  endif
+  return getcwd()
+endfunction
+
 " Default completion function - finds markdown files relative to current directory
 " Uses matching semantics to the default wiki-link resolver
 function! s:defaultCompletion(text)
+  let root = s:getWikilinkRoot()
+  let globpattern = root . '/**/*.md'
   if exists('*glob') && has('patch-7.4.279')
-    let files = glob('./**/*.md', 0, 1)
+    let files = glob(globpattern, 0, 1)
   else
-    let files = split(glob('./**/*.md'), '\n')
+    let files = split(glob(globpattern), '\n')
   endif
   let files = filter(files, 'isdirectory(v:val) == 0')
   let files = [a:text] + files
 
-  " Convert to relative paths and remove ./ prefix and .md suffix
+  " Convert to relative paths and remove root prefix and .md suffix
   let completions = []
   for file in files
-    if file =~ '^\./'
-      let relative_path = file[2:]  " Remove './' prefix
-      if relative_path =~ '\.\w\+$'
+    if file =~ '^' . escape(root, '.\') . '/'
+      " Remove './' prefix
+      let relative_path = substitute(file, '^' . escape(root, '.\') . '/', '', '')
+      if relative_path =~ '\.md$'
         let completion = relative_path[:-4]  " Remove '.md' suffix
         call add(completions, completion)
+      else
+        echoerr "ERROR: This should not happen - file without .md suffix found in markdown wikilink completion"
       endif
     endif
   endfor

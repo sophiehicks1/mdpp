@@ -77,6 +77,7 @@ function! s:test_default_completion()
 
   " Change to test directory
   let test_dir = g:mdpp_repo_root . '/tests/data/completion-test'
+  let g:mdpp_wikilink_root = test_dir
   let old_cwd = getcwd()
   execute 'cd ' . test_dir
 
