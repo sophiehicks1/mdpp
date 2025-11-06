@@ -7,6 +7,10 @@ function! md#vimopen#setup()
   if !exists('g:loaded_vim_open')
     return
   endif
+
+  if exists('g:mdpp_vimopen_integration') && g:mdpp_vimopen_integration == 0
+    return
+  endif
   
   " Add markdown link finder to vim-open
   call gopher#add_finder(function('s:is_markdown_link'), function('s:extract_markdown_link'))

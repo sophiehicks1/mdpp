@@ -1,3 +1,10 @@
+wikilink handling with (optional) explicit root
+[X] autocomplete uses root
+[X] vim-open integration is optional
+[ ] vim-open integration gives option to set own extractor (needed so people can use semantics other than optional root)
+[ ] vim-open integration uses configured root
+
+
 Goal
 - Build a dom like model that scans the file top to bottom and
   collects all the links
