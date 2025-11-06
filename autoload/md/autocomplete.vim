@@ -20,18 +20,10 @@ function! s:getCompletionFunction()
   return function('s:defaultCompletion')
 endfunction
 
-" Get the root directory for wikilink resolution
-function! s:getWikilinkRoot()
-  if exists('g:mdpp_wikilink_root') && type(g:mdpp_wikilink_root) == type('')
-    return g:mdpp_wikilink_root
-  endif
-  return getcwd()
-endfunction
-
-" Default completion function - finds markdown files relative to current directory
+" Default completion function - finds markdown files relative to wikilink root (defaults to cwd)
 " Uses matching semantics to the default wiki-link resolver
 function! s:defaultCompletion(text)
-  let root = s:getWikilinkRoot()
+  let root = md#wikiutils#getWikilinkRoot()
   let globpattern = root . '/**/*.md'
   if exists('*glob') && has('patch-7.4.279')
     let files = glob(globpattern, 0, 1)

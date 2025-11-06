@@ -83,7 +83,8 @@ function! s:extract_markdown_link(context)
 endfunction
 
 function! s:default_resolver(text)
-  return './' . a:text . '.md'
+  let root = md#wikiutils#getWikilinkRoot()
+  return root . '/' . a:text . '.md'
 endfunction
 
 function! s:get_wiki_link_resolver()
