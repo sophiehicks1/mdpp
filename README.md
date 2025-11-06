@@ -102,25 +102,60 @@ Features:
 - Works with vim-open's configurable "opener" system for handling different resource types
 - Only activates in markdown files
 
+The feature is on by default whenever
+[vim-open](https://github.com/sophiehicks1/vim-open) is detected, however if you
+have that plugin installed and _don't_ want the default integration turned on,
+you can disable the feature by setting `let g:mdpp_vimopen_integration = 0`.
+
+If vim-open is not installed, the feature is off by default.
+
+#### Configuring the wiki link root
+
+If the vim-open integration is active, then wiki links are resolved relative to
+a wiki link root, which defaults to `'.'`. You can change this by setting
+`g:mdpp_wikilink_root`.
+
 #### Custom wiki link resolution
 
-You can also add a custom wiki link resolution function, to preprocess the address from a wikilink before it's
-passed to vim-open, by setting `g:Mdpp_wiki_resolver`. For example, to open all wiki links as md files inside a root
-`~/Wiki` directory, you could the following to your vim config.
+You can also add a custom wiki link resolution function, to preprocess the
+address from a wikilink before it's passed to vim-open, by setting
+`g:Mdpp_wiki_resolver`. For example, the default resolver assumes all wiki links
+are markdown files, and even if your wikilink has an explicit extension, it will
+add a `'.md'` extension anyway. If you'd like to change that to support explicit
+extensions, you could add something like the following to your vim config.
 
 ```
 function! CustomWikiResolver(text)
-  return '~/Wiki/' . a:text . '.md'
+  let path = a:text
+  if !(path =~# '\.\w\+$')
+    let path = path . '.md'
+  endif
+  return md#wikiutils#getWikilinkRoot() . '/' . path
 endfunction
 let g:Mdpp_wiki_resolver = function('CustomWikiResolver')
 ```
+
+#### Low-level configuration options
+
+If you have vimopen installed and want to take advantage of mdpp's _link
+detection_, but want to configure _everything else_ yourself, you can also use
+the low-level configuration options to set custom extractor functions.
+I'm not sure why anyone would ever want to do that and it's probably a mistake
+if you're not me, but... well... it's there if you want it.
+
+The options are `g:Mdpp_vimopen_markdown_extractor` and
+`g:Mdpp_vimopen_wikilink_extractor`. You can either set this to a function,
+which will be passed to vim-open as the `extract_fn` argument to
+`gopher#add_finder`, or you can set it to 0 or '' in which case it will turn off
+the relevant type of link.
 
 ### Wikilink Autocomplete
 
 Intelligent autocomplete for wikilinks that activates when typing `[[`:
 
 - **`[[`** - Triggers completion popup for wikilink targets (when enabled)
-- Completes markdown file names relative to current directory
+- Completes markdown file names relative to `g:mdpp_wikilink_root` (defaults to
+  `'.'`)
 - Removes `.md` extensions and `./` prefixes from suggestions
 - Includes directories that contain markdown files
 
@@ -207,10 +242,18 @@ let g:mdpp_default_mappings = 0
 
 " disable wikilink autocomplete
 let g:mdpp_wikilink_autocomplete = 0
+
+" disable vimopen integration
+let g:mdpp_vimopen_integration = 0
+
+" use custom wikilink root with the default wikilink open/autocomplete
+let g:mdpp_wikilink_root = '~/Documents/wiki'
+
+" use a custom wikilink completion_fn
+let g:Mdpp_wikilink_completion_fn = function('MyWikilinkCompleter')
+
+" use a custom wikilink_resolver with the default vim-open integration
+let g:Mdpp_wiki_resolver = function('MyWikilinkResolver')
 ```
 
 You can set your own mappings up by copying the `<Plug>` mappings found in `after/ftplugin/markdown.vim`
-
----
-
-**mdpp.vim** - Making markdown editing as powerful as your ideas.
