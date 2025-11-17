@@ -18,8 +18,6 @@
 " other modules
 
 " TODO Next {{{
-" - currently this mixes two code styles (short fns that do one thing, and
-"   longer end-to-end procedures). Standardize on shorter functions that do one thing.
 " - Probably worth a refactor once this is done... might be worth rethinking
 "   the dom/node/heading/link module structure
 " - Update docs in this to match style for links
@@ -42,11 +40,10 @@
 
 " Tree/Node Construction API {{{
 
-" TODO this operates at multiple levels of abstraction... refactor
 " Construct a tree of nodes, to represent markdown document structure.
 function! md#node#buildTree()
   " The root node and it's children represent the entire document. By
-  " definition it's the only node with no heading, since it contents only the
+  " definition it's the only node with no heading, since it contains only the
   " content lines before the first heading. All other nodes in the document
   " are children or descendents of the root node
   let root = s:newNode(0, 0)
@@ -56,25 +53,36 @@ function! md#node#buildTree()
   let refs = {}
   " add the lines to the tree one by one
   for lnum in range(1, line('$'))
-    let ref_info = s:findReferenceDefsInLine(lnum)
-    if !empty(ref_info)
-      if !has_key(refs, ref_info.reference)
-        let refs[ref_info.reference] = ref_info
-      else
-        echoerr "Duplicate reference definition found for reference " . ref_info.reference
-      endif
-      continue
-    endif
     let [nodes, lastNode] = s:addLineToHeadingTree(lnum, nodes, lastNode)
-    let links += s:genericFindLinksInLine(function('<SID>findWikiLinksInText'), lnum)
-    let links += s:genericFindLinksInLine(function('<SID>findInlineLinksInText'), lnum)
-    let links += s:genericFindLinksInLine(function('<SID>findReferenceLinksInText'), lnum)
+    let [links, refs] = s:addLineToLinksAndRefs(lnum, links, refs)
   endfor
+  let links = s:connectLinksToRefs(links, refs)
+  return { 'root': root, 'nodes': nodes , 'links': links, 'refs': refs}
+endfunction
+
+function! s:addLineToLinksAndRefs(lnum, links, refs)
+  let [links, refs] = [a:links, a:refs]
+  let ref_info = s:findReferenceDefsInLine(a:lnum)
+  if !empty(ref_info)
+    if !has_key(refs, ref_info.reference)
+      let refs[ref_info.reference] = ref_info
+    else
+      echoerr "Duplicate reference definition found for reference " . ref_info.reference
+    endif
+    return [links, refs]
+  endif
+  let links += s:genericFindLinksInLine(function('<SID>findWikiLinksInText'), a:lnum)
+  let links += s:genericFindLinksInLine(function('<SID>findInlineLinksInText'), a:lnum)
+  let links += s:genericFindLinksInLine(function('<SID>findReferenceLinksInText'), a:lnum)
+  return [links, refs]
+endfunction
+
+function! s:connectLinksToRefs(links, refs)
   " now that we have all the reference definitions, update the reference links
   " to include target information
-  for link in links
-    if link.type == 'reference' && has_key(refs, link.reference)
-      let ref_info = refs[link.reference]
+  for link in a:links
+    if link.type == 'reference' && has_key(a:refs, link.reference)
+      let ref_info = a:refs[link.reference]
       let link.target = ref_info.target
       let link.target_start_line = ref_info.line_num
       let link.target_end_line = ref_info.line_num
@@ -82,7 +90,7 @@ function! md#node#buildTree()
       let link.target_end_col = ref_info.target_end_col
     endif
   endfor
-  return { 'root': root, 'nodes': nodes , 'links': links, 'refs': refs}
+  return a:links
 endfunction
 
 " }}}
@@ -91,6 +99,7 @@ endfunction
 
 function! s:addLineToHeadingTree(lnum, nodes, lastNode)
   let [nodes, lastNode] = [a:nodes, a:lastNode]
+
   " if the line is a heading, it's a new node
   if md#line#headingLevel(a:lnum)
     let node = s:newNode(lastNode.id + 1, a:lnum)
@@ -101,14 +110,14 @@ function! s:addLineToHeadingTree(lnum, nodes, lastNode)
     " otherwise we add the new line as content in the last node we added
     let lastNode.lnums += [a:lnum]
   endif
+
   return [nodes, lastNode]
 endfunction
 
-" To assign a parent to a new node, we start with the last node we added and
-" walk up the tree to find the first parent with a heading level low enough to
-" add the new Node to it's children.
 function! s:assignParent(newNode, candidateParent)
   let candidateParent = a:candidateParent
+
+  " find the first parent that can parent the new node
   while !s:canParent(candidateParent, a:newNode)
     if !md#node#hasParent(candidateParent)
       call md#node#debugPrint(a:newNode)
@@ -116,8 +125,9 @@ function! s:assignParent(newNode, candidateParent)
     endif
     let candidateParent = candidateParent.parent
   endwhile
+
+  " add this node as a child of the found parent
   call s:addChild(candidateParent, a:newNode)
-  return
 endfunction
 
 " Create a new node object, which will be stored in the tree. Each node object
@@ -389,9 +399,11 @@ function! s:genericFindLinksInLine(find_in_text_fn, line_num)
 endfunction
 
 function! s:findReferenceDefsInLine(line_num)
+  " Find reference definition in the given line
   let pattern = '^\s*\[\([^\]]\+\)\]:\s*\(\S\+\)'
-  let line_content = getline(a:line_num)
-  let match = matchlist(line_content, pattern)
+  let match = matchlist(getline(a:line_num), pattern)
+
+  " Build reference definition info if found
   if !empty(match)
     let reference = match[1]
     let target = match[2]
