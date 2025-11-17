@@ -19,6 +19,20 @@
 
 " scan the lines in a document to build the tree, and store it in buffer state.
 
+" TODO for later
+" - currently this mixes two code styles (short fns that do one thing, and
+"   longer procedures). Standardize on shorter functions that do one thing.
+" - currently this rescans the entire buffer every time we find a reference
+"   link. We should pull reference defs out during the first pass, and then
+"   combine defns with links later.
+" - currently this scans the entire next line every time, even if there are no
+"   open links at the end of the first line. We should optimize this to stop
+"   scanning if there are no open links at the end of the first line.
+" - Probably worth a refactor once this is done... might be worth rethinking
+"   the dom/node/heading/link module structure
+" - add something to only actually rebuild the dom if the document has
+"   changed
+
 
 function! s:headingLevelForNode(lnum)
   " lnum == 0 means it's the root node, so it has -1 heading level (i.e. it
@@ -29,9 +43,7 @@ function! s:headingLevelForNode(lnum)
   return md#line#headingLevel(a:lnum)
 endfunction
 
-""""""""""""""""""""""""""""""
-" Tree/Node Construction Logic
-""""""""""""""""""""""""""""""
+" Tree/Node Construction API {{{
 
 " Construct a tree of nodes, to represent markdown document structure.
 function! md#node#buildTree()
@@ -42,22 +54,53 @@ function! md#node#buildTree()
   let root = s:newNode(0, 0)
   let nodes = [root]
   let lastNode = root
+  let links = []
+  let refs = []
   " add the lines to the tree one by one
   for lnum in range(1, line('$'))
-    " if the line is a heading, it's a new node
-    if md#line#headingLevel(lnum)
-      let node = s:newNode(lastNode.id + 1, lnum)
-      call s:assignParent(node, lastNode)
-      let nodes += [node]
-      let lastNode = node
-    else
-      " otherwise we add the new line as content in the last node we added
-      let lastNode.lnums += [lnum]
-    endif
+    let [nodes, lastNode] = s:addLineToHeadingTree(lnum, nodes, lastNode)
+    let links += s:findWikiLinksInLine(lnum)
+    let links += s:findInlineLinksInLine(lnum)
+    let links += s:findReferenceLinksInLine(lnum)
   endfor
   " return just the tree itself, since the rest of the state was only needed
   " for construction
-  return { 'root': root, 'nodes': nodes }
+  return { 'root': root, 'nodes': nodes , 'links': links }
+endfunction
+
+" }}}
+
+" Heading tree construction logic {{{
+
+function! s:addLineToHeadingTree(lnum, nodes, lastNode)
+  let [nodes, lastNode] = [a:nodes, a:lastNode]
+  " if the line is a heading, it's a new node
+  if md#line#headingLevel(a:lnum)
+    let node = s:newNode(lastNode.id + 1, a:lnum)
+    call s:assignParent(node, lastNode)
+    let nodes += [node]
+    let lastNode = node
+  else
+    " otherwise we add the new line as content in the last node we added
+    let lastNode.lnums += [a:lnum]
+  endif
+  return [nodes, lastNode]
+endfunction
+
+" To assign a parent to a new node, we start with the last node we added and
+" walk up the tree to find the first parent with a heading level low enough to
+" add the new Node to it's children.
+function! s:assignParent(newNode, candidateParent)
+  let candidateParent = a:candidateParent
+  while !s:canParent(candidateParent, a:newNode)
+    if !md#node#hasParent(candidateParent)
+      call md#node#debugPrint(a:newNode)
+      throw "MDPP No parent found for newNode. This is a bug"
+    endif
+    let candidateParent = candidateParent.parent
+  endwhile
+  call s:addChild(candidateParent, a:newNode)
+  return
 endfunction
 
 " Create a new node object, which will be stored in the tree. Each node object
@@ -89,31 +132,500 @@ function! s:addChild(parent, child)
   let a:child.parent = a:parent
 endfunction
 
-" To assign a parent to a new node, we start with the last node we added and
-" walk up the tree to find the first parent with a heading level low enough to
-" add the new Node to it's children.
-function! s:assignParent(newNode, candidateParent)
-  let candidateParent = a:candidateParent
-  while !s:canParent(candidateParent, a:newNode)
-    if !md#node#hasParent(candidateParent)
-      call md#node#debugPrint(a:newNode)
-      throw "MDPP No parent found for newNode. This is a bug"
-    endif
-    let candidateParent = candidateParent.parent
-  endwhile
-  call s:addChild(candidateParent, a:newNode)
-  return
-endfunction
-
 " parent must have a lower heading level than child (e.g. H2 cannot have an H1
 " child)
 function! s:canParent(parentNode, childNode)
   return a:parentNode.level < a:childNode.level
 endfunction
 
-"""""""""
-" Getters
-"""""""""
+" }}}
+
+" Link tree construction logic {{{1
+
+" s:find___LinksInText {{{2
+
+" Helper function to find wiki links in a text string
+" Returns list of link info dictionaries (with temporary line_num)
+function! s:findWikiLinksInText(text, temp_line_num)
+  let links = []
+  let pos = 0
+
+  while 1
+    " Find the next [[ sequence
+    let wiki_start = stridx(a:text, '[[', pos)
+    if wiki_start == -1
+      break
+    endif
+
+    " Find the matching ]] sequence
+    let wiki_end = stridx(a:text, ']]', wiki_start + 2)
+    if wiki_end == -1
+      let pos = wiki_start + 2
+      continue
+    endif
+
+    " Extract the content between [[ and ]]
+    let wiki_content = a:text[wiki_start + 2 : wiki_end - 1]
+
+    " Parse target and alias
+    let pipe_pos = stridx(wiki_content, '|')
+    if pipe_pos != -1
+      " Has alias: [[Target|Alias]]
+      let target = wiki_content[0 : pipe_pos - 1]
+      let display_text = wiki_content[pipe_pos + 1 : -1]
+      let target_start_col = wiki_start + 3
+      let target_end_col = wiki_start + 2 + pipe_pos
+      let text_start_col = wiki_start + 3 + pipe_pos + 1
+      let text_end_col = wiki_end
+    else
+      " No alias: [[Target]]
+      let target = wiki_content
+      let display_text = target
+      let target_start_col = wiki_start + 3
+      let target_end_col = wiki_end
+      let text_start_col = wiki_start + 3
+      let text_end_col = wiki_end
+    endif
+
+    let link_info = {
+          \ 'type': 'wiki',
+          \ 'line_num': a:temp_line_num,
+          \ 'start_col': wiki_start + 1,
+          \ 'end_col': wiki_end + 2,
+          \ 'text': display_text,
+          \ 'text_start_col': text_start_col,
+          \ 'text_end_col': text_end_col,
+          \ 'target': target,
+          \ 'target_start_col': target_start_col,
+          \ 'target_end_col': target_end_col,
+          \ 'full_start_col': wiki_start + 1,
+          \ 'full_end_col': wiki_end + 2
+          \ }
+
+    call add(links, link_info)
+    let pos = wiki_end + 2
+  endwhile
+
+  return links
+endfunction
+
+" Helper function to find inline links in a text string
+" Returns list of link info dictionaries (with temporary line_num)
+function! s:findInlineLinksInText(text, temp_line_num)
+  let links = []
+  let pos = 0
+
+  while 1
+    " Find the next [ character
+    let bracket_start = stridx(a:text, '[', pos)
+    if bracket_start == -1
+      break
+    endif
+
+    " Find the matching ] character
+    let bracket_end = s:findMatchingBracket(a:text, bracket_start)
+    if bracket_end == -1
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Check if this is followed by a ( for inline link
+    let paren_start = bracket_end + 1
+    if paren_start >= len(a:text) || a:text[paren_start] != '('
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Find the matching ) character
+    let paren_end = s:findMatchingParen(a:text, paren_start)
+    if paren_end == -1
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Extract link components
+    let text = a:text[bracket_start + 1 : bracket_end - 1]
+    let target = a:text[paren_start + 1 : paren_end - 1]
+
+    let link_info = {
+          \ 'type': 'inline',
+          \ 'line_num': a:temp_line_num,
+          \ 'start_col': bracket_start + 1,
+          \ 'end_col': paren_end + 1,
+          \ 'text': text,
+          \ 'text_start_col': bracket_start + 2,
+          \ 'text_end_col': bracket_end,
+          \ 'target': target,
+          \ 'target_start_col': paren_start + 2,
+          \ 'target_end_col': paren_end,
+          \ 'full_start_col': bracket_start + 1,
+          \ 'full_end_col': paren_end + 1
+          \ }
+
+    call add(links, link_info)
+    let pos = paren_end + 1
+  endwhile
+
+  return links
+endfunction
+
+" Helper function to find reference links in a text string
+" Returns list of link info dictionaries (with temporary line_num)
+function! s:findReferenceLinksInText(text, temp_line_num)
+  let links = []
+  let pos = 0
+
+  while 1
+    " Find the next [ character
+    let bracket_start = stridx(a:text, '[', pos)
+    if bracket_start == -1
+      break
+    endif
+
+    " Find the matching ] character
+    let bracket_end = s:findMatchingBracket(a:text, bracket_start)
+    if bracket_end == -1
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Check if this is followed by another [ for reference link
+    let ref_start = bracket_end + 1
+    if ref_start >= len(a:text) || a:text[ref_start] != '['
+      " Check for implicit reference (just [text][])
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Find the matching ] character for reference
+    let ref_end = s:findMatchingBracket(a:text, ref_start)
+    if ref_end == -1
+      let pos = bracket_start + 1
+      continue
+    endif
+
+    " Extract link components
+    let text = a:text[bracket_start + 1 : bracket_end - 1]
+    let reference = a:text[ref_start + 1 : ref_end - 1]
+
+    " If reference is empty, use text as reference (implicit reference)
+    if empty(reference)
+      let reference = text
+    endif
+
+    " Find the reference definition
+    let ref_info = s:findReferenceDefinitionInfo(reference)
+
+    let link_info = {
+          \ 'type': 'reference',
+          \ 'text': text,
+          \ 'reference': reference,
+          \ 'target': get(ref_info, 'target', ''),
+          \ 'line_num': a:temp_line_num,
+          \ 'start_col': bracket_start + 1,
+          \ 'end_col': ref_end + 1,
+          \ 'text_start_col': bracket_start + 2,
+          \ 'text_end_col': bracket_end,
+          \ 'full_start_col': bracket_start + 1,
+          \ 'full_end_col': ref_end + 1,
+          \ 'target_start_line': get(ref_info, 'line_num', -1),
+          \ 'target_end_line': get(ref_info, 'line_num', -1),
+          \ 'target_start_col': get(ref_info, 'target_start_col', -1),
+          \ 'target_end_col': get(ref_info, 'target_end_col', -1),
+          \ }
+
+    call add(links, link_info)
+    let pos = ref_end + 1
+  endwhile
+
+  return links
+endfunction
+
+" 2}}}
+
+" s:find___LinksInLine {{{2
+
+function! s:genericFindLinksInLine(find_in_text_fn, line_num)
+  " Join current line with next line to handle multi-line links
+  let [joined_text, lengths] = s:joinTwoLines(a:line_num)
+
+  " Find all links in the joined text
+  " TODO this is going to reference private functions... move them here / make them public
+  let all_links = a:find_in_text_fn(joined_text, a:line_num)
+  let result_links = []
+
+  " Filter out links that don't belong to the current line
+  for link in all_links
+    " Check if link starts within the current line
+    if s:linkStartsInCurrentLine(link.start_col, lengths)
+      let adjusted_link = s:adjustLinkInfo(link, a:line_num, lengths)
+      call add(result_links, adjusted_link)
+    endif
+  endfor
+
+  return result_links
+endfunction
+
+function! s:findWikiLinksInLine(line_num)
+  return s:genericFindLinksInLine(function('<SID>findWikiLinksInText'), a:line_num)
+endfunction
+
+function! s:findInlineLinksInLine(line_num)
+  return s:genericFindLinksInLine(function('<SID>findInlineLinksInText'), a:line_num)
+endfunction
+
+" TODO
+function! s:findReferenceLinksInLine(line_num)
+  return s:genericFindLinksInLine(function('<SID>findReferenceLinksInText'), a:line_num)
+endfunction
+
+" 2}}}
+
+" Pure text/vim stuff {{{2
+
+" Find matching bracket, handling nested brackets
+function! s:findMatchingBracket(text, start_pos)
+  let bracket_count = 1
+  let pos = a:start_pos + 1
+
+  while pos < len(a:text) && bracket_count > 0
+    let char = a:text[pos]
+    if char == '['
+      let bracket_count += 1
+    elseif char == ']'
+      let bracket_count -= 1
+    endif
+    let pos += 1
+  endwhile
+
+  if bracket_count == 0
+    return pos - 1
+  else
+    return -1
+  endif
+endfunction
+
+" Find matching parenthesis, handling nested parentheses
+function! s:findMatchingParen(text, start_pos)
+  let paren_count = 1
+  let pos = a:start_pos + 1
+
+  while pos < len(a:text) && paren_count > 0
+    let char = a:text[pos]
+    if char == '('
+      let paren_count += 1
+    elseif char == ')'
+      let paren_count -= 1
+    endif
+    let pos += 1
+  endwhile
+
+  if paren_count == 0
+    return pos - 1
+  else
+    return -1
+  endif
+endfunction
+
+" Helper function to get line content safely (returns empty string for invalid line numbers)
+function! s:getLineSafe(line_num)
+  if a:line_num < 1 || a:line_num > line('$')
+    return ''
+  endif
+  return getline(a:line_num)
+endfunction
+
+" 2}}}
+
+" Line joining and adjusting {{{2
+
+function! s:joinTwoLines(lnum)
+  let curr_line = s:getLineSafe(a:lnum)
+  let next_line = s:getLineSafe(a:lnum + 1)
+
+  " Strip structural indentation and markers from all lines
+  " This handles list items, blockquotes, and other indented contexts
+  let [curr_stripped, curr_spaces] = s:stripStructuralMarkers(curr_line)
+  let [next_stripped, next_spaces] = s:stripStructuralMarkers(next_line)
+
+  " Add spaces to continuation lines to correctly model line wrapping in practice
+  let next_stripped = ' ' . next_stripped
+
+  " Return both original and stripped lengths for position mapping
+  let lengths = {
+        \ 'original_lengths': [len(curr_line), len(next_line)],
+        \ 'stripped_lengths': [len(curr_stripped), len(next_stripped)],
+        \ 'leading_spaces': [curr_spaces, next_spaces]
+        \ }
+
+  return [curr_stripped . next_stripped, lengths]
+endfunction
+
+" Helper function to strip structural markers from a line
+" Returns: [stripped_line, spaces_removed]
+function! s:stripStructuralMarkers(line)
+  if empty(a:line)
+    return ['', 0]
+  endif
+
+  " Check for and strip structural markers
+  " Blockquote markers: >
+  " But don't strip if the line starts with a list marker (it's a new item)
+  " List markers: -, *, +, or numbered lists
+  let num_spaces = len(matchstr(a:line, '^\s*'))
+  let stripped = a:line[num_spaces :]
+  let marker_len = 0
+
+  " Strip blockquote markers (> ) recursively
+  while stripped =~# '^>\s\?'
+    let marker_match = matchstr(stripped, '^>\s\?')
+    let marker_len += len(marker_match)
+    let stripped = stripped[len(marker_match):]
+  endwhile
+
+  return [stripped, num_spaces + marker_len]
+endfunction
+
+function! s:linkStartsInCurrentLine(start_col, lengths)
+  let original_lengths = a:lengths.original_lengths
+  let stripped_lengths = a:lengths.stripped_lengths
+
+  " Calculate the end column of the current line in stripped text
+  let curr_line_end_stripped = stripped_lengths[0]
+
+  " If the link starts before or at the end of the current line, it belongs here
+  return a:start_col <= curr_line_end_stripped
+endfunction
+
+" Helper function to convert a position in joined text to actual line/column
+" pos is 0-indexed position in joined text
+" line_num is the target line number
+" lengths is the dict returned by s:joinThreeLines
+" Returns: [line, col] where line is absolute and col is 1-indexed
+function! s:posToLineCol(pos, line_num, lengths)
+  let curr_len = a:lengths['stripped_lengths'][0]
+  let curr_spaces = a:lengths['leading_spaces'][0]
+  let next_spaces = a:lengths['leading_spaces'][1]
+
+  if a:pos < curr_len
+    " Position is on current line
+    " Add back the leading spaces that were stripped
+    return [a:line_num, a:pos + curr_spaces + 1]
+  else " Position is on next line
+    let pos_in_next_stripped = a:pos - curr_len
+
+    " If we stripped leading spaces and added a single space
+    if pos_in_next_stripped == 0
+      " Position is at the single space we added - map to first non-whitespace char
+      return [a:line_num + 1, next_spaces + 1]
+    else
+      " Position is after the added space - subtract 1 for the space and add back leading spaces
+      return [a:line_num + 1, pos_in_next_stripped - 1 + next_spaces + 1]
+    endif
+  endif
+endfunction
+
+" Helper function to adjust link info from joined text back to original line coordinates
+" This handles multi-line links by determining the actual line where the link starts
+function! s:adjustLinkInfo(link_info, line_num, lengths)
+  " Convert all positions from joined text to actual line/col
+  " Note: link_info columns are 1-indexed to match vim semantics, so convert to 0-indexed first
+  let start_pos = s:posToLineCol(a:link_info.start_col - 1, a:line_num, a:lengths)
+  let end_pos = s:posToLineCol(a:link_info.end_col - 1, a:line_num, a:lengths)
+  let text_start_pos = s:posToLineCol(a:link_info.text_start_col - 1, a:line_num, a:lengths)
+  let text_end_pos = s:posToLineCol(a:link_info.text_end_col - 1, a:line_num, a:lengths)
+
+  " Create adjusted link info with proper multi-line coordinates
+  let adjusted = copy(a:link_info)
+  let adjusted.line_num = start_pos[0]
+  let adjusted.start_col = start_pos[1]
+  let adjusted.end_col = end_pos[1]
+  let adjusted.end_line = end_pos[0]
+  let adjusted.text_start_col = text_start_pos[1]
+  let adjusted.text_end_col = text_end_pos[1]
+  let adjusted.text_start_line = text_start_pos[0]
+  let adjusted.text_end_line = text_end_pos[0]
+  let adjusted.full_start_col = start_pos[1]
+  let adjusted.full_end_col = end_pos[1]
+  let adjusted.full_start_line = start_pos[0]
+  let adjusted.full_end_line = end_pos[0]
+
+  if adjusted.type !=# 'reference'
+    " skip reference links because their targets live in the reference definition and were never line-joined
+    let target_start_pos = s:posToLineCol(a:link_info.target_start_col - 1, a:line_num, a:lengths)
+    let target_end_pos = s:posToLineCol(a:link_info.target_end_col - 1, a:line_num, a:lengths)
+    let adjusted.target_start_col = target_start_pos[1]
+    let adjusted.target_end_col = target_end_pos[1]
+    let adjusted.target_start_line = target_start_pos[0]
+    let adjusted.target_end_line = target_end_pos[0]
+  endif
+
+  return adjusted
+endfunction
+
+" 2}}}
+
+" Reference definition stuff {{{2
+
+" make a regex pattern to find a reference definition line. Reference should
+" either be a reference id (e.g. 'foo' to find the reference definition for
+" `[this link][foo]`) or an empty string to find any/all reference definitions)
+"
+" In both cases, the reference ID will be captured in the first group, and the
+" target will be captured in the second.
+function! s:makeReferencePattern(reference)
+  let reference = escape(a:reference, '[]')
+  if empty(reference)
+    let reference = '[^\]]\+'
+  endif
+  return '^\s*\[\(' . reference . '\)\]:\s*\(\S\+\)'
+endfunction
+
+" Extract reference definition info from a specific line number
+" Returns reference definition info dict or {} if none found
+"
+" The 'reference' argument is the reference ID to look for, or empty string
+" to match any reference definition on that line.
+function! s:extractReferenceFromLine(line_num, reference)
+  let pattern = s:makeReferencePattern(a:reference)
+  let line_content = getline(a:line_num)
+  let match = matchlist(line_content, pattern)
+  if !empty(match)
+    let reference = match[1]
+    let target = match[2]
+
+    let target_end = len(match[0])
+    let target_start = target_end - len(target) + 1
+    return {
+          \ 'type': 'reference_definition',
+          \ 'line_num': a:line_num,
+          \ 'reference': reference,
+          \ 'target': target,
+          \ 'target_start_col': target_start,
+          \ 'target_end_col': target_end
+          \ }
+  endif
+  return {}
+endfunction
+
+function! s:findReferenceDefinitionInfo(reference)
+  let line_num = 1
+  let last_line = line('$')
+  while line_num <= last_line
+    let reference_info = s:extractReferenceFromLine(line_num, a:reference)
+    if !empty(reference_info)
+      return reference_info
+    endif
+    let line_num += 1
+  endwhile
+  return {}
+endfunction
+
+" 2}}}
+
+" 1}}}
+
+" Getters {{{
 
 " Return true if node has a valid parent
 function! md#node#hasParent(node)
@@ -184,9 +696,9 @@ function! md#node#getHeadingLevel(node)
   return a:node.level
 endfunction
 
-""""""""""""""""""
-" Update functions
-""""""""""""""""""
+" }}}
+
+" Update functions {{{
 
 function! s:setHeadingLevel(node, newLevel)
   let lnum = md#node#headingLnum(a:node)
@@ -215,9 +727,9 @@ function! md#node#prependNewHeading(node, newLevel)
   call md#line#insertHeading(targetLine, a:newLevel, '')
 endfunction
 
-"""""""""""
-" Debugging
-"""""""""""
+" }}}
+
+" Debugging functions {{{
 
 " Print a node object for debugging purposes. This is needed, because the raw
 " node objects contain self references (because parent links to child, and
@@ -231,3 +743,5 @@ function! md#node#debugPrint(node)
         \ 'lnums: ' . string(a:node.lnums) . '}'
   return
 endfunction
+
+" }}}
