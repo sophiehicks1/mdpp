@@ -1,4 +1,3 @@
-" FIXME refactor this so it's not a billion lines long
 " Show footnote content in a floating window (Neovim only)
 function! md#ux#showFootnoteInFloat()
   " Check if we're in Neovim

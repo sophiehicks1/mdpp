@@ -36,8 +36,9 @@ function! s:strIsListItem(lineStr)
   return a:lineStr =~ '^\s*[-*]\s'
 endfunction
 
+" Generic handler for functions that have different logic for hash headings
+" and underline headings.
 function! s:handleHeadingTypes(hashHeadingHandler, underlineHeadingHandler, default, line)
-  let lnum = md#line#lineAsNum(a:line)
   let lineStr = getline(a:line)
   if s:strIsHashHeading(lineStr)
     return a:hashHeadingHandler(lineStr)
@@ -197,7 +198,6 @@ function! md#line#headingAroundObjectEndPair(line)
   return s:handleHeadingTypes(l:HashHeadingObjectEndPair, l:UnderlineHeadingObjectEndPair, 0, a:line)
 endfunction
 
-" FIXME refactor this so it's not a billion lines long
 " Wrap text to fit within specified width, preserving existing line breaks
 " Returns a list of lines that fit within the width
 function md#line#wrapText(text, width)

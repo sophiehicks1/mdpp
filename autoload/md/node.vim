@@ -1,5 +1,8 @@
-" Functions for managing sections of a document. Each section is modeled as a
-" node in a tree, with the following fields:
+" Functions for parsing a markdown document into a DOM-like structure,
+" consisting of sections and links, which can be queried and manipulated by
+" other modules.
+"
+" Each section is modeled as a node in a tree, with the following fields:
 "
 " ID - Integer ID, unique within a particular document (but not stable. This
 "      will change each time the document is parsed)
@@ -14,8 +17,7 @@
 "         any content lines, but not the children's headings or content (since
 "         those nodes are included directly)
 "
-"
-" Markdown link info structure:
+" Each link is modeled as a dictionary with the following fields:
 " {
 "   'type': 'wiki' | 'inline' | 'reference' | 'reference_definition',
 "   'line_num': <line number where link starts>,
@@ -45,13 +47,7 @@
 " Functions to build the DOM. This is the data structure that's exposed to the
 " other modules
 
-" TODO Next {{{
-" - change to use file providers
-" - add bash script that builds b:dom for a given set of files, and dumps it
-"   somewhere.
-" }}}
-"
-" TODO Optimizations {{{
+" TODO Potential Optimizations {{{
 " - currently this scans the entire next line every time, even if there are no
 "   open links at the end of the first line. We should optimize this to stop
 "   scanning if there are no open links at the end of the first line.
@@ -93,9 +89,7 @@ function! s:addLineToLinksAndRefs(lnum, links, refs)
     endif
     return [links, refs]
   endif
-  let links += s:genericFindLinksInLine(function('<SID>findWikiLinksInText'), a:lnum)
-  let links += s:genericFindLinksInLine(function('<SID>findInlineLinksInText'), a:lnum)
-  let links += s:genericFindLinksInLine(function('<SID>findReferenceLinksInText'), a:lnum)
+  let links += s:findLinksInLine(a:lnum)
   return [links, refs]
 endfunction
 
@@ -199,6 +193,62 @@ endfunction
 " }}}
 
 " Link tree construction logic {{{1
+
+" s:find___InLine {{{2
+
+function! s:findLinksInLine(lnum)
+  let links = []
+  let links += s:genericFindLinksInLine(function('<SID>findWikiLinksInText'), a:lnum)
+  let links += s:genericFindLinksInLine(function('<SID>findInlineLinksInText'), a:lnum)
+  let links += s:genericFindLinksInLine(function('<SID>findReferenceLinksInText'), a:lnum)
+  return links
+endfunction
+
+function! s:genericFindLinksInLine(find_in_text_fn, line_num)
+  " Join current line with next line to handle multi-line links
+  let [joined_text, lengths] = s:joinTwoLines(a:line_num)
+
+  " Find all links in the joined text
+  let all_links = a:find_in_text_fn(joined_text, a:line_num)
+  let result_links = []
+
+  " Filter out links that don't belong to the current line
+  for link in all_links
+    " Check if link starts within the current line
+    if s:linkStartsInCurrentLine(link.start_col, lengths)
+      let adjusted_link = s:adjustLinkInfo(link, a:line_num, lengths)
+      call add(result_links, adjusted_link)
+    endif
+  endfor
+
+  return result_links
+endfunction
+
+function! s:findReferenceDefsInLine(line_num)
+  " Find reference definition in the given line
+  let pattern = '^\s*\[\([^\]]\+\)\]:\s*\(\S\+\)'
+  let match = matchlist(getline(a:line_num), pattern)
+
+  " Build reference definition info if found
+  if !empty(match)
+    let reference = match[1]
+    let target = match[2]
+
+    let target_end = len(match[0])
+    let target_start = target_end - len(target) + 1
+    return {
+          \ 'type': 'reference_definition',
+          \ 'line_num': a:line_num,
+          \ 'reference': reference,
+          \ 'target': target,
+          \ 'target_start_col': target_start,
+          \ 'target_end_col': target_end
+          \ }
+  endif
+  return {}
+endfunction
+
+" 2}}}
 
 " s:find___LinksInText {{{2
 
@@ -394,54 +444,6 @@ function! s:findReferenceLinksInText(text, temp_line_num)
   endwhile
 
   return links
-endfunction
-
-" 2}}}
-
-" s:find___InLine {{{2
-
-function! s:genericFindLinksInLine(find_in_text_fn, line_num)
-  " Join current line with next line to handle multi-line links
-  let [joined_text, lengths] = s:joinTwoLines(a:line_num)
-
-  " Find all links in the joined text
-  let all_links = a:find_in_text_fn(joined_text, a:line_num)
-  let result_links = []
-
-  " Filter out links that don't belong to the current line
-  for link in all_links
-    " Check if link starts within the current line
-    if s:linkStartsInCurrentLine(link.start_col, lengths)
-      let adjusted_link = s:adjustLinkInfo(link, a:line_num, lengths)
-      call add(result_links, adjusted_link)
-    endif
-  endfor
-
-  return result_links
-endfunction
-
-function! s:findReferenceDefsInLine(line_num)
-  " Find reference definition in the given line
-  let pattern = '^\s*\[\([^\]]\+\)\]:\s*\(\S\+\)'
-  let match = matchlist(getline(a:line_num), pattern)
-
-  " Build reference definition info if found
-  if !empty(match)
-    let reference = match[1]
-    let target = match[2]
-
-    let target_end = len(match[0])
-    let target_start = target_end - len(target) + 1
-    return {
-          \ 'type': 'reference_definition',
-          \ 'line_num': a:line_num,
-          \ 'reference': reference,
-          \ 'target': target,
-          \ 'target_start_col': target_start,
-          \ 'target_end_col': target_end
-          \ }
-  endif
-  return {}
 endfunction
 
 " 2}}}

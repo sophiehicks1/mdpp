@@ -536,7 +536,6 @@ function! s:test_add_footnote_reference_middle_of_line()
   call test#framework#assert_equal('Start[^3] middle end', result, "Should insert before column 6")
 endfunction
 
-" FIXME make sure these tests are fixed
 " Test adding footnote definition
 function! s:test_add_footnote_definition()
   call test#framework#write_info("Testing md#footnotes#addFootnoteDefinition...")

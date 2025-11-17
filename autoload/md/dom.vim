@@ -15,10 +15,6 @@
 " refreshing the document tree any time it's possible the buffer content may   "
 " have changed.                                                                "
 "                                                                              "
-" It takes about 0.24s to fully parse a 10k line file with 740 headings in it, "
-" so any reasonable file should complete fast enough that it's not a           "
-" significant delay.                                                           "
-"                                                                              "
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
