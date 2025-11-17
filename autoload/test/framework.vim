@@ -45,6 +45,18 @@ function! test#framework#assert_equal(expected, actual, message)
   endif
 endfunction
 
+function! test#framework#assert_not_equal(not_expected, actual, message)
+  if a:not_expected == a:actual
+    call s:write_output("FAIL: " . a:message)
+    call s:write_output("Not Expected: " . string(a:not_expected))
+    call s:write_output("Actual: " . string(a:actual))
+    let s:test_failures = s:test_failures + 1
+  else
+    call s:write_output("PASS: " . a:message)
+    let s:test_passes = s:test_passes + 1
+  endif
+endfunction
+
 function! test#framework#assert_true(condition, message)
   if !a:condition
     call s:write_output("FAIL: " . a:message)
