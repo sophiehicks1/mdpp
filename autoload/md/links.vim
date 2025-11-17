@@ -623,16 +623,6 @@ function! s:stripStructuralMarkers(line)
   return [stripped, num_spaces + marker_len]
 endfunction
 
-" Helper function to determine if a position in joined text belongs to the target line
-" pos is 0-indexed position in joined text
-" lengths is the dict returned by s:joinThreeLines
-" Returns: 1 if position is in current line, 0 otherwise
-function! s:isInTargetLine(pos, lengths)
-  let prev_len = a:lengths['stripped_lengths'][0]
-  let curr_len = a:lengths['stripped_lengths'][1]
-  return a:pos >= prev_len && a:pos < prev_len + curr_len
-endfunction
-
 " Helper function to check if a link (defined by start and end positions in joined text)
 " touches the target line
 " lengths is the dict returned by s:joinThreeLines
