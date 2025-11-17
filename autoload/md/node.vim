@@ -17,34 +17,23 @@
 " Functions to build the DOM. This is the data structure that's exposed to the
 " other modules
 
-" scan the lines in a document to build the tree, and store it in buffer state.
-
-" TODO for later
+" TODO for later {{{
 " - currently this mixes two code styles (short fns that do one thing, and
-"   longer procedures). Standardize on shorter functions that do one thing.
-" - currently this rescans the entire buffer every time we find a reference
-"   link. We should pull reference defs out during the first pass, and then
-"   combine defns with links later.
+"   longer end-to-end procedures). Standardize on shorter functions that do one thing.
 " - currently this scans the entire next line every time, even if there are no
 "   open links at the end of the first line. We should optimize this to stop
 "   scanning if there are no open links at the end of the first line.
+" - currently this scans each line for each link type separately, but we could
+"   probably avoid some redundant scanning by scanning for all link types in one pass 
 " - Probably worth a refactor once this is done... might be worth rethinking
 "   the dom/node/heading/link module structure
 " - add something to only actually rebuild the dom if the document has
 "   changed
-
-
-function! s:headingLevelForNode(lnum)
-  " lnum == 0 means it's the root node, so it has -1 heading level (i.e. it
-  " can parent anything)
-  if a:lnum == 0
-    return -1
-  endif
-  return md#line#headingLevel(a:lnum)
-endfunction
+" }}}
 
 " Tree/Node Construction API {{{
 
+" TODO this operates at multiple levels of abstraction... refactor
 " Construct a tree of nodes, to represent markdown document structure.
 function! md#node#buildTree()
   " The root node and it's children represent the entire document. By
@@ -55,17 +44,36 @@ function! md#node#buildTree()
   let nodes = [root]
   let lastNode = root
   let links = []
-  let refs = []
+  let refs = {}
   " add the lines to the tree one by one
   for lnum in range(1, line('$'))
+    let ref_info = s:findReferenceDefsInLine(lnum)
+    if !empty(ref_info)
+      if !has_key(refs, ref_info.reference)
+        let refs[ref_info.reference] = ref_info
+      else
+        echoerr "Duplicate reference definition found for reference " . ref_info.reference
+      endif
+      continue
+    endif
     let [nodes, lastNode] = s:addLineToHeadingTree(lnum, nodes, lastNode)
-    let links += s:findWikiLinksInLine(lnum)
-    let links += s:findInlineLinksInLine(lnum)
-    let links += s:findReferenceLinksInLine(lnum)
+    let links += s:genericFindLinksInLine(function('<SID>findWikiLinksInText'), lnum)
+    let links += s:genericFindLinksInLine(function('<SID>findInlineLinksInText'), lnum)
+    let links += s:genericFindLinksInLine(function('<SID>findReferenceLinksInText'), lnum)
   endfor
-  " return just the tree itself, since the rest of the state was only needed
-  " for construction
-  return { 'root': root, 'nodes': nodes , 'links': links }
+  " now that we have all the reference definitions, update the reference links
+  " to include target information
+  for link in links
+    if link.type == 'reference' && has_key(refs, link.reference)
+      let ref_info = refs[link.reference]
+      let link.target = ref_info.target
+      let link.target_start_line = ref_info.line_num
+      let link.target_end_line = ref_info.line_num
+      let link.target_start_col = ref_info.target_start_col
+      let link.target_end_col = ref_info.target_end_col
+    endif
+  endfor
+  return { 'root': root, 'nodes': nodes , 'links': links, 'refs': refs}
 endfunction
 
 " }}}
@@ -124,6 +132,15 @@ function! s:newNode(id, lnum)
         \ 'children': [],
         \ 'lnums': [a:lnum]
         \ }
+endfunction
+
+function! s:headingLevelForNode(lnum)
+  " lnum == 0 means it's the root node, so it has -1 heading level (i.e. it
+  " can parent anything)
+  if a:lnum == 0
+    return -1
+  endif
+  return md#line#headingLevel(a:lnum)
 endfunction
 
 " Wire a parent and child to each other during construction
@@ -313,14 +330,11 @@ function! s:findReferenceLinksInText(text, temp_line_num)
       let reference = text
     endif
 
-    " Find the reference definition
-    let ref_info = s:findReferenceDefinitionInfo(reference)
-
     let link_info = {
           \ 'type': 'reference',
           \ 'text': text,
           \ 'reference': reference,
-          \ 'target': get(ref_info, 'target', ''),
+          \ 'target': '',
           \ 'line_num': a:temp_line_num,
           \ 'start_col': bracket_start + 1,
           \ 'end_col': ref_end + 1,
@@ -328,10 +342,10 @@ function! s:findReferenceLinksInText(text, temp_line_num)
           \ 'text_end_col': bracket_end,
           \ 'full_start_col': bracket_start + 1,
           \ 'full_end_col': ref_end + 1,
-          \ 'target_start_line': get(ref_info, 'line_num', -1),
-          \ 'target_end_line': get(ref_info, 'line_num', -1),
-          \ 'target_start_col': get(ref_info, 'target_start_col', -1),
-          \ 'target_end_col': get(ref_info, 'target_end_col', -1),
+          \ 'target_start_line': -1,
+          \ 'target_end_line': -1,
+          \ 'target_start_col': -1,
+          \ 'target_end_col': -1,
           \ }
 
     call add(links, link_info)
@@ -343,14 +357,13 @@ endfunction
 
 " 2}}}
 
-" s:find___LinksInLine {{{2
+" s:find___InLine {{{2
 
 function! s:genericFindLinksInLine(find_in_text_fn, line_num)
   " Join current line with next line to handle multi-line links
   let [joined_text, lengths] = s:joinTwoLines(a:line_num)
 
   " Find all links in the joined text
-  " TODO this is going to reference private functions... move them here / make them public
   let all_links = a:find_in_text_fn(joined_text, a:line_num)
   let result_links = []
 
@@ -366,17 +379,26 @@ function! s:genericFindLinksInLine(find_in_text_fn, line_num)
   return result_links
 endfunction
 
-function! s:findWikiLinksInLine(line_num)
-  return s:genericFindLinksInLine(function('<SID>findWikiLinksInText'), a:line_num)
-endfunction
+function! s:findReferenceDefsInLine(line_num)
+  let pattern = '^\s*\[\([^\]]\+\)\]:\s*\(\S\+\)'
+  let line_content = getline(a:line_num)
+  let match = matchlist(line_content, pattern)
+  if !empty(match)
+    let reference = match[1]
+    let target = match[2]
 
-function! s:findInlineLinksInLine(line_num)
-  return s:genericFindLinksInLine(function('<SID>findInlineLinksInText'), a:line_num)
-endfunction
-
-" TODO
-function! s:findReferenceLinksInLine(line_num)
-  return s:genericFindLinksInLine(function('<SID>findReferenceLinksInText'), a:line_num)
+    let target_end = len(match[0])
+    let target_start = target_end - len(target) + 1
+    return {
+          \ 'type': 'reference_definition',
+          \ 'line_num': a:line_num,
+          \ 'reference': reference,
+          \ 'target': target,
+          \ 'target_start_col': target_start,
+          \ 'target_end_col': target_end
+          \ }
+  endif
+  return {}
 endfunction
 
 " 2}}}
@@ -565,64 +587,6 @@ endfunction
 
 " 2}}}
 
-" Reference definition stuff {{{2
-
-" make a regex pattern to find a reference definition line. Reference should
-" either be a reference id (e.g. 'foo' to find the reference definition for
-" `[this link][foo]`) or an empty string to find any/all reference definitions)
-"
-" In both cases, the reference ID will be captured in the first group, and the
-" target will be captured in the second.
-function! s:makeReferencePattern(reference)
-  let reference = escape(a:reference, '[]')
-  if empty(reference)
-    let reference = '[^\]]\+'
-  endif
-  return '^\s*\[\(' . reference . '\)\]:\s*\(\S\+\)'
-endfunction
-
-" Extract reference definition info from a specific line number
-" Returns reference definition info dict or {} if none found
-"
-" The 'reference' argument is the reference ID to look for, or empty string
-" to match any reference definition on that line.
-function! s:extractReferenceFromLine(line_num, reference)
-  let pattern = s:makeReferencePattern(a:reference)
-  let line_content = getline(a:line_num)
-  let match = matchlist(line_content, pattern)
-  if !empty(match)
-    let reference = match[1]
-    let target = match[2]
-
-    let target_end = len(match[0])
-    let target_start = target_end - len(target) + 1
-    return {
-          \ 'type': 'reference_definition',
-          \ 'line_num': a:line_num,
-          \ 'reference': reference,
-          \ 'target': target,
-          \ 'target_start_col': target_start,
-          \ 'target_end_col': target_end
-          \ }
-  endif
-  return {}
-endfunction
-
-function! s:findReferenceDefinitionInfo(reference)
-  let line_num = 1
-  let last_line = line('$')
-  while line_num <= last_line
-    let reference_info = s:extractReferenceFromLine(line_num, a:reference)
-    if !empty(reference_info)
-      return reference_info
-    endif
-    let line_num += 1
-  endwhile
-  return {}
-endfunction
-
-" 2}}}
-
 " 1}}}
 
 " Getters {{{
@@ -644,6 +608,11 @@ function! md#node#headingLnum(node)
     return a:node.lnums[0]
   end
   return -1
+endfunction
+
+" return the start and end line numbers for this link.
+function! md#node#linkLnums(link)
+  return [a:link.line_num, a:link.end_line]
 endfunction
 
 function! s:addNodeRecursive(acc, node)

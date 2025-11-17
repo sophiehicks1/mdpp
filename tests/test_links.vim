@@ -141,15 +141,15 @@ function! s:test_multipleLinksOnLine()
   endif
 endfunction
 
-" Test md#links#findInlineLinksInLine function
+" Test md#links#testfns#findInlineLinksInLine function
 function! s:test_findInlineLinksInLine()
   call test#framework#write_info("")
-  call test#framework#write_info("Testing md#links#findInlineLinksInLine...")
+  call test#framework#write_info("Testing md#links#testfns#findInlineLinksInLine...")
   
   call s:setup_test_buffer()
   
   " Test 1: Simple inline link on line 7
-  let links = md#links#findInlineLinksInLine(7)
+  let links = md#links#testfns#findInlineLinksInLine(7)
   call test#framework#assert_equal(1, len(links), "Should find one inline link on line 7")
   if len(links) > 0
     call test#framework#assert_equal('inline', links[0].type, "Link should be inline type")
@@ -158,7 +158,7 @@ function! s:test_findInlineLinksInLine()
   endif
   
   " Test 2: Multiple links on same line (line 11)
-  let links = md#links#findInlineLinksInLine(11)
+  let links = md#links#testfns#findInlineLinksInLine(11)
   call test#framework#assert_equal(2, len(links), "Should find two inline links on line 11")
   if len(links) >= 2
     call test#framework#assert_equal('First', links[0].text, "First link text should be 'First'")
@@ -168,34 +168,34 @@ function! s:test_findInlineLinksInLine()
   endif
   
   " Test 3: Line with no inline links (reference link line)
-  let links = md#links#findInlineLinksInLine(15)
+  let links = md#links#testfns#findInlineLinksInLine(15)
   call test#framework#assert_equal(0, len(links), "Should find no inline links on reference link line")
   
   " Test 4: Line with nested brackets in text
   call test#framework#setup_buffer_from_file('links_edge_cases.md')
-  let links = md#links#findInlineLinksInLine(5)
+  let links = md#links#testfns#findInlineLinksInLine(5)
   call test#framework#assert_equal(1, len(links), "Should handle nested brackets in link text")
   if len(links) > 0
     call test#framework#assert_equal('Link with [[double]] nested brackets', links[0].text, "Should preserve nested brackets in text")
   endif
   
   " Test 5: Line with nested parentheses in target
-  let links = md#links#findInlineLinksInLine(6)
+  let links = md#links#testfns#findInlineLinksInLine(6)
   call test#framework#assert_equal(1, len(links), "Should handle nested parentheses in target")
   if len(links) > 0
     call test#framework#assert_equal('https://example.com/path(with)nested(parens)', links[0].target, "Should preserve nested parentheses in target")
   endif
 endfunction
 
-" Test md#links#findReferenceLinksInLine function
+" Test md#links#testfns#findReferenceLinksInLine function
 function! s:test_findReferenceLinksInLine()
   call test#framework#write_info("")
-  call test#framework#write_info("Testing md#links#findReferenceLinksInLine...")
+  call test#framework#write_info("Testing md#links#testfns#findReferenceLinksInLine...")
   
   call s:setup_test_buffer()
   
   " Test 1: Simple reference link on line 15
-  let links = md#links#findReferenceLinksInLine(15)
+  let links = md#links#testfns#findReferenceLinksInLine(15)
   call test#framework#assert_equal(1, len(links), "Should find one reference link on line 15")
   if len(links) > 0
     call test#framework#assert_equal('reference', links[0].type, "Link should be reference type")
@@ -204,7 +204,7 @@ function! s:test_findReferenceLinksInLine()
   endif
   
   " Test 2: Implicit reference link on line 16
-  let links = md#links#findReferenceLinksInLine(16)
+  let links = md#links#testfns#findReferenceLinksInLine(16)
   call test#framework#assert_equal(1, len(links), "Should find one implicit reference link on line 16")
   if len(links) > 0
     call test#framework#assert_equal('GitHub', links[0].text, "Link text should be 'GitHub'")
@@ -212,7 +212,7 @@ function! s:test_findReferenceLinksInLine()
   endif
   
   " Test 3: Multiple reference links on same line (line 19)
-  let links = md#links#findReferenceLinksInLine(19)
+  let links = md#links#testfns#findReferenceLinksInLine(19)
   call test#framework#assert_equal(2, len(links), "Should find two reference links on line 19")
   if len(links) >= 2
     call test#framework#assert_equal('GitHub', links[0].text, "First reference link text should be 'GitHub'")
@@ -220,12 +220,12 @@ function! s:test_findReferenceLinksInLine()
   endif
   
   " Test 4: Line with no reference links (inline link line)
-  let links = md#links#findReferenceLinksInLine(7)
+  let links = md#links#testfns#findReferenceLinksInLine(7)
   call test#framework#assert_equal(0, len(links), "Should find no reference links on inline link line")
   
   " Test 5: Reference to undefined reference
   call test#framework#setup_buffer_from_file('links_edge_cases.md')
-  let links = md#links#findReferenceLinksInLine(31)
+  let links = md#links#testfns#findReferenceLinksInLine(31)
   call test#framework#assert_equal(1, len(links), "Should find reference link even if undefined")
   if len(links) > 0
     call test#framework#assert_equal('Undefined Link', links[0].text, "Should get text correctly for undefined reference")
@@ -324,7 +324,7 @@ function! s:test_getLinkText()
   " Test 4: Link with empty text
   call test#framework#setup_buffer_from_file('links_edge_cases.md')
   call cursor(16, 5)  " Empty text link
-  let links = md#links#findInlineLinksInLine(line('.'))
+  let links = md#links#testfns#findInlineLinksInLine(line('.'))
   call test#framework#assert_equal(1, len(links), "Should find one link with empty text")
   if len(links) > 0
     let text = md#links#getLinkText(links[0])
@@ -364,7 +364,7 @@ function! s:test_getLinkTarget()
   
   " Test 4: Reference link with no definition
   call test#framework#setup_buffer_from_file('links_edge_cases.md')
-  let links = md#links#findReferenceLinksInLine(31)
+  let links = md#links#testfns#findReferenceLinksInLine(31)
   call test#framework#assert_equal(1, len(links), "Should find reference link even if undefined")
   if len(links) > 0
     let target = md#links#getLinkTarget(links[0])
@@ -499,11 +499,11 @@ function! s:test_edge_cases()
   call test#framework#assert_equal({}, link, "Should return empty dict when no links exist")
   
   " Test 2: findInlineLinksInLine with no links
-  let links = md#links#findInlineLinksInLine(1)
+  let links = md#links#testfns#findInlineLinksInLine(1)
   call test#framework#assert_equal(0, len(links), "Should return empty array when no inline links exist")
   
   " Test 3: findReferenceLinksInLine with no reference links
-  let links = md#links#findReferenceLinksInLine(1)
+  let links = md#links#testfns#findReferenceLinksInLine(1)
   call test#framework#assert_equal(0, len(links), "Should return empty array when no reference links exist")
   
   " Test with empty buffer
@@ -518,28 +518,28 @@ function! s:test_edge_cases()
   let link = md#links#findLinkAtPos(getpos('.'))
   call test#framework#assert_equal({}, link, "Should handle empty buffer gracefully")
   
-  let links = md#links#findInlineLinksInLine(1)
+  let links = md#links#testfns#findInlineLinksInLine(1)
   call test#framework#assert_equal(0, len(links), "Should handle empty line gracefully")
   
   " Test edge cases with malformed links
   call test#framework#setup_buffer_from_file('links_edge_cases.md')
   
   " Test 5: Malformed links should not be detected
-  let links = md#links#findInlineLinksInLine(10)
+  let links = md#links#testfns#findInlineLinksInLine(10)
   call test#framework#assert_equal(0, len(links), "Should not detect malformed links (missing bracket)")
   
-  let links = md#links#findInlineLinksInLine(11)
+  let links = md#links#testfns#findInlineLinksInLine(11)
   call test#framework#assert_equal(0, len(links), "Should not detect malformed links (missing paren)")
   
   " Test 6: Links with special characters
-  let links = md#links#findInlineLinksInLine(23)
+  let links = md#links#testfns#findInlineLinksInLine(23)
   call test#framework#assert_equal(1, len(links), "Should handle unicode characters in link text")
   if len(links) > 0
     call test#framework#assert_equal('Link with émojis 🔗', links[0].text, "Should preserve unicode in link text")
   endif
   
   " Test 7: Links with query parameters and fragments
-  let links = md#links#findInlineLinksInLine(24)
+  let links = md#links#testfns#findInlineLinksInLine(24)
   call test#framework#assert_equal(1, len(links), "Should handle special characters in target")
   if len(links) > 0
     call test#framework#assert_equal('https://example.com/path?query=value&other=true#fragment', links[0].target, "Should preserve special characters in target")
@@ -554,7 +554,7 @@ function! s:test_multiline_links()
   call test#framework#setup_buffer_from_file('multiline_links.md')
   
   " Test 1: Wiki link that wraps across lines (line 9-10)
-  let links = md#links#findWikiLinksInLine(9)
+  let links = md#links#testfns#findWikiLinksInLine(9)
   call test#framework#assert_equal(1, len(links), "Should find wiki link starting on line 9")
   if len(links) > 0
     call test#framework#assert_equal('wiki', links[0].type, "Should be wiki link type")
@@ -566,7 +566,7 @@ function! s:test_multiline_links()
   endif
   
   " Test 2: Same wiki link found from continuation line (line 10)
-  let links = md#links#findWikiLinksInLine(10)
+  let links = md#links#testfns#findWikiLinksInLine(10)
   call test#framework#assert_equal(1, len(links), "Should find wiki link from continuation line 10")
   if len(links) > 0
     call test#framework#assert_equal(9, links[0].line_num, "Should report original starting line")
@@ -577,7 +577,7 @@ function! s:test_multiline_links()
   endif
   
   " Test 3: Inline link with wrapped text (line 19-20)
-  let links = md#links#findInlineLinksInLine(19)
+  let links = md#links#testfns#findInlineLinksInLine(19)
   call test#framework#assert_equal(1, len(links), "Should find inline link with wrapped text on line 19")
   if len(links) > 0
     call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
@@ -590,7 +590,7 @@ function! s:test_multiline_links()
   endif
   
   " Test 4: Inline link found from text continuation line
-  let links = md#links#findInlineLinksInLine(20)
+  let links = md#links#testfns#findInlineLinksInLine(20)
   call test#framework#assert_equal(1, len(links), "Should find inline link from text continuation line")
   if len(links) > 0
     call test#framework#assert_equal(19, links[0].line_num, "Should report original starting line")
@@ -601,7 +601,7 @@ function! s:test_multiline_links()
   endif
   
   " Test 5: Reference link with wrapped text (line 36-37)
-  let links = md#links#findReferenceLinksInLine(36)
+  let links = md#links#testfns#findReferenceLinksInLine(36)
   call test#framework#assert_equal(1, len(links), "Should find reference link with wrapped text")
   if len(links) > 0
     call test#framework#assert_equal('reference', links[0].type, "Should be reference link type")
@@ -614,7 +614,7 @@ function! s:test_multiline_links()
   endif
   
   " Test 6: Reference link found from continuation line
-  let links = md#links#findReferenceLinksInLine(37)
+  let links = md#links#testfns#findReferenceLinksInLine(37)
   call test#framework#assert_equal(1, len(links), "Should find reference link from continuation line")
   if len(links) > 0
     " The text will be concatenated without newlines
@@ -653,15 +653,15 @@ function! s:test_multiline_links()
   call test#framework#assert_not_empty(link, "Should find inline link from text continuation line")
   
   " Test 11: Multiple wrapped links on adjacent lines (line 56-58)
-  let links = md#links#findInlineLinksInLine(56)
+  let links = md#links#testfns#findInlineLinksInLine(56)
   call test#framework#assert_equal(1, len(links), "Should find first wrapped link")
   
-  let links = md#links#findInlineLinksInLine(57)
+  let links = md#links#testfns#findInlineLinksInLine(57)
   call test#framework#assert_equal(2, len(links), "Should find both links (end of first, start of second)")
   
   " Test 12: Ensure we don't pick up links from unrelated lines
   " Line 7 has a simple wiki link
-  let links = md#links#findWikiLinksInLine(7)
+  let links = md#links#testfns#findWikiLinksInLine(7)
   call test#framework#assert_equal(1, len(links), "Should only find the single-line wiki link on line 7")
   if len(links) > 0
     call test#framework#assert_equal('simple wiki', links[0].text, "Should be the simple wiki link")
@@ -718,7 +718,7 @@ function! s:test_indented_wrapped_links()
   " Line 9: "    link]]"
   " The link text should be "relatively short\nlink" but when joined should become
   " "relatively short link" (single space, not multiple spaces from indentation)
-  let links = md#links#findWikiLinksInLine(8)
+  let links = md#links#testfns#findWikiLinksInLine(8)
   call test#framework#assert_equal(1, len(links), "Should find wiki link on line 8")
   if len(links) > 0
     call test#framework#assert_equal('wiki', links[0].type, "Should be wiki link type")
@@ -731,7 +731,7 @@ function! s:test_indented_wrapped_links()
   endif
   
   " Test 2: Same link found from continuation line
-  let links = md#links#findWikiLinksInLine(9)
+  let links = md#links#testfns#findWikiLinksInLine(9)
   call test#framework#assert_equal(1, len(links), "Should find same link from continuation line")
   if len(links) > 0
     call test#framework#assert_equal('relatively short link', links[0].text, 
@@ -740,7 +740,7 @@ function! s:test_indented_wrapped_links()
   endif
   
   " Test 3: Inline link in nested list (line 10-11)
-  let links = md#links#findInlineLinksInLine(10)
+  let links = md#links#testfns#findInlineLinksInLine(10)
   call test#framework#assert_equal(1, len(links), "Should find inline link on line 10")
   if len(links) > 0
     call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
@@ -752,7 +752,7 @@ function! s:test_indented_wrapped_links()
   endif
 
   " Test 3b: same link from continuation line
-  let links = md#links#findInlineLinksInLine(11)
+  let links = md#links#testfns#findInlineLinksInLine(11)
   call test#framework#assert_equal(1, len(links), "Should find inline link on line 11")
   if len(links) > 0
     call test#framework#assert_equal('inline', links[0].type, "Should be inline link type")
@@ -764,7 +764,7 @@ function! s:test_indented_wrapped_links()
   endif
   
   " Test 4: Deeply nested wiki link (line 17-18)
-  let links = md#links#findWikiLinksInLine(17)
+  let links = md#links#testfns#findWikiLinksInLine(17)
   call test#framework#assert_equal(1, len(links), "Should find deeply nested wiki link")
   if len(links) > 0
     call test#framework#assert_equal('deeply nested wrapped link', links[0].text,
@@ -773,7 +773,7 @@ function! s:test_indented_wrapped_links()
   endif
   
   " Test 5: Deeply nested inline link (line 19-20)
-  let links = md#links#findInlineLinksInLine(19)
+  let links = md#links#testfns#findInlineLinksInLine(19)
   call test#framework#assert_equal(1, len(links), "Should find deeply nested inline link")
   if len(links) > 0
     call test#framework#assert_equal('inline link that spans lines', links[0].text,
@@ -782,7 +782,7 @@ function! s:test_indented_wrapped_links()
   endif
   
   " Test 6: Wiki link in blockquote (line 24-25)
-  let links = md#links#findWikiLinksInLine(24)
+  let links = md#links#testfns#findWikiLinksInLine(24)
   call test#framework#assert_equal(1, len(links), "Should find wiki link in blockquote")
   if len(links) > 0
     call test#framework#assert_equal('wiki link that wraps', links[0].text,
@@ -791,7 +791,7 @@ function! s:test_indented_wrapped_links()
   endif
   
   " Test 7: Inline link in blockquote (line 27-28)
-  let links = md#links#findInlineLinksInLine(27)
+  let links = md#links#testfns#findInlineLinksInLine(27)
   call test#framework#assert_equal(1, len(links), "Should find inline link in blockquote")
   if len(links) > 0
     call test#framework#assert_equal('inline link that wraps', links[0].text,
@@ -800,7 +800,7 @@ function! s:test_indented_wrapped_links()
   endif
   
   " Test 8: Reference link in list (line 40-41)
-  let links = md#links#findReferenceLinksInLine(40)
+  let links = md#links#testfns#findReferenceLinksInLine(40)
   call test#framework#assert_equal(1, len(links), "Should find reference link in list")
   if len(links) > 0
     call test#framework#assert_equal('reference', links[0].type, "Should be reference link")
@@ -810,7 +810,7 @@ function! s:test_indented_wrapped_links()
   endif
   
   " Test 9: Reference link in nested list (line 42-43)
-  let links = md#links#findReferenceLinksInLine(42)
+  let links = md#links#testfns#findReferenceLinksInLine(42)
   call test#framework#assert_equal(1, len(links), "Should find reference link in nested list")
   if len(links) > 0
     call test#framework#assert_equal('another ref link', links[0].text,
@@ -839,7 +839,7 @@ function! s:test_indented_wrapped_links()
   endif
 
   " Test 12: Non indented wiki link (lines 50-51)
-  let links = md#links#findWikiLinksInLine(50)
+  let links = md#links#testfns#findWikiLinksInLine(50)
   call test#framework#assert_equal(1, len(links), "Should find wiki link on line 50")
   if len(links) > 0
     let link = links[0]
@@ -848,7 +848,7 @@ function! s:test_indented_wrapped_links()
   endif
 
   " Test 12b: Same link from next line
-  let links = md#links#findWikiLinksInLine(51)
+  let links = md#links#testfns#findWikiLinksInLine(51)
   call test#framework#assert_equal(1, len(links), "Should find wiki link on line 51")
   if len(links) > 0
     let link = links[0]
@@ -857,7 +857,7 @@ function! s:test_indented_wrapped_links()
   endif
 
   " Test 13: Non indented inline link (lines 53-54)
-  let links = md#links#findInlineLinksInLine(53)
+  let links = md#links#testfns#findInlineLinksInLine(53)
   call test#framework#assert_equal(1, len(links), "Should find inline link on line 53")
   if len(links) > 0
     let link = links[0]
@@ -866,7 +866,7 @@ function! s:test_indented_wrapped_links()
   endif
 
   " Test 13b: Same link from next line
-  let links = md#links#findInlineLinksInLine(54)
+  let links = md#links#testfns#findInlineLinksInLine(54)
   call test#framework#assert_equal(1, len(links), "Should find inline link on line 54")
   if len(links) > 0
     let link = links[0]
@@ -875,7 +875,7 @@ function! s:test_indented_wrapped_links()
   endif
 
   " Test 14: Non indented inline link (lines 56-57)
-  let links = md#links#findReferenceLinksInLine(56)
+  let links = md#links#testfns#findReferenceLinksInLine(56)
   call test#framework#assert_equal(1, len(links), "Should find reference link on line 56")
   if len(links) > 0
     let link = links[0]
@@ -884,7 +884,7 @@ function! s:test_indented_wrapped_links()
   endif
 
   " Test 14b: Same link from next line
-  let links = md#links#findReferenceLinksInLine(57)
+  let links = md#links#testfns#findReferenceLinksInLine(57)
   call test#framework#assert_equal(1, len(links), "Should find reference link on line 57")
   if len(links) > 0
     let link = links[0]

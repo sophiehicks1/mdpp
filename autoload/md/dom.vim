@@ -32,12 +32,14 @@ endfunction
 
 function! s:buildDom()
   let tree = md#node#buildTree()
-  let b:dom = { 'root': tree.root, 'allNodes': tree.nodes }
-  let b:dom.lnumsToNode = s:buildLnumIndex(b:dom.allNodes)
+  let b:dom = { 'root': tree.root, 'allNodes': tree.nodes, 'links': tree.links, 'refs': tree.refs }
+  let b:dom.lnumsToNode = s:buildLnumHeadingIndex(b:dom.allNodes)
+  let b:dom.lnumsToLinks = extend(s:buildLnumLinkIndex(b:dom.links),
+        \ s:buildLnumRefIndex(b:dom.refs, b:dom.links))
   return
 endfunction
 
-function! s:buildLnumIndex(nodes)
+function! s:buildLnumHeadingIndex(nodes)
   let lnumsToNode = {}
   " collect all the nodes from root
   for node in a:nodes
@@ -46,6 +48,86 @@ function! s:buildLnumIndex(nodes)
     endfor
   endfor
   return lnumsToNode
+endfunction
+
+function! s:safeAddLinkToLnumIndex(index, lnum, link)
+  let index = a:index
+  if !has_key(index, a:lnum)
+    let index[a:lnum] = []
+  endif
+  call add(index[a:lnum], a:link)
+  return index
+endfunction
+
+function! s:buildLnumLinkIndex(links)
+  let lnumsToLinks = {}
+  for link in a:links
+    let [start_line, end_line] = md#node#linkLnums(link)
+    let lnumsToLinks = s:safeAddLinkToLnumIndex(lnumsToLinks, start_line, link)
+    if start_line != end_line
+      let lnumsToLinks = s:safeAddLinkToLnumIndex(lnumsToLinks, end_line, link)
+    endif
+  endfor
+  return lnumsToLinks
+endfunction
+
+function! s:buildLnumRefIndex(refs, links)
+  let refDefLnumsToLinks = {}
+  " for each reference lnum, index the first matching link under that line
+  for ref in values(a:refs)
+    for link in a:links
+      if link.type =='reference' && link.reference == link.reference
+        let refDefLnumsToLinks = s:safeAddLinkToLnumIndex(refDefLnumsToLinks, ref.line_num, link)
+        break
+      endif
+    endfor
+  endfor
+  return refDefLnumsToLinks
+endfunction
+
+""""""""""""""""""""""""""""""
+" Link info fetching functions
+""""""""""""""""""""""""""""""
+
+" PUBLIC for testing
+function! md#dom#getLinksInLine(line)
+  let lnum = md#line#lineAsNum(a:line)
+  if !has_key(b:dom.lnumsToLinks, lnum)
+    return []
+  endif
+  return b:dom.lnumsToLinks[lnum]
+endfunction
+
+function! s:posInsideLink(line_num, col_num, link)
+  let link_start_before_pos = a:link.line_num < a:line_num
+        \ || a:link.line_num == a:line_num && a:link.start_col <= a:col_num
+  let link_end_after_pos = a:link.full_end_line > a:line_num
+        \ || a:link.full_end_line == a:line_num && a:link.end_col >= a:col_num
+  return link_start_before_pos && link_end_after_pos
+endfunction
+
+function! s:posInsideRefDef(line_num, col_num, link)
+  if a:link.type != 'reference'
+    return v:false
+  endif
+
+  let pos_on_reference_line = a:line_num == a:link.target_start_line
+  let ref_end_after_pos = a:link.target_end_col >= a:col_num
+  return pos_on_reference_line && ref_end_after_pos
+endfunction
+
+function! md#dom#findLinkAtPos(pos)
+  let line_num = a:pos[1]
+  let col_num = a:pos[2]
+
+  let links = md#dom#getLinksInLine(line_num)
+  for link in links
+    if s:posInsideLink(line_num, col_num, link) || s:posInsideRefDef(line_num, col_num, link)
+      return link
+    endif
+  endfor
+
+  return {}
 endfunction
 
 """""""""""""""""""""""""
