@@ -17,18 +17,27 @@
 " Functions to build the DOM. This is the data structure that's exposed to the
 " other modules
 
-" TODO for later {{{
+" TODO Next {{{
 " - currently this mixes two code styles (short fns that do one thing, and
 "   longer end-to-end procedures). Standardize on shorter functions that do one thing.
+" - Probably worth a refactor once this is done... might be worth rethinking
+"   the dom/node/heading/link module structure
+" - Update docs in this to match style for links
+" - currently link docs and link code are in different places, and it's not
+"   obvious what the right resolution for that is... make sure the link
+"   abstraction is encapsulated and the docs are in a sane place for it.
+" - change to use file providers
+" - add bash script that builds b:dom for a given set of files, and dumps it
+"   somewhere.
+" }}}
+"
+" TODO Later {{{
 " - currently this scans the entire next line every time, even if there are no
 "   open links at the end of the first line. We should optimize this to stop
 "   scanning if there are no open links at the end of the first line.
 " - currently this scans each line for each link type separately, but we could
 "   probably avoid some redundant scanning by scanning for all link types in one pass 
-" - Probably worth a refactor once this is done... might be worth rethinking
-"   the dom/node/heading/link module structure
-" - add something to only actually rebuild the dom if the document has
-"   changed
+" - add something to only rebuild the dom if the document has changed
 " }}}
 
 " Tree/Node Construction API {{{
