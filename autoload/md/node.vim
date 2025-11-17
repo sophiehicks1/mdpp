@@ -13,23 +13,45 @@
 "         this node is shown. These line numbers include the heading line, and
 "         any content lines, but not the children's headings or content (since
 "         those nodes are included directly)
+"
+"
+" Markdown link info structure:
+" {
+"   'type': 'wiki' | 'inline' | 'reference' | 'reference_definition',
+"   'line_num': <line number where link starts>,
+"   'end_line': <line number where link ends>,
+"   'start_col': <1-indexed column where link starts>,
+"   'end_col': <1-indexed column where link ends>,
+"   'text': <display text of the link>,
+"   'text_start_line': <line number where link text starts>,
+"   'text_end_line': <line number where link text ends>,
+"   'text_start_col': <1-indexed column where link text starts>,
+"   'text_end_col': <1-indexed column where link text ends>,
+"   'target': <target of the link>,
+"   'target_start_line': <line number where link target starts>,
+"   'target_end_line': <line number where link target ends>,
+"   'target_start_col': <1-indexed column where link target starts>,
+"   'target_end_col': <1-indexed column where link target ends>,
+"   'full_start_line': <line number where full link starts>,
+"   'full_end_line': <line number where full link ends>,
+"   'full_start_col': <1-indexed column where full link starts>,
+"   'full_end_col': <1-indexed column where full link ends>
+" }
+"
+" All these fields are always present, although reference-style links may have
+" target set to empty string or target-related lines/cols set to -1 if no
+" reference definition is found.
 
 " Functions to build the DOM. This is the data structure that's exposed to the
 " other modules
 
 " TODO Next {{{
-" - Probably worth a refactor once this is done... might be worth rethinking
-"   the dom/node/heading/link module structure
-" - Update docs in this to match style for links
-" - currently link docs and link code are in different places, and it's not
-"   obvious what the right resolution for that is... make sure the link
-"   abstraction is encapsulated and the docs are in a sane place for it.
 " - change to use file providers
 " - add bash script that builds b:dom for a given set of files, and dumps it
 "   somewhere.
 " }}}
 "
-" TODO Later {{{
+" TODO Optimizations {{{
 " - currently this scans the entire next line every time, even if there are no
 "   open links at the end of the first line. We should optimize this to stop
 "   scanning if there are no open links at the end of the first line.

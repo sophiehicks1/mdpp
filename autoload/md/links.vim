@@ -2,32 +2,8 @@
 " Functions for parsing and handling markdown links
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" Markdown link info structure:
-" {
-"   'type': 'wiki' | 'inline' | 'reference' | 'reference_definition',
-"   'line_num': <line number where link starts>,
-"   'end_line': <line number where link ends>,
-"   'start_col': <1-indexed column where link starts>,
-"   'end_col': <1-indexed column where link ends>,
-"   'text': <display text of the link>,
-"   'text_start_line': <line number where link text starts>,
-"   'text_end_line': <line number where link text ends>,
-"   'text_start_col': <1-indexed column where link text starts>,
-"   'text_end_col': <1-indexed column where link text ends>,
-"   'target': <target of the link>,
-"   'target_start_line': <line number where link target starts>,
-"   'target_end_line': <line number where link target ends>,
-"   'target_start_col': <1-indexed column where link target starts>,
-"   'target_end_col': <1-indexed column where link target ends>,
-"   'full_start_line': <line number where full link starts>,
-"   'full_end_line': <line number where full link ends>,
-"   'full_start_col': <1-indexed column where full link starts>,
-"   'full_end_col': <1-indexed column where full link ends>
-" }
-"
-" All these fields are always present, although reference-style links may have
-" target set to empty string or target-related lines/cols set to -1 if no
-" reference definition is found.
+" See autoload/md/dom.vim for link parsing implementation, and link data
+" structure
 
 " Find the link that contains the given position
 " Returns a dictionary with link information or {} if no link found
