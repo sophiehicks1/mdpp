@@ -1,3 +1,9 @@
+if !exists('g:loaded_mdpp')
+  let g:loaded_mdpp = 1
+else
+  finish
+endif
+
 if exists('g:mdpp_text_objects') && g:mdpp_text_objects == 0
   " Skip text objects
 else
