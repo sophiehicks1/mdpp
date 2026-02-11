@@ -32,3 +32,10 @@ Reference to undefined: [Undefined Link][nonexistent]
 Self-referencing: [self][self]
 
 [self]: https://example.com/self
+
+
+## Footnote edge cases
+
+Links in footnotes[^1] should work
+
+[^1]: see [[this example]]

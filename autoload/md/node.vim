@@ -226,7 +226,7 @@ endfunction
 
 function! s:findReferenceDefsInLine(line_num)
   " Find reference definition in the given line
-  let pattern = '^\s*\[\([^\]]\+\)\]:\s*\(\S\+\)'
+  let pattern = '^\s*\[\([^^\]]\+\)\]:\s*\(\S\+\)'
   let match = matchlist(getline(a:line_num), pattern)
 
   " Build reference definition info if found

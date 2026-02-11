@@ -185,6 +185,13 @@ function! s:test_findInlineLinksInLine()
   if len(links) > 0
     call test#framework#assert_equal('https://example.com/path(with)nested(parens)', links[0].target, "Should preserve nested parentheses in target")
   endif
+
+  " Test 6: link in footnote
+  let links = md#links#testfns#findWikiLinksInLine(41)
+  call test#framework#assert_equal(1, len(links), "Should find wiki links inside a footnote")
+  if len(links) > 0
+    call test#framework#assert_equal('this example', links[0].target, "Should find url")
+  endif
 endfunction
 
 " Test md#links#testfns#findReferenceLinksInLine function
